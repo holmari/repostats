@@ -1,0 +1,60 @@
+{
+  "name": "client",
+  "version": "0.1.0",
+  "description": "Analyze commit, repository and review data.",
+  "repository": "https://github.com/holmari/github-gerritstats",
+  "author": "Lasse Holmstedt",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "@types/classnames": "^2.2.11",
+    "@types/jest": "24.0.20",
+    "@types/node": "12.11.7",
+    "@types/react": "^17.0.0",
+    "@types/react-dom": "16.9.3",
+    "@types/react-router": "^5.1.2",
+    "@types/react-router-dom": "^5.1.0",
+    "bootstrap": "^4.5.3",
+    "classnames": "^2.2.6",
+    "d3": "^6.5.0",
+    "luxon": "^1.25.0",
+    "react": "^16.11.0",
+    "react-bootstrap": "^1.0.0-beta.14",
+    "react-datepicker": "^3.4.1",
+    "react-dom": "^16.11.0",
+    "react-router": "^5.1.2",
+    "react-router-dom": "^5.1.2",
+    "react-scripts": "4.0.1",
+    "react-table": "^7.6.3",
+    "typescript": "4.1.2",
+    "uuid": "^8.3.2"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": "react-app"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@types/d3": "^6.3.0",
+    "@types/luxon": "^1.25.1",
+    "@types/react-datepicker": "^3.1.3",
+    "@types/react-table": "^7.0.28",
+    "@types/uuid": "^8.3.0"
+  }
+}

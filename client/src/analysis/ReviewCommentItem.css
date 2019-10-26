@@ -1,0 +1,26 @@
+.ReviewCommentItem {
+  padding-top: 4px;
+  padding-bottom: 16px;
+}
+
+.ReviewCommentItem__header {
+  font-size: 13px;
+  display: flex;
+}
+
+.ReviewCommentItem__header-title {
+  flex: 1;
+}
+
+.ReviewCommentItem__header a {
+  font-weight: bold;
+}
+
+.ReviewCommentItem__header-timestamp {
+  color: #999999;
+  font-size: 12px;
+}
+
+.ReviewCommentItem__text {
+  font-size: 12px;
+}

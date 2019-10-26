@@ -1,0 +1,38 @@
+html {
+  height: 100%;
+  font-size: 75%;
+}
+body {
+  height: 100%;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
+    'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+h1 {
+  font-family: 'Gill Sans', 'Gill Sans MT', Calibri, sans-serif;
+}
+
+h4 {
+  font-family: 'Gill Sans', 'Gill Sans MT', Calibri, sans-serif;
+}
+
+#root {
+  height: 100%;
+}
+
+fieldset:not(:last-child) {
+  margin-bottom: 16px;
+}
+
+fieldset legend {
+  font-weight: bold;
+  font-size: 12px;
+  margin-bottom: 0px;
+}

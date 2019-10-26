@@ -1,0 +1,52 @@
+.App {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: #f4f4f4;
+}
+
+.App nav {
+  background-color: #303138;
+  display: flex;
+  font-family: 'Gill Sans', 'Gill Sans MT', Calibri, sans-serif;
+  font-size: 16px;
+}
+
+.App main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+.App__nav-content {
+  display: flex;
+  flex: 1;
+}
+
+.App__nav-content a {
+  color: #f4f4f4;
+  display: block;
+  height: 100%;
+  padding: 8px 16px;
+  text-align: center;
+}
+
+.App__nav-content a:hover {
+  background-color: #404148;
+  color: #f4f4f4;
+  text-decoration: none;
+}
+
+.App__nav-link--active {
+  background-color: #505158;
+}
+
+.App__nav-link--active a:hover {
+  background-color: #404148;
+}
+
+.App__nav-spacer {
+  flex: 1;
+  height: 100%;
+}

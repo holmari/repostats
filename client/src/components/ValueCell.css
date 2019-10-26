@@ -1,0 +1,55 @@
+.ValueCell {
+  display: inline-block;
+  margin-left: 6px;
+  margin-right: 6px;
+  margin-bottom: 14px;
+  border-style: solid;
+  height: 100px;
+  border-width: 1px 1px 1px 1px;
+  border-color: #f1f1f1;
+  width: calc(50% - 12px);
+  overflow: hidden;
+  min-width: 100px;
+  font-family: 'Gill Sans', 'Gill Sans MT', Calibri, sans-serif;
+  font-size: 34px;
+  font-weight: 200;
+  position: relative;
+}
+
+.ValueCell.wide {
+  width: 75%;
+}
+
+.ValueCell.x-wide {
+  width: 100%;
+}
+
+.ValueCell__value {
+  padding-left: 0.4em;
+  padding-right: 0.4em;
+  padding-top: 0.4em;
+  padding-bottom: 0.4em;
+  text-align: center;
+}
+
+.ValueCell__title {
+  background-color: #f8f8f8;
+  border-style: solid;
+  border-width: 1px 0px 0px 1px;
+  border-color: #ebebeb;
+  text-align: right;
+  padding-left: 0.4em;
+  padding-right: 0.4em;
+  font-size: 12px;
+  color: #999999;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  position: absolute;
+  right: 0;
+  bottom: 0;
+}
+
+.ValueCell.font-size-small .ValueCell__value {
+  padding-top: 0.8em;
+  font-size: 24px;
+}

@@ -1,0 +1,27 @@
+.EmptyContentView {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.EmptyContentView h4 {
+  margin-bottom: 24px;
+}
+
+.EmptyContentView button {
+  margin-top: 24px;
+}
+
+.EmptyContentView__centered-horizontal {
+  flex: 1;
+  display: flex;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.EmptyContentView__centered-vertical {
+  margin-top: auto;
+  margin-bottom: auto;
+  text-align: center;
+  max-width: 400px;
+}

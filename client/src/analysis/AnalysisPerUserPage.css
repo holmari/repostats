@@ -1,0 +1,24 @@
+.AnalysisPerUserPage {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.AnalysisPerUserPage__sidebar {
+  width: 160px;
+}
+
+.AnalysisPerUserPage__content-area {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.AnalysisPerUserPage__sidebar-item {
+  padding-left: 16px;
+  padding-right: 16px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  cursor: pointer;
+  user-select: none;
+}

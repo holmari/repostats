@@ -1,0 +1,20 @@
+.PopoverSelectionList {
+  height: 300px;
+  min-width: 100px;
+}
+
+.PopoverSelectionList__item {
+  align-items: center;
+  display: flex;
+  padding: 6px 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.PopoverSelectionList__item--checkbox {
+  margin-right: 8px;
+}
+
+.PopoverSelectionList__item:hover {
+  background-color: #efefef;
+}

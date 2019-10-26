@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"path": "/Users/holmsted/dev/github-gerritstats"
+		}
+	],
+	"settings": {
+		"javascript.preferences.importModuleSpecifier": "relative",
+		"javascript.preferences.quoteStyle": "single",
+		"typescript.preferences.quoteStyle": "single"
+	}
+}

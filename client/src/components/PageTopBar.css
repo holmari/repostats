@@ -1,0 +1,33 @@
+.PageTopBar {
+  align-items: center;
+  background-color: #505158;
+  color: #f4f4f4;
+  display: flex;
+  border-bottom: 1px solid #ddd;
+  font-family: 'Gill Sans', 'Gill Sans MT', Calibri, sans-serif;
+  font-size: 12px;
+  height: 51px;
+}
+
+.PageTopBar .btn {
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+.PageTopBar__left-content {
+  flex: 1;
+  display: flex;
+  margin-left: 8px;
+}
+
+.PageTopBar__left-content > div:not(:first-child) {
+  margin-left: 8px;
+}
+
+.PageTopBar__right-content > button {
+  margin-left: 8px;
+}
+
+.PageTopBar__right-content {
+  margin-right: 8px;
+}

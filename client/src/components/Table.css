@@ -1,0 +1,31 @@
+.Table th {
+  font-family: 'Gill Sans', 'Gill Sans MT', Calibri, sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+}
+
+.Table th {
+  border-bottom: 2px solid #ddd;
+  color: #444444;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  user-select: none;
+}
+
+.Table__sort-arrow {
+  color: #666;
+  font-size: 8px;
+  padding-left: 8px;
+}
+
+.Table th:hover {
+  color: #222222;
+}
+
+.Table td {
+  padding: 8px;
+}
+
+.Table tbody tr:nth-of-type(odd) {
+  background-color: #f9f9f9;
+}

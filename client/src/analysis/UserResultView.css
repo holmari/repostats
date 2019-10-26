@@ -1,0 +1,17 @@
+.UserResultView {
+  overflow: auto;
+  flex: 1;
+  padding: 16px;
+}
+
+.UserResultView__row {
+  display: flex;
+}
+
+.UserResultView__row .Panel:not(:last-child) {
+  margin-right: 8px;
+}
+
+.UserResultView .Panel {
+  margin-bottom: 8px;
+}
