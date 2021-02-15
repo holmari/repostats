@@ -355,7 +355,7 @@ export interface Comment {
   readonly original_position: number;
   readonly commit_id: string;
   readonly original_commit_id: string;
-  readonly user: User;
+  readonly user: User | null;
   readonly body: string;
   readonly created_at: string;
   readonly updated_at: string;

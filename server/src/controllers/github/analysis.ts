@@ -79,7 +79,7 @@ function createUserResult(user: User, repoConfig: RepoConfig): IntermediateUserR
 }
 
 function toReviewComment(comment: Comment, pull: PullRequest | null): ReviewComment | null {
-  if (!comment.body || !pull) {
+  if (!comment.body || !pull || !comment.user) {
     return null;
   }
 
@@ -214,9 +214,15 @@ function getReviewersFromPullRequest(
   pull: PullRequest,
   teamMembersBySlug: TeamMembersBySlug
 ): ReadonlyArray<User> {
-  const userHandles = (pull.requested_reviewers || []).map((user) => user.login);
+  const userHandles = (pull.requested_reviewers || []).map((user) => {
+    if (!user) {
+      console.log(`${pull.number}`);
+    }
+    return user.login;
+  });
+
   const requestedUsersInTeams = (pull.requested_teams || [])
-    .flatMap((team) => teamMembersBySlug[team.slug])
+    .flatMap((team) => teamMembersBySlug[team.slug] || [])
     // skip users in teams that were included explicitly
     .filter((user) => !userHandles.includes(user.login));
 
@@ -451,7 +457,7 @@ function processComments(context: GithubComputeContext) {
   const comments = iterEachFile<Comment>(getGithubCommentsPath(context.repoConfig));
   for (const [comment] of comments) {
     const commentInterval = createInterval(comment.created_at, comment.updated_at);
-    if (!context.matchesDateFilter(commentInterval)) {
+    if (!context.matchesDateFilter(commentInterval) || !comment.user) {
       continue;
     }
 
