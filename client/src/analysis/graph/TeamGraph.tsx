@@ -61,7 +61,10 @@ function getUserCommitCount(userResult: UserResult): number {
 
 function getNodeRadius(node: GraphNode, medianCommitCount: number): number {
   if (medianCommitCount > 0) {
-    return 3 + 2 * Math.sqrt(getUserCommitCount(node.userResult) / medianCommitCount);
+    return Math.max(
+      3,
+      Math.min(20, 2 * Math.sqrt(getUserCommitCount(node.userResult) / medianCommitCount))
+    );
   } else {
     return 3;
   }
