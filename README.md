@@ -93,6 +93,26 @@ GerritStats had a lot of ugly hacks in how the frontend worked, and the backend 
 SSH connector, instead of Gerrit's REST API, which (of course) has different interface than
 the SSH-based API.
 
-```
+## Screenshots
 
-```
+To set up a repository, all you need is the GitHub URL,
+![Set up a repository by pasting the GitHub URL](doc/setup-1.png)
+
+You also need the GitHub OAuth token, which any GitHub user can acquire:
+![Set up a repository by adding the GitHub OAuth token](doc/setup-2.png)
+
+Once you have set up the repository, you can download the data:
+![Download data of a repository to prepare for analysis](doc/setup-3.png)
+
+After loading the data, you can trigger computations that allow e.g. seeing graphs illustrating
+how the authors communicate with each other. This one is for a relatively small repository,
+where two separate teams have formed:
+![Small team graph](doc/team-graph-1.png)
+
+This is a team graph for a large repository with one large team that communicates heavily
+with each other:
+![Large team graph](doc/team-graph-2.png)
+
+The core of the tool is the user analysis tool which provides a multitude of statistics about
+a given user:
+![User analysis page](doc/user-analysis.png)
