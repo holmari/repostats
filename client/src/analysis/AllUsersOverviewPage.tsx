@@ -5,6 +5,7 @@ import React, {useMemo} from 'react';
 import {AnalyzeResult, UserResult} from 'types/types';
 import Panel from 'components/Panel';
 import Table, {SortableColumn} from 'components/Table';
+import {formatIsoDate} from 'date/utils';
 
 const sum = (acc: number, item: number) => acc + item;
 
@@ -61,12 +62,12 @@ const columns: ReadonlyArray<SortableColumn<UserResult>> = [
   },
   {
     Header: 'First Seen',
-    accessor: (row) => row.interval?.startDate || 'Unknown',
+    accessor: (row) => formatIsoDate(row.interval?.startDate),
     maxWidth: 100,
   },
   {
     Header: 'Last Seen',
-    accessor: (row) => row.interval?.endDate || 'Unknown',
+    accessor: (row) => formatIsoDate(row.interval?.endDate),
     maxWidth: 100,
   },
   {

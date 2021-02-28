@@ -1,8 +1,8 @@
 import {DateTime, DurationUnit} from 'luxon';
 import {DateInterval} from 'types/types';
 
-export function formatIsoDate(date: string) {
-  if (DateTime.fromISO(date).toMillis() === 0) {
+export function formatIsoDate(date: string | undefined) {
+  if (!date || DateTime.fromISO(date).toMillis() === 0) {
     return 'Unknown';
   }
 
