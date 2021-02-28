@@ -11,10 +11,12 @@ import {
   getGithubTeamPath,
   getGithubTeamMemberPath,
   getGithubCommitPath,
+  getGithubPullsPath,
 } from './github/paths';
 import {
   getDownloadedCommentIds,
   getDownloadedPullRequestNumbers,
+  getDownloadedPullRequestNumbersForReviews,
   getDownloadedTeamSlugs,
   getPullRequestNumberFromUrl,
   orgsUrl,
@@ -24,7 +26,7 @@ import {
 } from './github/utils';
 import {Comment, Commit, PullRequest, RateLimit, Review, Team, User} from '../types/github';
 import {getHttpClient} from '../http/axios';
-import {getFileMd5Hash} from '../file/utils';
+import {getFileMd5Hash, iterEachFile} from '../file/utils';
 import {getSourceDataMetadata} from '../file/repo';
 import {removeDuplicates} from '../arrays/utils';
 import {DownloadContext} from '../types/download';
@@ -419,10 +421,36 @@ async function getGithubReviewsForPullRequest(
   });
 }
 
+function getMissedPullNumbersForReviews(context: DownloadContext): ReadonlyArray<number> {
+  const downloadedPullNumbers = getDownloadedPullRequestNumbers(context.repoConfig);
+  const reviewPullNumbers = getDownloadedPullRequestNumbersForReviews(context.repoConfig);
+
+  const pullsWithoutReviews = downloadedPullNumbers
+    .filter((prNumber) => !reviewPullNumbers.includes(prNumber))
+    .sort((a, b) => a - b);
+
+  const result: number[] = [];
+  for (const [pull] of iterEachFile<PullRequest>(getGithubPullsPath(context.repoConfig))) {
+    if (!pullsWithoutReviews.includes(pull.number)) {
+      continue;
+    }
+    if (pull.merged_at || pull.closed_at) {
+      continue;
+    }
+    result.push(pull.number);
+  }
+
+  return result;
+}
+
 export async function getGithubReviewsForPullRequests(
   context: DownloadContext,
-  pullNumbers: ReadonlyArray<number>
+  requestedPullNumbers: ReadonlyArray<number>
 ): Promise<void[]> {
+  const pullNumbers = removeDuplicates([
+    ...requestedPullNumbers,
+    ...getMissedPullNumbersForReviews(context),
+  ]);
   return Promise.all(
     pullNumbers.map((pullNumber) => getGithubReviewsForPullRequest(context, pullNumber))
   );

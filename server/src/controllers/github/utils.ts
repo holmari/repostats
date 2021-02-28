@@ -10,6 +10,7 @@ import {
   getGithubDataPath,
   getGithubMetadataPath,
   getGithubPullsPath,
+  getGithubReviewsPath,
   getGithubTeamsPath,
 } from './paths';
 
@@ -65,6 +66,14 @@ export function getDownloadedCommentIds(repoConfig: RepoConfig): ReadonlyArray<n
   return getAllJsonFilenamesInDirectory(getGithubCommentsPath(repoConfig)).map((filename) =>
     parseInt(path.basename(filename, path.extname(filename)))
   );
+}
+
+export function getDownloadedPullRequestNumbersForReviews(
+  repoConfig: RepoConfig
+): ReadonlyArray<number> {
+  return fs
+    .readdirSync(getGithubReviewsPath(repoConfig))
+    .map((filename) => parseInt(path.basename(filename, path.extname(filename))));
 }
 
 export function getDefaultGithubSourceDataMetadata(
