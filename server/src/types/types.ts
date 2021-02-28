@@ -73,6 +73,7 @@ export interface ReviewComment {
   readonly comment: string;
   readonly createdAt: string;
   readonly reviewUrl: string;
+  readonly reviewCommentUrl: string;
   readonly recipientUserId: string | null;
   readonly reviewTitle: string;
 }
@@ -128,6 +129,7 @@ export interface ReviewsSummary {
 export type ReviewRequestsByUserId = {readonly [userId: string]: ReviewRequest};
 export type ReviewSummariesByUserId = {readonly [userId: string]: ReviewsSummary};
 export type CommentsByUserId = {readonly [userId: string]: number};
+export type CommentsPerChangeByUserId = {readonly [userId: string]: number};
 export type CountByDay = {readonly [date: string]: number};
 export type ReviewSummariesByDay = {readonly [date: string]: ReviewsSummary};
 
@@ -163,6 +165,8 @@ export interface UserResult {
   readonly authoredReviewsByUserId: ReviewSummariesByUserId;
   // The reviews that this user received, keyed by user id who reviewed the changes.
   readonly reviewsReceivedByUserId: ReviewSummariesByUserId;
+  // Mean number of comments per change that this use authored, keyed by receipient user id.
+  readonly commentsAuthoredPerChangeByUserId: CommentsPerChangeByUserId;
   // A sparse time-series activity summary of the user, ordered by the date of activity.
   readonly timeSeries: ReadonlyArray<UserActivitySummary>;
 

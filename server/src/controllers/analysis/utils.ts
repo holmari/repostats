@@ -3,8 +3,10 @@ import {removeDuplicates} from '../../arrays/utils';
 import {createInterval, EMPTY_INTERVAL, unionAllIntervals} from '../../date/utils';
 import {
   AnalyzeResult,
+  CommentsPerChangeByUserId,
   DateInterval,
   RepoConfig,
+  ReviewComment,
   UserActivitySummary,
   UserRepoTotals,
   UserResult,
@@ -109,6 +111,35 @@ function pickBestDisplayName(userResult: IntermediateUserResult) {
   );
 }
 
+type CommentsByUserId = {readonly [userId: string]: ReadonlyArray<ReviewComment>};
+
+function getCommentsAuthoredPerChangeByUserId(
+  userResult: IntermediateUserResult
+): CommentsPerChangeByUserId {
+  const commentsByUserId: CommentsByUserId = userResult.commentsAuthored.reduce<CommentsByUserId>(
+    (acc, comment) => {
+      if (!comment.recipientUserId) {
+        return acc;
+      }
+      const existingItem = acc[comment.recipientUserId] || [];
+      return {
+        ...acc,
+        [comment.recipientUserId]: [...existingItem, comment],
+      };
+    },
+    {}
+  );
+
+  return Object.keys(commentsByUserId).reduce<CommentsPerChangeByUserId>((acc, userId) => {
+    const comments = commentsByUserId[userId];
+    const changes = removeDuplicates(comments.map((comment) => comment.reviewUrl));
+    return {
+      ...acc,
+      [userId]: comments.length / changes.length,
+    };
+  }, {});
+}
+
 function postProcessUserResult(userResult: IntermediateUserResult): UserResult {
   const timeSeries = toTimeSeries(userResult);
 
@@ -121,6 +152,7 @@ function postProcessUserResult(userResult: IntermediateUserResult): UserResult {
     reviewRequestsReceivedByUserId: userResult.reviewRequestsReceivedByUserId,
     commentsWrittenByUserId: userResult.commentsWrittenByUserId,
     commentsReceivedByUserId: userResult.commentsReceivedByUserId,
+    commentsAuthoredPerChangeByUserId: getCommentsAuthoredPerChangeByUserId(userResult),
     authoredReviewsByUserId: userResult.authoredReviewsByUserId,
     reviewsReceivedByUserId: userResult.reviewsReceivedByUserId,
     timeSeries,

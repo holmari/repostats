@@ -8,7 +8,7 @@ import {
 
 export type IntermediateUserResult = Omit<
   UserResult,
-  'activeDaysCount' | 'displayName' | 'timeSeries'
+  'activeDaysCount' | 'displayName' | 'commentsAuthoredPerChangeByUserId' | 'timeSeries'
 > & {
   // All the display names the user might have.
   readonly possibleDisplayNameCounts: {readonly [name: string]: number};

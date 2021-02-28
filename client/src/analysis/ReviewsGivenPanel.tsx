@@ -13,6 +13,7 @@ interface ReviewsGivenEntry {
   readonly commentsWritten: number;
   readonly approvalsGiven: number;
   readonly rejectionsGiven: number;
+  readonly commentsPerChange: number;
 }
 
 const columns: ReadonlyArray<SortableColumn<ReviewsGivenEntry>> = [
@@ -40,6 +41,12 @@ const columns: ReadonlyArray<SortableColumn<ReviewsGivenEntry>> = [
     accessor: (row) => row.rejectionsGiven,
     maxWidth: 120,
   },
+  {
+    Header: 'Comments / Change',
+    accessor: (row) =>
+      Number.isFinite(row.commentsPerChange) ? row.commentsPerChange.toFixed(2) : '-',
+    maxWidth: 120,
+  },
 ];
 
 function toEntries(userResult: UserResult): ReadonlyArray<ReviewsGivenEntry> {
@@ -61,6 +68,7 @@ function toEntries(userResult: UserResult): ReadonlyArray<ReviewsGivenEntry> {
       commentsWritten: userResult.commentsWrittenByUserId[userId] || 0,
       approvalsGiven: userResult.authoredReviewsByUserId[userId]?.approvals || 0,
       rejectionsGiven: userResult.authoredReviewsByUserId[userId]?.rejections || 0,
+      commentsPerChange: userResult.commentsAuthoredPerChangeByUserId[userId] || 0,
     };
   });
 }

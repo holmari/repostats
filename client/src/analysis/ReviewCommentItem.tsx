@@ -11,7 +11,7 @@ const ReviewCommentItem: React.FC<Props> = ({comment}) => {
     <div className="ReviewCommentItem">
       <div className="ReviewCommentItem__header">
         <div className="ReviewCommentItem__header-title">
-          <a href={comment.reviewUrl} target="_blank" rel="noreferrer">
+          <a href={comment.reviewCommentUrl} target="_blank" rel="noreferrer">
             {comment.reviewTitle}
           </a>{' '}
           by{' '}

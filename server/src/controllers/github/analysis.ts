@@ -87,7 +87,8 @@ function toReviewComment(comment: Comment, pull: PullRequest | null): ReviewComm
     authorId: comment.user.login,
     comment: comment.body,
     createdAt: comment.created_at,
-    reviewUrl: comment.html_url,
+    reviewUrl: comment.pull_request_url,
+    reviewCommentUrl: comment.html_url,
     recipientUserId: pull.user?.login || null,
     reviewTitle: pull.title,
   };
@@ -106,7 +107,8 @@ function fromReviewToComment(
     createdAt: review.submitted_at,
     authorId: review.user.login,
     comment: review.body,
-    reviewUrl: review.html_url,
+    reviewUrl: review.pull_request_url,
+    reviewCommentUrl: review.html_url,
     recipientUserId: recipientUserId,
     reviewTitle,
   };
