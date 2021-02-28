@@ -12,7 +12,7 @@ const sum = (acc: number, item: number) => acc + item;
 const columns: ReadonlyArray<SortableColumn<UserResult>> = [
   {
     Header: 'Username',
-    accessor: (row) => row.id,
+    accessor: (row) => <a href={`/analysis/people/${row.id}`}>{row.id}</a>,
   },
   {
     Header: 'Change Requests',

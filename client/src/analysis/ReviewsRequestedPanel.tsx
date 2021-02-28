@@ -7,6 +7,7 @@ import {UserResult} from 'types/types';
 import {removeDuplicates} from 'arrays/utils';
 
 interface ReviewsRequestedEntry {
+  readonly userId: string;
   readonly userDisplayName: string;
   readonly timesAskedToReview: number;
   readonly comments: number;
@@ -17,7 +18,7 @@ interface ReviewsRequestedEntry {
 const columns: ReadonlyArray<SortableColumn<ReviewsRequestedEntry>> = [
   {
     Header: 'Username',
-    accessor: (row) => row.userDisplayName,
+    accessor: (row) => <a href={`/analysis/people/${row.userId}`}>{row.userDisplayName}</a>,
   },
   {
     Header: '# of Reviews Requested',
@@ -54,6 +55,7 @@ function toEntries(userResult: UserResult): ReadonlyArray<ReviewsRequestedEntry>
 
   return userIds.map((userId) => {
     return {
+      userId,
       userDisplayName: userId,
       timesAskedToReview: userResult.reviewRequestsAuthoredByUserId[userId]?.timesAdded || 0,
       comments: userResult.commentsReceivedByUserId[userId] || 0,
