@@ -17,11 +17,6 @@
   stroke: #303138;
 }
 
-.TeamGraph__link {
-  stroke: #999;
-  stroke-opacity: 0.6;
-}
-
 .TeamGraph__legend-title {
   font-family: 'Gill Sans', 'Gill Sans MT', Calibri, sans-serif;
   font-size: 13px;

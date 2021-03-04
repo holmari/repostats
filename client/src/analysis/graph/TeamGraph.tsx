@@ -251,12 +251,28 @@ function renderGraph(
 
   const link = chart
     .append('g')
-    .attr('stroke', '#999')
-    .attr('stroke-opacity', 0.6)
-    .attr('class', 'TeamGraph__link')
     .selectAll('line')
     .data(links)
     .join('line')
+    .attr('class', 'TeamGraph__link')
+    .attr('stroke-opacity', (d) => {
+      if (!config.centeredIdentifier) {
+        return 0.6;
+      }
+      if (d.source.id === config.centeredIdentifier || d.target.id === config.centeredIdentifier) {
+        return 0.75;
+      }
+      return 0.25;
+    })
+    .attr('stroke', (d) => {
+      if (!config.centeredIdentifier) {
+        return '#999';
+      }
+      if (d.source.id === config.centeredIdentifier || d.target.id === config.centeredIdentifier) {
+        return '#707070';
+      }
+      return '#bbb';
+    })
     .attr('stroke-width', (d) => 10 * (d.value / maxLinkValue));
 
   const nodeDragBehavior = drag(simulation);
