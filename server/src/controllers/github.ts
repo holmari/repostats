@@ -274,6 +274,7 @@ async function downloadGithubPullRequestsForUrl(
     ]);
 
     metaHolder.meta = {
+      ...metaHolder.meta,
       fetchedPullNumbers: getDownloadedPullRequestNumbers(context.repoConfig),
     };
 
