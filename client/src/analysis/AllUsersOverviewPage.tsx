@@ -1,6 +1,7 @@
 import './AllUsersOverviewPage.css';
 
 import React, {useMemo} from 'react';
+import {NavLink} from 'react-router-dom';
 
 import {AnalyzeResult, UserResult} from 'types/types';
 import Panel from 'components/Panel';
@@ -12,7 +13,7 @@ const sum = (acc: number, item: number) => acc + item;
 const columns: ReadonlyArray<SortableColumn<UserResult>> = [
   {
     Header: 'Username',
-    accessor: (row) => <a href={`/analysis/people/${row.id}`}>{row.id}</a>,
+    accessor: (row) => <NavLink to={`/analysis/people/${row.id}`}>{row.id}</NavLink>,
   },
   {
     Header: 'Change Requests',
