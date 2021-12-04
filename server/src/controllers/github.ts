@@ -24,7 +24,16 @@ import {
   repoUrl,
   updateMetadataFile,
 } from './github/utils';
-import {Comment, Commit, PullRequest, RateLimit, Review, Team, User} from '../types/github';
+import {
+  Comment,
+  Commit,
+  PullRequest,
+  RateLimit,
+  Repository,
+  Review,
+  Team,
+  User,
+} from '../types/github';
 import {getHttpClient} from '../http/axios';
 import {getFileMd5Hash, iterEachFile} from '../file/utils';
 import {getSourceDataMetadata} from '../file/repo';
@@ -246,6 +255,24 @@ function hasMissingData(
   return (fetchedItems?.length || 0) < (totalCount || 0);
 }
 
+function createComparableRepoForPull(pull: PullRequest): Repository {
+  return {
+    ...pull.base.repo,
+    open_issues: 0,
+    open_issues_count: 0,
+    updated_at: null,
+    pushed_at: null,
+    template_repository: !pull.base.repo.template_repository
+      ? pull.base.repo.template_repository
+      : {
+          ...pull.base.repo.template_repository,
+          open_issues_count: 0,
+          updated_at: undefined,
+          pushed_at: undefined,
+        },
+  };
+}
+
 async function downloadGithubPullRequestsForUrl(
   context: DownloadContext,
   url: string
@@ -286,13 +313,17 @@ async function downloadGithubPullRequestsForUrl(
     }
 
     const isCurrentPageUpToDate = pulls.reduce((acc, pull) => {
-      if (pull.updated_at > (metaHolder.meta.updatedAt || '')) {
-        metaHolder.meta = {...metaHolder.meta, updatedAt: pull.updated_at};
+      const adjustedPull: PullRequest = {
+        ...pull,
+        base: {...pull.base, repo: createComparableRepoForPull(pull)},
+      };
+      if (adjustedPull.updated_at > (metaHolder.meta.updatedAt || '')) {
+        metaHolder.meta = {...metaHolder.meta, updatedAt: adjustedPull.updated_at};
       }
 
-      const filePath = getGithubPullPath(context.repoConfig, pull.number);
+      const filePath = getGithubPullPath(context.repoConfig, adjustedPull.number);
       const existingFileHash = getFileMd5Hash(filePath);
-      const writtenHash = writeJsonToFile(filePath, pull);
+      const writtenHash = writeJsonToFile(filePath, adjustedPull);
 
       return acc && writtenHash === existingFileHash;
     }, true);
