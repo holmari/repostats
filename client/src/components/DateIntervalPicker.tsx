@@ -9,6 +9,11 @@ import {formatInterval} from 'date/utils';
 import DatePicker from './DatePicker';
 import TopBarButton from './TopBarButton';
 
+export const ALL_TIME_INTERVAL: DateInterval = {
+  startDate: new Date(0).toISOString(),
+  endDate: new Date('2100-01-01').toISOString(),
+};
+
 const DateIntervalPicker: React.FC<Props> = ({interval, onChange}) => {
   const [proposedInterval, setProposedInterval] = useState(interval);
   const [isPopoverOpen, setPopoverOpen] = useState(false);
@@ -20,6 +25,11 @@ const DateIntervalPicker: React.FC<Props> = ({interval, onChange}) => {
   const handleConfirm = () => {
     setPopoverOpen(false);
     onChange(proposedInterval);
+  };
+
+  const handleReset = () => {
+    setPopoverOpen(false);
+    onChange(ALL_TIME_INTERVAL);
   };
 
   const popover = (
@@ -42,9 +52,19 @@ const DateIntervalPicker: React.FC<Props> = ({interval, onChange}) => {
             />
           </fieldset>
         </div>
-        <Button onClick={handleConfirm} size="sm">
-          Change
-        </Button>
+        <div className="DateIntervalPicker__popover-content-footer">
+          <Button onClick={handleConfirm} size="sm">
+            Change
+          </Button>
+          <Button
+            className="DateIntervalPicker__reset-button"
+            onClick={handleReset}
+            size="sm"
+            variant="outline-danger"
+          >
+            Reset
+          </Button>
+        </div>
       </Popover.Content>
     </Popover>
   );

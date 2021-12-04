@@ -10,7 +10,7 @@ import {RequestStatus} from 'requests/types';
 import {AnalyzeResult, DateInterval} from 'types/types';
 import EmptyContentView from 'components/EmptyContentView';
 import PageTopBar from 'components/PageTopBar';
-import DateIntervalPicker from 'components/DateIntervalPicker';
+import DateIntervalPicker, {ALL_TIME_INTERVAL} from 'components/DateIntervalPicker';
 import CenteredSpinner from 'components/CenteredSpinner';
 import RepositoryPicker from 'components/RepositoryPicker';
 import {useRootState} from 'state';
@@ -19,11 +19,6 @@ import AnalysisPerUserPage from './AnalysisPerUserPage';
 import AnalysisTeamGraphPage from './AnalysisTeamGraphPage';
 import AllUsersOverviewPage from './AllUsersOverviewPage';
 import {getCookieAsJson, writeCookieFromJson} from 'cookies/utils';
-
-export const ALL_TIME_INTERVAL: DateInterval = {
-  startDate: new Date(0).toISOString(),
-  endDate: new Date('2100-01-01').toISOString(),
-};
 
 const AnalysisPage: React.FC<Props> = () => {
   const [status, setStatus] = useState(RequestStatus.UNSTARTED);

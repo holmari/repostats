@@ -6,3 +6,11 @@
   min-width: 150px;
   margin-bottom: 16px;
 }
+
+.DateIntervalPicker__popover-content-footer {
+  display: flex;
+}
+
+.DateIntervalPicker__reset-button {
+  margin-left: auto;
+}
