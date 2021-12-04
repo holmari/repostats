@@ -30,7 +30,9 @@ const AnalysisPage: React.FC<Props> = () => {
   const [includedRepoNames, setIncludedRepoNames] = useState<ReadonlyArray<string> | undefined>(
     getCookieAsJson('includedRepoNames')
   );
-  const [dateInterval, setDateInterval] = useState<DateInterval>(ALL_TIME_INTERVAL);
+  const [dateInterval, setDateInterval] = useState<DateInterval>(
+    getCookieAsJson('dateInterval') || ALL_TIME_INTERVAL
+  );
   const [error, setError] = useState(undefined);
   const [previousError, setPreviousError] = useState(undefined);
   const [result, setResult] = useState<AnalyzeResult | null>(null);
@@ -43,6 +45,7 @@ const AnalysisPage: React.FC<Props> = () => {
   const changeDateInterval = (interval: DateInterval) => {
     setDateInterval(interval);
     setStatus(RequestStatus.UNSTARTED);
+    writeCookieFromJson('dateInterval', interval);
   };
 
   const changeIncludedRepoNames = (repoNames: ReadonlyArray<string>) => {
