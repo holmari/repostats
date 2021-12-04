@@ -18,6 +18,7 @@ import {useRootState} from 'state';
 import AnalysisPerUserPage from './AnalysisPerUserPage';
 import AnalysisTeamGraphPage from './AnalysisTeamGraphPage';
 import AllUsersOverviewPage from './AllUsersOverviewPage';
+import {getCookieAsJson, writeCookieFromJson} from 'cookies/utils';
 
 export const ALL_TIME_INTERVAL: DateInterval = {
   startDate: new Date(0).toISOString(),
@@ -27,7 +28,7 @@ export const ALL_TIME_INTERVAL: DateInterval = {
 const AnalysisPage: React.FC<Props> = () => {
   const [status, setStatus] = useState(RequestStatus.UNSTARTED);
   const [includedRepoNames, setIncludedRepoNames] = useState<ReadonlyArray<string> | undefined>(
-    undefined
+    getCookieAsJson('includedRepoNames')
   );
   const [dateInterval, setDateInterval] = useState<DateInterval>(ALL_TIME_INTERVAL);
   const [error, setError] = useState(undefined);
@@ -47,6 +48,7 @@ const AnalysisPage: React.FC<Props> = () => {
   const changeIncludedRepoNames = (repoNames: ReadonlyArray<string>) => {
     setIncludedRepoNames(repoNames);
     setStatus(RequestStatus.UNSTARTED);
+    writeCookieFromJson('includedRepoNames', repoNames);
   };
 
   const clearError = useCallback(() => {
