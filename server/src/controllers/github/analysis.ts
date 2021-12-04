@@ -44,6 +44,7 @@ import {getPullRequestNumberFromUrl} from './utils';
 type PullsByNumber = {readonly [prNumber: string]: PullRequest};
 type TeamMembersBySlug = {readonly [teamSlug: string]: ReadonlyArray<User>};
 
+const DEFAULT_REVIEW_SUMMARIES: ReviewsSummary = {approvals: 0, rejections: 0};
 interface GithubComputeContext {
   readonly repoConfig: RepoConfig<GithubConnector>;
 
@@ -203,13 +204,13 @@ function getTeamMembers(repoConfig: RepoConfig): TeamMembersBySlug {
 }
 
 function getPullsByNumber(repoConfig: RepoConfig): PullsByNumber {
-  const pullsHolder: {value: PullsByNumber} = {value: {}};
+  const pulls: {[prNumber: string]: PullRequest} = {};
 
   for (const [pull] of iterEachFile<PullRequest>(getGithubPullsPath(repoConfig))) {
-    pullsHolder.value = {...pullsHolder.value, [`${pull.number}`]: pull};
+    pulls[`${pull.number}`] = pull;
   }
 
-  return pullsHolder.value;
+  return pulls;
 }
 
 function getReviewersFromPullRequest(
@@ -382,7 +383,7 @@ function incrementReviewSummariesByDay(
   review: Review
 ): ReviewSummariesByDay {
   const date = sliceDate(review.submitted_at);
-  const existingSummaries = summaries[date] || {approvals: 0, rejections: 0};
+  const existingSummaries = summaries[date] || DEFAULT_REVIEW_SUMMARIES;
 
   return {
     ...summaries,
