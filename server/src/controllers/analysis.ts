@@ -2,7 +2,7 @@ import {Response, Request} from 'express';
 import fs from 'fs';
 
 import {CachePath, readFromCache, writeToCache} from '../cache/cache';
-import {ALL_TIME_INTERVAL, normalizeDate, unionAllIntervals, unionIntervals} from '../date/utils';
+import {ALL_TIME_INTERVAL, sliceDate, unionAllIntervals, unionIntervals} from '../date/utils';
 import {getConfigPath, getReposPath} from '../file/paths';
 import {getConfigFile} from '../file/repo';
 import {
@@ -217,8 +217,8 @@ function getAvailableRepoNames(): ReadonlyArray<string> {
 
 function normalizeInterval(interval: DateInterval): DateInterval {
   return {
-    startDate: normalizeDate(interval.startDate),
-    endDate: normalizeDate(interval.endDate),
+    startDate: sliceDate(interval.startDate),
+    endDate: sliceDate(interval.endDate),
   };
 }
 

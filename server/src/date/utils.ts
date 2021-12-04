@@ -11,9 +11,9 @@ export const ALL_TIME_INTERVAL: DateInterval = {
   endDate: new Date('2100-01-01').toISOString(),
 };
 
-export function normalizeDate(date: string): string {
+export function sliceDate(date: string): string {
   // Assuming a string like "2019-06-07T23:24:04Z", only keep the date, drop time
-  return new Date(date).toISOString().slice(0, 10);
+  return date.slice(0, 10);
 }
 
 export function singleDateInterval(date: string | null): DateInterval | null {

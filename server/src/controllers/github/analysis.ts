@@ -32,7 +32,7 @@ import {
   EMPTY_INTERVAL,
   getIntervalDuration,
   intersects,
-  normalizeDate as getIsoDate,
+  sliceDate,
   singleDateInterval,
 } from '../../date/utils';
 import {NormalizedAnalyzeRequest} from '../analysis';
@@ -331,7 +331,7 @@ function incrementCountByDay(countByDay: CountByDay, date: string | null): Count
     return countByDay;
   }
 
-  const key = getIsoDate(date);
+  const key = sliceDate(date);
   const commentCount = countByDay[key] || 0;
   return {...countByDay, [key]: commentCount + 1};
 }
@@ -361,7 +361,7 @@ function getCommitAuthorDate(commit: Commit): string | null {
   if (!commit.commit) {
     return null;
   }
-  return getIsoDate(commit.commit.author?.date);
+  return sliceDate(commit.commit.author?.date);
 }
 
 function getCommitEmailAddress(commit: Commit): string | null {
@@ -381,8 +381,9 @@ function incrementReviewSummariesByDay(
   summaries: ReviewSummariesByDay,
   review: Review
 ): ReviewSummariesByDay {
-  const date = getIsoDate(review.submitted_at);
+  const date = sliceDate(review.submitted_at);
   const existingSummaries = summaries[date] || {approvals: 0, rejections: 0};
+
   return {
     ...summaries,
     [date]: {
