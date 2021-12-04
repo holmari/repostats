@@ -312,7 +312,7 @@ async function downloadGithubPullRequestsForUrl(
       };
     }
 
-    const isCurrentPageUpToDate = pulls.reduce((acc, pull) => {
+    const editedPullPaths = pulls.reduce<ReadonlyArray<string>>((acc, pull) => {
       const adjustedPull: PullRequest = {
         ...pull,
         base: {...pull.base, repo: createComparableRepoForPull(pull)},
@@ -325,13 +325,13 @@ async function downloadGithubPullRequestsForUrl(
       const existingFileHash = getFileMd5Hash(filePath);
       const writtenHash = writeJsonToFile(filePath, adjustedPull);
 
-      return acc && writtenHash === existingFileHash;
-    }, true);
+      return writtenHash === existingFileHash ? acc : [...acc, filePath];
+    }, []);
 
     // We only need a next page if we know that there's gaps from most recent to
     // latest, or if one of this page's requests did not yet exist.
     const needsNextPage =
-      !isCurrentPageUpToDate ||
+      editedPullPaths.length > 0 ||
       hasMissingData(metaHolder.meta.fetchedPullNumbers, metaHolder.meta.totalPullsInRepository);
 
     return Promise.resolve(needsNextPage);
@@ -388,16 +388,16 @@ export async function getGithubRepoComments(context: DownloadContext): Promise<v
       };
     }
 
-    const isCurrentPageUpToDate = comments.reduce((acc, comment) => {
+    const editedCommentPaths = comments.reduce<ReadonlyArray<string>>((acc, comment) => {
       const pullNumber = getPullRequestNumberFromUrl(comment.pull_request_url);
       const filePath = getGithubCommentPath(context.repoConfig, pullNumber, comment.id);
       const existingHash = getFileMd5Hash(filePath);
       const writtenHash = writeJsonToFile(filePath, comment);
-      return acc && existingHash === writtenHash;
-    }, true);
+      return existingHash === writtenHash ? acc : [...acc, filePath];
+    }, []);
 
     return Promise.resolve(
-      !isCurrentPageUpToDate ||
+      editedCommentPaths.length > 0 ||
         hasMissingData(metaHolder.meta.fetchedCommentIds, metaHolder.meta.totalCommentCount)
     );
   };
