@@ -1,4 +1,4 @@
-import Axios, {AxiosRequestConfig, AxiosResponse} from 'axios';
+import Axios, {AxiosError, AxiosRequestConfig, AxiosResponse} from 'axios';
 import {Response, Request} from 'express';
 import parse from 'parse-link-header';
 
@@ -241,11 +241,23 @@ async function computeTotalEntityCount(
     return response.data?.length || 0;
   }
 
-  const lastPageResponse = await get(context, parsedLinkHeader.last.url, requestConfig);
+  const lastPageLength: number = await get(context, parsedLinkHeader.last.url, requestConfig)
+    .then((response) => response.data.length)
+    .catch((e: AxiosError) => {
+      if ((e.response?.status || -1) >= 500) {
+        // if the server repeatedly fails (which GitHub does for e.g. fetching
+        // comments at the end of a large repository with multi-year history as of writing this),
+        // assume that the last page has no entries. This results in a slightly incorrect count
+        // but the next download will fix it.
+        return 0;
+      }
+      throw e;
+    });
+
   const lastPageParams = new URLSearchParams(parsedLinkHeader.last.url);
   const pageCount = parseInt(lastPageParams.get('page') || '1', 10);
 
-  return Promise.resolve(MAX_PER_PAGE * (pageCount - 1) + lastPageResponse.data.length);
+  return Promise.resolve(MAX_PER_PAGE * (pageCount - 1) + lastPageLength);
 }
 
 function hasMissingData(
@@ -372,7 +384,11 @@ export async function getGithubRepoComments(context: DownloadContext): Promise<v
   )}/pulls/comments?sort=updated&direction=desc&per_page=${MAX_PER_PAGE}&page=1`;
 
   const metaHolder: {meta: Partial<GithubSourceDataMetadata>} = {
-    meta: getSourceDataMetadata(context.repoConfig) as GithubSourceDataMetadata,
+    meta: {
+      ...(getSourceDataMetadata(context.repoConfig) as GithubSourceDataMetadata),
+      fetchedCommentIds: [],
+      totalCommentCount: UNKNOWN_ENTITY_COUNT,
+    },
   };
 
   const responsePageConsumer = async (
