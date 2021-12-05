@@ -220,16 +220,13 @@ function postProcessUserResult(userResult: IntermediateUserResult): UserResult {
 export function postProcessUserResults(
   results: IntermediateUserResultsByEmail
 ): UserResultsByEmail {
-  const mappedResultsHolder: {value: UserResultsByEmail} = {value: {}};
+  const mappedResultsHolder: {[emailAddress: string]: UserResult} = {};
 
   Object.keys(results).forEach((emailAddress) => {
-    mappedResultsHolder.value = {
-      ...mappedResultsHolder.value,
-      [emailAddress]: postProcessUserResult(results[emailAddress]),
-    };
+    mappedResultsHolder[emailAddress] = postProcessUserResult(results[emailAddress]);
   });
 
-  return mappedResultsHolder.value;
+  return mappedResultsHolder;
 }
 
 export function createAnalyzeResult(result: IntermediateAnalyzeResult): AnalyzeResult {
