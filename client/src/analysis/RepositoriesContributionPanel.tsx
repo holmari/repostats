@@ -20,7 +20,7 @@ const authoredColumns: ReadonlyArray<SortableColumn<UserRepoTotals>> = [
   },
   {
     Header: 'Comments Written',
-    accessor: (row) => row.authoredTotals.commentsWritten,
+    accessor: (row) => row.authoredTotals.commentsWrittenTotal,
   },
   {
     Header: 'Change Requests Authored',
@@ -43,7 +43,7 @@ const receivedColumns: ReadonlyArray<SortableColumn<UserRepoTotals>> = [
   },
   {
     Header: 'Comments Received',
-    accessor: (row) => row.receivedTotals.comments,
+    accessor: (row) => row.receivedTotals.commentsTotal,
   },
 ];
 

@@ -85,7 +85,7 @@ function toReviewComment(comment: Comment, pull: PullRequest | null): ReviewComm
   }
 
   return {
-    authorId: comment.user.login,
+    authorId: comment.user.id,
     comment: comment.body,
     createdAt: comment.created_at,
     reviewUrl: comment.pull_request_url,
@@ -106,7 +106,7 @@ function fromReviewToComment(
 
   return {
     createdAt: review.submitted_at,
-    authorId: review.user.login,
+    authorId: review.user.id,
     comment: review.body,
     reviewUrl: review.pull_request_url,
     reviewCommentUrl: review.html_url,
@@ -165,7 +165,10 @@ function incrementAuthoredTotals(
       approvals: authoredTotals.approvals + (adjustments.approvals || 0),
       changesCreated: authoredTotals.changesCreated + (adjustments.changesCreated || 0),
       rejections: authoredTotals.rejections + (adjustments.rejections || 0),
-      commentsWritten: authoredTotals.commentsWritten + (adjustments.commentsWritten || 0),
+      commentsWrittenTotal:
+        authoredTotals.commentsWrittenTotal + (adjustments.commentsWrittenTotal || 0),
+      commentsWrittenToOthers:
+        authoredTotals.commentsWrittenToOthers + (adjustments.commentsWrittenToOthers || 0),
       commits: authoredTotals.commits + (adjustments.commits || 0),
       meanChangeOpenTimeMsec: NaN, // this is computed in the post-processing step
     },
@@ -184,7 +187,8 @@ function incrementReceivedTotals(
     receivedTotals: {
       approvals: receivedTotals.approvals + (adjustments.approvals || 0),
       rejections: receivedTotals.rejections + (adjustments.rejections || 0),
-      comments: receivedTotals.comments + (adjustments.comments || 0),
+      commentsTotal: receivedTotals.commentsTotal + (adjustments.commentsTotal || 0),
+      commentsByOthers: receivedTotals.commentsByOthers + (adjustments.commentsByOthers || 0),
       reviewRequests: receivedTotals.reviewRequests + (adjustments.reviewRequests || 0),
     },
   };
@@ -471,9 +475,12 @@ function processComments(context: GithubComputeContext) {
     const recipientUser = context.getPull(pullNumber)?.user || null;
     const pull = context.getPull(pullNumber);
     const reviewComment = toReviewComment(comment, pull);
-    const commentCount = reviewComment ? 1 : 0;
+    const commentCountTotal = reviewComment ? 1 : 0;
+    const commentCountToOthers = reviewComment && pull?.user?.id !== comment.user.id ? 1 : 0;
+
     const authoredTotals = incrementAuthoredTotals(commentAuthorUserResult, {
-      commentsWritten: commentCount,
+      commentsWrittenTotal: commentCountTotal,
+      commentsWrittenToOthers: commentCountToOthers,
     });
 
     context.adjustUserResult({
@@ -492,7 +499,10 @@ function processComments(context: GithubComputeContext) {
 
     if (recipientUser) {
       const recipientUserResult = context.acquireUserResult(recipientUser);
-      const receivedTotals = incrementReceivedTotals(recipientUserResult, {comments: commentCount});
+      const receivedTotals = incrementReceivedTotals(recipientUserResult, {
+        commentsTotal: commentCountTotal,
+        commentsByOthers: commentCountToOthers,
+      });
       context.adjustUserResult({
         ...recipientUserResult,
         repoTotals: [receivedTotals],
@@ -529,14 +539,16 @@ function processReviews(context: GithubComputeContext) {
       pull.title
     );
 
-    const commentCount = reviewComment ? 1 : 0;
+    const commentCountTotal = reviewComment ? 1 : 0;
+    const commentCountToOthers = reviewComment && reviewComment.authorId !== pull.user?.id ? 1 : 0;
     const approvalCount = review.state === 'APPROVED' ? 1 : 0;
     const rejectionCount = review.state === 'CHANGES_REQUESTED' ? 1 : 0;
 
     const authoredTotals = incrementAuthoredTotals(reviewAuthorUserResult, {
       rejections: rejectionCount,
       approvals: approvalCount,
-      commentsWritten: commentCount,
+      commentsWrittenTotal: commentCountTotal,
+      commentsWrittenToOthers: commentCountToOthers,
     });
 
     context.adjustUserResult({
@@ -564,7 +576,8 @@ function processReviews(context: GithubComputeContext) {
       const receivedTotals = incrementReceivedTotals(recipientUserResult, {
         approvals: approvalCount,
         rejections: rejectionCount,
-        comments: commentCount,
+        commentsTotal: commentCountTotal,
+        commentsByOthers: commentCountToOthers,
       });
 
       context.adjustUserResult({

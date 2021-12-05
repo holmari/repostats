@@ -39,8 +39,13 @@ const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
           />
           <ValueCell
             tooltip="How many comments this user has written in total."
-            title="Comments"
-            value={authoredTotals.commentsWritten}
+            title="Comments (Total)"
+            value={authoredTotals.commentsWrittenTotal}
+          />
+          <ValueCell
+            tooltip="How many comments this user has written to other people's change requests."
+            title="Comments to others"
+            value={authoredTotals.commentsWrittenToOthers}
           />
           <ValueCell
             tooltip="How many change requests this user has initiated. In GitHub, the term 'Pull Request' is used."
@@ -71,9 +76,9 @@ const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
             value={receivedTotals.rejections}
           />
           <ValueCell
-            tooltip="How many comments this user has received."
+            tooltip="How many comments this user has received from others."
             title="Comments received"
-            value={receivedTotals.comments}
+            value={receivedTotals.commentsByOthers}
           />
           <ValueCell
             tooltip="How many times this user has been requested to be a reviewer, either directly or through one of the teams they belong to."
@@ -83,12 +88,12 @@ const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
           <ValueCell
             tooltip="The ratio of comments the user received and the change requests the user created."
             title="Comments / Change"
-            value={(receivedTotals.comments / authoredTotals.changesCreated).toFixed(1)}
+            value={(receivedTotals.commentsTotal / authoredTotals.changesCreated).toFixed(1)}
           />
           <ValueCell
             tooltip="The ratio of comments the user received and the commits the user created."
             title="Comments / Commit"
-            value={(receivedTotals.comments / authoredTotals.commits).toFixed(1)}
+            value={(receivedTotals.commentsTotal / authoredTotals.commits).toFixed(1)}
           />
         </Panel>
         <Panel title="Timeline" size="third">

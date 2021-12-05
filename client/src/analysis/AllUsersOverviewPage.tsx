@@ -21,9 +21,15 @@ const columns: ReadonlyArray<SortableColumn<UserResult>> = [
     maxWidth: 100,
   },
   {
-    Header: 'Comments Written',
+    Header: 'Comments Written (All)',
     accessor: (row) =>
-      row.repoTotals.map((repo) => repo.authoredTotals.commentsWritten).reduce(sum),
+      row.repoTotals.map((repo) => repo.authoredTotals.commentsWrittenTotal).reduce(sum),
+    maxWidth: 100,
+  },
+  {
+    Header: 'Comments to Others',
+    accessor: (row) =>
+      row.repoTotals.map((repo) => repo.authoredTotals.commentsWrittenToOthers).reduce(sum),
     maxWidth: 100,
   },
   {
@@ -38,7 +44,8 @@ const columns: ReadonlyArray<SortableColumn<UserResult>> = [
   },
   {
     Header: 'Comments Received',
-    accessor: (row) => row.repoTotals.map((repo) => repo.receivedTotals.comments).reduce(sum),
+    accessor: (row) =>
+      row.repoTotals.map((repo) => repo.receivedTotals.commentsByOthers).reduce(sum),
     maxWidth: 100,
   },
   {
@@ -55,7 +62,7 @@ const columns: ReadonlyArray<SortableColumn<UserResult>> = [
     Header: 'Comments / Change',
     accessor: (row) => {
       const commentsPerChange =
-        row.repoTotals.map((repo) => repo.receivedTotals.comments).reduce(sum) /
+        row.repoTotals.map((repo) => repo.receivedTotals.commentsByOthers).reduce(sum) /
         row.repoTotals.map((repo) => repo.authoredTotals.changesCreated).reduce(sum);
       return Number.isNaN(commentsPerChange) ? '-' : commentsPerChange.toFixed(3);
     },

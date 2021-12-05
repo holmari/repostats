@@ -24,13 +24,15 @@ export function createDefaultUserRepoTotals(repoConfig: RepoConfig): UserRepoTot
     authoredTotals: {
       approvals: 0,
       rejections: 0,
-      commentsWritten: 0,
+      commentsWrittenTotal: 0,
+      commentsWrittenToOthers: 0,
       changesCreated: 0,
       commits: 0,
       meanChangeOpenTimeMsec: NaN,
     },
     receivedTotals: {
-      comments: 0,
+      commentsTotal: 0,
+      commentsByOthers: 0,
       approvals: 0,
       rejections: 0,
       reviewRequests: 0,

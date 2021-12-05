@@ -69,7 +69,7 @@ export interface AnalyzeRequest {
 }
 
 export interface ReviewComment {
-  readonly authorId: string;
+  readonly authorId: number;
   readonly comment: string;
   readonly createdAt: string;
   readonly reviewUrl: string;
@@ -92,7 +92,9 @@ export interface AuthoredTotals {
   // The number of rejections this user handed out. In Gerrit, this is analogous to -2 reviews.
   readonly rejections: number;
   // The number of comments this user wrote. This includes comments written also to one's own changes.
-  readonly commentsWritten: number;
+  readonly commentsWrittenTotal: number;
+  // The number of comments this user wrote. This excludes comments written to one's own changes.
+  readonly commentsWrittenToOthers: number;
   // The number of changes the user created. In GitHub, a change is called a "Pull Request".
   // In Gerrit, this is the number of change requests the user has pushed.
   // Note the unfortunate ambiguity with change requests vs. GitHub's "Changes requested".
@@ -104,9 +106,15 @@ export interface AuthoredTotals {
 }
 
 export interface ReceivedTotals {
+  // The number of approvals received by this user.
   readonly approvals: number;
+  // The number of approvals received by this user.
   readonly rejections: number;
-  readonly comments: number;
+  // The number of total comments the user's changes received, including comments from others.
+  readonly commentsTotal: number;
+  // The number of total comments the user's changes received, including comments from others.
+  readonly commentsByOthers: number;
+  // The number of total comments the user's changes received, including comments from others.
   readonly reviewRequests: number;
 }
 

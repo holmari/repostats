@@ -8,7 +8,8 @@ export function aggregateAuthoredTotals(userResult: UserResult): AuthoredTotals 
         return {
           approvals: totals.approvals + item.approvals,
           changesCreated: totals.changesCreated + item.changesCreated,
-          commentsWritten: totals.commentsWritten + item.commentsWritten,
+          commentsWrittenTotal: totals.commentsWrittenTotal + item.commentsWrittenTotal,
+          commentsWrittenToOthers: totals.commentsWrittenToOthers + item.commentsWrittenToOthers,
           rejections: totals.rejections + item.rejections,
           commits: totals.commits + item.commits,
           meanChangeOpenTimeMsec: isNaN(totals.meanChangeOpenTimeMsec)
@@ -19,7 +20,8 @@ export function aggregateAuthoredTotals(userResult: UserResult): AuthoredTotals 
       {
         approvals: 0,
         changesCreated: 0,
-        commentsWritten: 0,
+        commentsWrittenTotal: 0,
+        commentsWrittenToOthers: 0,
         rejections: 0,
         commits: 0,
         meanChangeOpenTimeMsec: NaN,
@@ -34,9 +36,10 @@ export function aggregateReceivedTotals(userResult: UserResult): ReceivedTotals 
       (totals, item) => ({
         approvals: totals.approvals + item.approvals,
         rejections: totals.rejections + item.rejections,
-        comments: totals.comments + item.comments,
+        commentsTotal: totals.commentsTotal + item.commentsTotal,
+        commentsByOthers: totals.commentsByOthers + item.commentsByOthers,
         reviewRequests: totals.reviewRequests + item.reviewRequests,
       }),
-      {approvals: 0, rejections: 0, comments: 0, reviewRequests: 0}
+      {approvals: 0, rejections: 0, commentsTotal: 0, commentsByOthers: 0, reviewRequests: 0}
     );
 }
