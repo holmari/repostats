@@ -98,6 +98,12 @@ const columns: ReadonlyArray<SortableColumn<UserResult>> = [
     accessor: (row) => row.activeDaysCount,
     maxWidth: 100,
   },
+  {
+    Header: 'Avg. time in Review (h)',
+    accessor: (row) =>
+      Math.round(row.aggregatedAuthoredTotals.meanChangeOpenTimeMsec / 1000 / 60 / 60),
+    maxWidth: 100,
+  },
 ];
 
 const AllUsersOverviewPage: React.FC<Props> = ({result}) => {
