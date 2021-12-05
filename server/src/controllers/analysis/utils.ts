@@ -197,6 +197,7 @@ function postProcessUserResult(userResult: IntermediateUserResult): UserResult {
 
   return {
     id: userResult.id,
+    displayName: userResult.displayName,
     realName: pickBestRealName(userResult),
     url: userResult.url,
     commentsAuthored: [...userResult.commentsAuthored].sort(descByCreationDate),

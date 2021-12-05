@@ -57,6 +57,7 @@ interface GithubComputeContext {
 function createUserResult(user: User, repoConfig: RepoConfig): IntermediateUserResult {
   return {
     id: user.login,
+    displayName: user.login,
     possibleRealNameCounts: {},
     emailAddresses: [],
     url: user.html_url,

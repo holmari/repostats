@@ -153,6 +153,8 @@ export interface UserActivitySummary {
 export interface UserResult {
   // Uniquely identifiable user id in the given backend.
   readonly id: string;
+  // The display name the user is referred to in the given backend (i.e. handle in case of GH).
+  readonly displayName: string;
   // The person's real name, if available.
   readonly realName: string | null;
   // The user's email address(es), if available.

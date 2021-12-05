@@ -155,6 +155,7 @@ function mergeUserResults(
 
   return {
     id: left.id,
+    displayName: left.displayName,
     possibleRealNameCounts: mergeKeyedCounts(
       left.possibleRealNameCounts,
       right.possibleRealNameCounts

@@ -18,7 +18,7 @@ const PeopleSidebarItem: React.FC<PeopleSidebarItemProps> = ({className, item}) 
       activeClassName="SidebarList__item--selected selected"
       to={`/analysis/people/${item.id}`}
     >
-      {item.id}
+      {item.displayName}
     </NavLink>
   );
 };

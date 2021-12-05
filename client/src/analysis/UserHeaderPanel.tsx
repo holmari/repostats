@@ -29,9 +29,14 @@ const UserHeaderPanel: React.FC<Props> = ({user}) => {
   );
 
   return (
-    <Panel className="UserHeaderPanel" title={user.realName || user.id} titleClass="h1" size="flex">
+    <Panel
+      className="UserHeaderPanel"
+      title={user.realName || user.displayName}
+      titleClass="h1"
+      size="flex"
+    >
       <h4>
-        <a href={user.url}>{user.id}</a>
+        <a href={user.url}>{user.displayName}</a>
       </h4>
       <div className="UserHeaderPanel__contact-info">
         <OverlayTrigger placement="bottom-start" trigger="click" overlay={popover} rootClose>
