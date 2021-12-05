@@ -16,16 +16,14 @@ const AnalysisTeamGraphPage: React.FC<Props> = ({result}) => {
 
   return (
     <div className="AnalysisTeamGraphPage">
-      <Panel title="Team Graph" size="flex">
+      <Panel title="Organization Graph" size="flex">
         <TeamGraph
           nodes={nodes}
           links={links}
           highlightSelection
           charge={-450}
-          defaultItemOpacity={0.6}
           linkDistance={45}
-          linkForceFactor={0.25}
-          relativeLinkValueThreshold={0.1}
+          relativeLinkValueThreshold={0.05}
           size={graphSize}
         />
       </Panel>

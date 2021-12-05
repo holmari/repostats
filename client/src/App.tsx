@@ -22,7 +22,7 @@ const App: React.FC = () => {
                 Per-user analysis
               </NavLink>
               <NavLink activeClassName="App__nav-link--active" to="/analysis/team-graph">
-                Team Graph
+                Org Graph
               </NavLink>
               <NavLink activeClassName="App__nav-link--active" to="/analysis/overview">
                 Overview
