@@ -41,4 +41,4 @@ export type IntermediateUserResultsByUserId = {
   readonly [userId: string]: IntermediateUserResult;
 };
 
-export type UserResultsByEmail = {readonly [emailAddress: string]: UserResult};
+export type UserResultsByDisplayName = {readonly [displayName: string]: UserResult};

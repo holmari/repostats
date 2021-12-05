@@ -56,7 +56,7 @@ interface GithubComputeContext {
 
 function createUserResult(user: User, repoConfig: RepoConfig): IntermediateUserResult {
   return {
-    id: user.login,
+    id: `${user.id}`,
     displayName: user.login,
     possibleRealNameCounts: {},
     emailAddresses: [],
@@ -446,7 +446,7 @@ function processPullRequests(context: GithubComputeContext, pullsByNumber: Pulls
             repoTotals: [totals],
             reviewRequestsReceivedByUserId: incrementReceivedReviewRequests(
               requestedReviewerUserResult,
-              pullAuthorResult.id
+              pullAuthorResult.displayName
             ),
           });
 
@@ -509,7 +509,7 @@ function processComments(context: GithubComputeContext) {
         repoTotals: [receivedTotals],
         commentsReceivedByUserId: incrementCommentsReceivedByUserId(
           recipientUserResult,
-          commentAuthorUserResult.id,
+          commentAuthorUserResult.displayName,
           reviewComment
         ),
         commentsReceivedByDay: incrementReceivedCommentsByDay(recipientUserResult, reviewComment),
@@ -651,10 +651,10 @@ export function getGithubRepoResult(
     repoConfig,
 
     acquireUserResult: (user: User): IntermediateUserResult => {
-      if (!userResults[user.login]) {
-        userResults[user.login] = createUserResult(user, repoConfig);
+      if (!userResults[user.id]) {
+        userResults[user.id] = createUserResult(user, repoConfig);
       }
-      return userResults[user.login];
+      return userResults[user.id];
     },
 
     adjustUserResult: (newUserResult: IntermediateUserResult) => {

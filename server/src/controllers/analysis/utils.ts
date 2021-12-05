@@ -17,7 +17,7 @@ import {
   IntermediateAnalyzeResult,
   IntermediateUserResult,
   IntermediateUserResultsByUserId,
-  UserResultsByEmail,
+  UserResultsByDisplayName,
 } from './types';
 
 export function createDefaultUserRepoTotals(repoConfig: RepoConfig): UserRepoTotals {
@@ -196,7 +196,7 @@ function postProcessUserResult(userResult: IntermediateUserResult): UserResult {
   );
 
   return {
-    id: userResult.id,
+    id: userResult.displayName, // intentional: displayName is assumed to be unique at this point.
     displayName: userResult.displayName,
     realName: pickBestRealName(userResult),
     url: userResult.url,
@@ -220,11 +220,12 @@ function postProcessUserResult(userResult: IntermediateUserResult): UserResult {
 
 export function postProcessUserResults(
   results: IntermediateUserResultsByUserId
-): UserResultsByEmail {
-  const mappedResultsHolder: {[emailAddress: string]: UserResult} = {};
+): UserResultsByDisplayName {
+  const mappedResultsHolder: {[displayName: string]: UserResult} = {};
 
-  Object.keys(results).forEach((emailAddress) => {
-    mappedResultsHolder[emailAddress] = postProcessUserResult(results[emailAddress]);
+  Object.keys(results).forEach((userId) => {
+    const processedResult = postProcessUserResult(results[userId]);
+    mappedResultsHolder[processedResult.displayName] = processedResult;
   });
 
   return mappedResultsHolder;

@@ -26,7 +26,9 @@ type PeopleSidebarItemProps = SidebarItemRendererProps<UserResult>;
 
 const AnalysisPerUserPage: React.FC<ContentProps> = ({match, result}) => {
   const sortedPeopleResults: ReadonlyArray<UserResult> = useMemo(() => {
-    return Object.values(result.userResults).sort((left, right) => left.id.localeCompare(right.id));
+    return Object.values(result.userResults).sort((left, right) =>
+      left.displayName.localeCompare(right.displayName)
+    );
   }, [result]);
 
   const selectedUser = result.userResults[match.params.userId];
