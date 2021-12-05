@@ -34,11 +34,11 @@ export type IntermediateUserResult = Omit<
 };
 
 export type IntermediateAnalyzeResult = Omit<AnalyzeResult, 'interval' | 'userResults'> & {
-  readonly userResults: IntermediateUserResultsByEmail;
+  readonly userResults: IntermediateUserResultsByUserId;
 };
 
-export type IntermediateUserResultsByEmail = {
-  readonly [emailAddress: string]: IntermediateUserResult;
+export type IntermediateUserResultsByUserId = {
+  readonly [userId: string]: IntermediateUserResult;
 };
 
 export type UserResultsByEmail = {readonly [emailAddress: string]: UserResult};

@@ -16,7 +16,7 @@ import {
 import {
   IntermediateAnalyzeResult,
   IntermediateUserResult,
-  IntermediateUserResultsByEmail,
+  IntermediateUserResultsByUserId,
   UserResultsByEmail,
 } from './types';
 
@@ -219,7 +219,7 @@ function postProcessUserResult(userResult: IntermediateUserResult): UserResult {
 }
 
 export function postProcessUserResults(
-  results: IntermediateUserResultsByEmail
+  results: IntermediateUserResultsByUserId
 ): UserResultsByEmail {
   const mappedResultsHolder: {[emailAddress: string]: UserResult} = {};
 
@@ -245,7 +245,7 @@ export function createAnalyzeResult(result: IntermediateAnalyzeResult): AnalyzeR
 
 export function createIntermediateAnalyzeResult(
   repoConfig: RepoConfig,
-  userResults: IntermediateUserResultsByEmail
+  userResults: IntermediateUserResultsByUserId
 ): IntermediateAnalyzeResult {
   return {
     includedRepos: [repoConfig],
