@@ -9,14 +9,14 @@ import {
 export type IntermediateUserResult = Omit<
   UserResult,
   | 'activeDaysCount'
-  | 'displayName'
-  | 'commentsAuthoredPerChangeByUserId'
-  | 'timeSeries'
   | 'aggregatedAuthoredTotals'
   | 'aggregatedReceivedTotals'
+  | 'commentsAuthoredPerChangeByUserId'
+  | 'realName'
+  | 'timeSeries'
 > & {
-  // All the display names the user might have.
-  readonly possibleDisplayNameCounts: {readonly [name: string]: number};
+  // All the real names the user might have.
+  readonly possibleRealNameCounts: {readonly [name: string]: number};
   // Number of comments per day (keyed by an ISO date timestamp) that the user wrote to others.
   readonly commentsAuthoredByDay: CountByDay;
   // Number of comments per day (keyed by an ISO date timestamp) that the user received from others.

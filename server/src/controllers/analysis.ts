@@ -155,9 +155,9 @@ function mergeUserResults(
 
   return {
     id: left.id,
-    possibleDisplayNameCounts: mergeKeyedCounts(
-      left.possibleDisplayNameCounts,
-      right.possibleDisplayNameCounts
+    possibleRealNameCounts: mergeKeyedCounts(
+      left.possibleRealNameCounts,
+      right.possibleRealNameCounts
     ),
     url: left.url,
     emailAddresses: removeDuplicates([...left.emailAddresses, ...right.emailAddresses]),

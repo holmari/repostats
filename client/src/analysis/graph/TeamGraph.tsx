@@ -291,7 +291,7 @@ function renderGraph(
       updateSelection(d.userResult.id);
       if (config.highlightSelection) {
         d3.select(this).classed('selected', true);
-        legendTitle.text(d.userResult.displayName);
+        legendTitle.text(d.userResult.realName || d.userResult.id);
       }
     })
     .on('mouseout', function () {

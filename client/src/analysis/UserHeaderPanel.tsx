@@ -29,7 +29,7 @@ const UserHeaderPanel: React.FC<Props> = ({user}) => {
   );
 
   return (
-    <Panel className="UserHeaderPanel" title={user.displayName} titleClass="h1" size="flex">
+    <Panel className="UserHeaderPanel" title={user.realName || user.id} titleClass="h1" size="flex">
       <h4>
         <a href={user.url}>{user.id}</a>
       </h4>

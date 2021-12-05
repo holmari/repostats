@@ -153,8 +153,8 @@ export interface UserActivitySummary {
 export interface UserResult {
   // Uniquely identifiable user id in the given backend.
   readonly id: string;
-  // This could be the person's name in case of Gerrit. In case of GitHub, it's the GH handle.
-  readonly displayName: string;
+  // The person's real name, if available.
+  readonly realName: string | null;
   // The user's email address(es), if available.
   readonly emailAddresses: ReadonlyArray<string>;
   // User-facing URL to the user's page in the given data source.

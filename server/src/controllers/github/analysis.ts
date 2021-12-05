@@ -57,7 +57,7 @@ interface GithubComputeContext {
 function createUserResult(user: User, repoConfig: RepoConfig): IntermediateUserResult {
   return {
     id: user.login,
-    possibleDisplayNameCounts: {},
+    possibleRealNameCounts: {},
     emailAddresses: [],
     url: user.html_url,
     repoTotals: [createDefaultUserRepoTotals(repoConfig)],
@@ -627,8 +627,8 @@ function processCommits(context: GithubComputeContext) {
 
     context.adjustUserResult({
       ...userResult,
-      possibleDisplayNameCounts: {
-        [displayName]: (userResult.possibleDisplayNameCounts[displayName] || 0) + 1,
+      possibleRealNameCounts: {
+        [displayName]: (userResult.possibleRealNameCounts[displayName] || 0) + 1,
       },
       emailAddresses: emailAddress
         ? removeDuplicates([...userResult.emailAddresses, emailAddress])

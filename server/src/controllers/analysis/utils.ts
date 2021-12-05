@@ -102,16 +102,16 @@ function toTimeSeries(userResult: IntermediateUserResult): ReadonlyArray<UserAct
   });
 }
 
-function pickBestDisplayName(userResult: IntermediateUserResult) {
-  const namesAndCounts = userResult.possibleDisplayNameCounts;
+function pickBestRealName(userResult: IntermediateUserResult) {
+  const namesAndCounts = userResult.possibleRealNameCounts;
   return (
-    Object.keys(userResult.possibleDisplayNameCounts)
+    Object.keys(userResult.possibleRealNameCounts)
       // Prefer any other name than the user id
       .filter((name) => name !== userResult.id)
       .reduce<string | null>((prevLargestName, name) => {
         const count = namesAndCounts[name];
         return count > (namesAndCounts[prevLargestName || ''] || 0) ? name : prevLargestName;
-      }, null) || userResult.id
+      }, null)
   );
 }
 
@@ -197,7 +197,7 @@ function postProcessUserResult(userResult: IntermediateUserResult): UserResult {
 
   return {
     id: userResult.id,
-    displayName: pickBestDisplayName(userResult),
+    realName: pickBestRealName(userResult),
     url: userResult.url,
     commentsAuthored: [...userResult.commentsAuthored].sort(descByCreationDate),
     reviewRequestsAuthoredByUserId: userResult.reviewRequestsAuthoredByUserId,
