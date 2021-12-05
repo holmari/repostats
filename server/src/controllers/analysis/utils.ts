@@ -200,6 +200,7 @@ function postProcessUserResult(userResult: IntermediateUserResult): UserResult {
     displayName: userResult.displayName,
     realName: pickBestRealName(userResult),
     url: userResult.url,
+    changesAuthored: [...userResult.changesAuthored].sort(descByCreationDate),
     commentsAuthored: [...userResult.commentsAuthored].sort(descByCreationDate),
     reviewRequestsAuthoredByUserId: userResult.reviewRequestsAuthoredByUserId,
     reviewRequestsReceivedByUserId: userResult.reviewRequestsReceivedByUserId,

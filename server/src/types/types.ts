@@ -195,6 +195,10 @@ export interface UserResult {
   // NOTE: This part of the result is very large; in case of performance issues, this could be
   // separated into its own response.
   readonly commentsAuthored: ReadonlyArray<ReviewComment>;
+
+  // All changes authored by the user.
+  // NOTE: this could also be its own request if needed.
+  readonly changesAuthored: ReadonlyArray<Change>;
 }
 
 export type UserResultsByUserId = {readonly [userId: string]: UserResult};

@@ -15,6 +15,7 @@ import ReviewedChangesOverTimePanel from './ReviewedChangesOverTimePanel';
 import WrittenCommentsPanel from './WrittenCommentsPanel';
 import UserHeaderPanel from './UserHeaderPanel';
 import TeamGraphPanel from './TeamGraphPanel';
+import ChangesPanel from './ChangesPanel';
 
 const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
   const authoredTotals = user.aggregatedAuthoredTotals;
@@ -139,6 +140,8 @@ const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
       <ReviewedChangesOverTimePanel user={user} />
 
       <RepositoriesContributionPanel user={user} />
+
+      <ChangesPanel user={user} />
 
       <WrittenCommentsPanel user={user} />
     </div>
