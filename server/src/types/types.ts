@@ -183,6 +183,12 @@ export interface UserResult {
   // How many days the user has been active in the given interval.
   readonly activeDaysCount: number;
 
+  // The user-authored totals, aggregated across all repositories. See also `repoTotals`.
+  readonly aggregatedAuthoredTotals: AuthoredTotals;
+
+  // The user-received totals, aggregated across all repositories. See also `repoTotals`.
+  readonly aggregatedReceivedTotals: ReceivedTotals;
+
   // All comments written by the user.
   // NOTE: This part of the result is very large; in case of performance issues, this could be
   // separated into its own response.

@@ -7,7 +7,6 @@ import {AnalyzeResult, UserResult} from 'types/types';
 import ValueCell from 'components/ValueCell';
 import Panel from 'components/Panel';
 import {formatIsoDate, getIntervalDuration} from 'date/utils';
-import {aggregateAuthoredTotals, aggregateReceivedTotals} from './utils';
 import RepositoriesContributionPanel from './RepositoriesContributionPanel';
 import ReviewsGivenPanel from './ReviewsGivenPanel';
 import ReviewsRequestedPanel from './ReviewsRequestedPanel';
@@ -18,8 +17,8 @@ import UserHeaderPanel from './UserHeaderPanel';
 import TeamGraphPanel from './TeamGraphPanel';
 
 const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
-  const authoredTotals = aggregateAuthoredTotals(user);
-  const receivedTotals = aggregateReceivedTotals(user);
+  const authoredTotals = user.aggregatedAuthoredTotals;
+  const receivedTotals = user.aggregatedReceivedTotals;
 
   return (
     <div className={classNames('UserResultView', className)}>
@@ -61,6 +60,13 @@ const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
             tooltip="How long this user's changes have been open until merged."
             title="Average time in review"
             value={`${Math.round(authoredTotals.meanChangeOpenTimeMsec / 1000 / 60 / 60)}h`}
+          />
+          <ValueCell
+            tooltip="The ratio of comments the user authored to others per every review request they received."
+            title="Comments / Request"
+            value={(authoredTotals.commentsWrittenToOthers / receivedTotals.reviewRequests).toFixed(
+              1
+            )}
           />
         </Panel>
 

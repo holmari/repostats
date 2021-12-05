@@ -3,8 +3,10 @@ import {removeDuplicates} from '../../arrays/utils';
 import {createInterval, EMPTY_INTERVAL, unionAllIntervals} from '../../date/utils';
 import {
   AnalyzeResult,
+  AuthoredTotals,
   CommentsPerChangeByUserId,
   DateInterval,
+  ReceivedTotals,
   RepoConfig,
   ReviewComment,
   UserActivitySummary,
@@ -142,8 +144,56 @@ function getCommentsAuthoredPerChangeByUserId(
   }, {});
 }
 
+function aggregateAuthoredTotals(repoTotals: ReadonlyArray<UserRepoTotals>): AuthoredTotals {
+  return repoTotals
+    .map((totals) => totals.authoredTotals)
+    .reduce<AuthoredTotals>(
+      (totals, item) => {
+        return {
+          approvals: totals.approvals + item.approvals,
+          changesCreated: totals.changesCreated + item.changesCreated,
+          commentsWrittenTotal: totals.commentsWrittenTotal + item.commentsWrittenTotal,
+          commentsWrittenToOthers: totals.commentsWrittenToOthers + item.commentsWrittenToOthers,
+          rejections: totals.rejections + item.rejections,
+          commits: totals.commits + item.commits,
+          meanChangeOpenTimeMsec: isNaN(totals.meanChangeOpenTimeMsec)
+            ? item.meanChangeOpenTimeMsec
+            : (totals.meanChangeOpenTimeMsec + item.meanChangeOpenTimeMsec) / 2,
+        };
+      },
+      {
+        approvals: 0,
+        changesCreated: 0,
+        commentsWrittenTotal: 0,
+        commentsWrittenToOthers: 0,
+        rejections: 0,
+        commits: 0,
+        meanChangeOpenTimeMsec: NaN,
+      }
+    );
+}
+
+function aggregateReceivedTotals(repoTotals: ReadonlyArray<UserRepoTotals>): ReceivedTotals {
+  return repoTotals
+    .map((totals) => totals.receivedTotals)
+    .reduce<ReceivedTotals>(
+      (totals, item) => ({
+        approvals: totals.approvals + item.approvals,
+        rejections: totals.rejections + item.rejections,
+        commentsTotal: totals.commentsTotal + item.commentsTotal,
+        commentsByOthers: totals.commentsByOthers + item.commentsByOthers,
+        reviewRequests: totals.reviewRequests + item.reviewRequests,
+      }),
+      {approvals: 0, rejections: 0, commentsTotal: 0, commentsByOthers: 0, reviewRequests: 0}
+    );
+}
+
 function postProcessUserResult(userResult: IntermediateUserResult): UserResult {
   const timeSeries = toTimeSeries(userResult);
+
+  const repoTotals = userResult.repoTotals.map((totals) =>
+    postProcessUserRepoTotals(totals, userResult)
+  );
 
   return {
     id: userResult.id,
@@ -159,11 +209,11 @@ function postProcessUserResult(userResult: IntermediateUserResult): UserResult {
     reviewsReceivedByUserId: userResult.reviewsReceivedByUserId,
     timeSeries,
     emailAddresses: [...userResult.emailAddresses].sort((a, b) => a.localeCompare(b)),
-    repoTotals: userResult.repoTotals.map((totals) =>
-      postProcessUserRepoTotals(totals, userResult)
-    ),
+    repoTotals,
     interval: getUserResultDateInterval(timeSeries) || EMPTY_INTERVAL,
     activeDaysCount: timeSeries.length,
+    aggregatedAuthoredTotals: aggregateAuthoredTotals(repoTotals),
+    aggregatedReceivedTotals: aggregateReceivedTotals(repoTotals),
   };
 }
 

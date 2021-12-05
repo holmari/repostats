@@ -59,15 +59,30 @@ const columns: ReadonlyArray<SortableColumn<UserResult>> = [
     maxWidth: 100,
   },
   {
+    Header: 'Review requests',
+    accessor: (row) => row.aggregatedReceivedTotals.reviewRequests,
+    maxWidth: 100,
+  },
+  {
     Header: 'Comments / Change',
     accessor: (row) => {
       const commentsPerChange =
-        row.repoTotals.map((repo) => repo.receivedTotals.commentsByOthers).reduce(sum) /
-        row.repoTotals.map((repo) => repo.authoredTotals.changesCreated).reduce(sum);
+        row.aggregatedReceivedTotals.commentsByOthers / row.aggregatedAuthoredTotals.changesCreated;
       return Number.isNaN(commentsPerChange) ? '-' : commentsPerChange.toFixed(3);
     },
     maxWidth: 100,
   },
+  {
+    Header: 'Comments / Request',
+    accessor: (row) => {
+      const commentsPerRequest =
+        row.aggregatedAuthoredTotals.commentsWrittenToOthers /
+        row.aggregatedReceivedTotals.reviewRequests;
+      return Number.isNaN(commentsPerRequest) ? '-' : commentsPerRequest.toFixed(3);
+    },
+    maxWidth: 100,
+  },
+
   {
     Header: 'First Seen',
     accessor: (row) => formatIsoDate(row.interval?.startDate),
