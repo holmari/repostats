@@ -60,7 +60,7 @@ const GithubConnectorInputs: React.FC<GHConnectorInputProps> = ({
         <a href="https://github.com/settings/tokens" target="_blank" rel="noreferrer">
           Personal Access Token
         </a>{' '}
-        below with at least <strong>read:org</strong> access:{' '}
+        below with at least <strong>read:org</strong> and <strong>repo</strong> access:{' '}
       </p>
       <InputGroup className="mb-3">
         <InputGroup.Prepend>
