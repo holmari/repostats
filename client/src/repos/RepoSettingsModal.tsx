@@ -155,6 +155,7 @@ const RepoSettingsModal: React.FC<Props> = ({
                 onChange={setUrl}
                 placeholder="e.g. https://github.com/holmari/gerritstats"
                 value={repo.url}
+                isInvalid={/\.\w*$/.test(repo.url || '')}
               />
             </InputGroup>
           </>
