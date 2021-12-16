@@ -12,6 +12,8 @@ import {
   getGithubTeamMemberPath,
   getGithubCommitPath,
   getGithubPullsPath,
+  getGithubTeamsPath,
+  getGithubTeamMembersPath,
 } from './github/paths';
 import {
   getDownloadedCommentIds,
@@ -41,6 +43,7 @@ import {removeDuplicates} from '../arrays/utils';
 import {DownloadContext} from '../types/download';
 import {RateLimitedAxiosInstance} from 'axios-rate-limit';
 import {updateDownloadStatus} from './utils';
+import {deletePath} from '../file/paths';
 
 const githubDefaultHeaders = {
   Accept: 'application/vnd.github.v3+json',
@@ -155,6 +158,11 @@ export async function getGitHubRateLimitedHttpClient(
   return getHttpClient(rateLimit.remaining, 60 * 60 * 1000);
 }
 
+export async function deleteGithubTeamsAndMembers(context: DownloadContext) {
+  deletePath(getGithubTeamsPath(context.repoConfig));
+  deletePath(getGithubTeamMembersPath(context.repoConfig));
+}
+
 export async function getGithubTeams(context: DownloadContext): Promise<void> {
   const url = `${orgsUrl(context.repoConfig)}/teams?per_page=${MAX_PER_PAGE}&page=1`;
 
@@ -221,6 +229,7 @@ export async function getGithubTeamMembersForAllTeams(
 
 export async function getGithubTeamsAndMembers(context: DownloadContext): Promise<void> {
   try {
+    deleteGithubTeamsAndMembers(context);
     await getGithubTeams(context);
     await getGithubTeamMembersForAllTeams(context);
   } catch (err) {
