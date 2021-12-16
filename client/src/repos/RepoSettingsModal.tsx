@@ -12,6 +12,13 @@ import {Pagination, Spinner} from 'react-bootstrap';
 import {RequestStatus} from 'requests/types';
 import {post} from './requests';
 
+function sanitizeUrl(url: string) {
+  if (url.startsWith('https://') && url.endsWith('.git')) {
+    return url.substring(0, url.length - 4);
+  }
+  return url;
+}
+
 const GithubConnectorInputs: React.FC<GHConnectorInputProps> = ({
   onChange,
   repoConfig,
@@ -168,7 +175,7 @@ const RepoSettingsModal: React.FC<Props> = ({
   };
 
   const setUrl = (event: React.ChangeEvent<HTMLInputElement>) =>
-    onChange({...repo, url: event.currentTarget.value || ''});
+    onChange({...repo, url: sanitizeUrl(event.currentTarget.value || '')});
 
   const handleBack = () => {
     if (currentStep > 0) {
