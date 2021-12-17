@@ -67,22 +67,18 @@ const columns: ReadonlyArray<SortableColumn<UserResult>> = [
   },
   {
     Header: 'Comments / Change',
-    accessor: (row) => {
-      const commentsPerChange =
-        row.aggregatedReceivedTotals.commentsByOthers / row.aggregatedAuthoredTotals.changesCreated;
-      return !Number.isFinite(commentsPerChange) ? '-' : commentsPerChange.toFixed(3);
-    },
+    accessor: (row) =>
+      row.aggregatedReceivedTotals.commentsByOthers / row.aggregatedAuthoredTotals.changesCreated,
     maxWidth: 100,
+    Cell: (props: CellProps<UserResult, number>) => Format.ratio(props.value),
   },
   {
     Header: 'Comments / Request',
-    accessor: (row) => {
-      const commentsPerRequest =
-        row.aggregatedAuthoredTotals.commentsWrittenToOthers /
-        row.aggregatedReceivedTotals.reviewRequests;
-      return !Number.isFinite(commentsPerRequest) ? '-' : commentsPerRequest.toFixed(3);
-    },
+    accessor: (row) =>
+      row.aggregatedAuthoredTotals.commentsWrittenToOthers /
+      row.aggregatedReceivedTotals.reviewRequests,
     maxWidth: 100,
+    Cell: (props: CellProps<UserResult, number>) => Format.ratio(props.value),
   },
 
   {

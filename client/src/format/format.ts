@@ -19,8 +19,13 @@ function formatDuration(durationMsec: number | null): string {
   return `${Math.round(durationHours / 24)} d`;
 }
 
+function formatRatio(ratio: number): string {
+  return !Number.isFinite(ratio) ? '-' : ratio.toFixed(2);
+}
+
 const Format = {
   duration: formatDuration,
+  ratio: formatRatio,
 };
 
 export default Format;
