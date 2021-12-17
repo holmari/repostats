@@ -7,6 +7,8 @@ import {AnalyzeResult, UserResult} from 'types/types';
 import Panel from 'components/Panel';
 import Table, {SortableColumn} from 'components/Table';
 import {formatIsoDate} from 'date/utils';
+import Format from 'format/format';
+import {CellProps} from 'react-table';
 
 const sum = (acc: number, item: number) => acc + item;
 
@@ -99,10 +101,10 @@ const columns: ReadonlyArray<SortableColumn<UserResult>> = [
     maxWidth: 100,
   },
   {
-    Header: 'Avg. time in Review (h)',
-    accessor: (row) =>
-      Math.round(row.aggregatedAuthoredTotals.meanChangeOpenTimeMsec / 1000 / 60 / 60),
+    Header: 'Avg. time in Review',
+    accessor: (row) => row.aggregatedAuthoredTotals.meanChangeOpenTimeMsec,
     maxWidth: 100,
+    Cell: (props: CellProps<UserResult, number>) => <span>{Format.duration(props.value)}</span>,
   },
 ];
 
