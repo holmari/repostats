@@ -70,7 +70,7 @@ const columns: ReadonlyArray<SortableColumn<UserResult>> = [
     accessor: (row) => {
       const commentsPerChange =
         row.aggregatedReceivedTotals.commentsByOthers / row.aggregatedAuthoredTotals.changesCreated;
-      return Number.isNaN(commentsPerChange) ? '-' : commentsPerChange.toFixed(3);
+      return !Number.isFinite(commentsPerChange) ? '-' : commentsPerChange.toFixed(3);
     },
     maxWidth: 100,
   },
@@ -80,7 +80,7 @@ const columns: ReadonlyArray<SortableColumn<UserResult>> = [
       const commentsPerRequest =
         row.aggregatedAuthoredTotals.commentsWrittenToOthers /
         row.aggregatedReceivedTotals.reviewRequests;
-      return Number.isNaN(commentsPerRequest) ? '-' : commentsPerRequest.toFixed(3);
+      return !Number.isFinite(commentsPerRequest) ? '-' : commentsPerRequest.toFixed(3);
     },
     maxWidth: 100,
   },
