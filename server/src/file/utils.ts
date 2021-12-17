@@ -4,14 +4,18 @@ import fs from 'fs';
 import {readJsonFile} from './json';
 
 export function getAllJsonFilenamesInDirectory(path: string): ReadonlyArray<string> {
-  return fs
-    .readdirSync(path, {withFileTypes: true})
-    .flatMap((dirent) =>
-      dirent.isDirectory()
-        ? getAllJsonFilenamesInDirectory(`${path}/${dirent.name}`)
-        : [`${path}/${dirent.name}`]
-    )
-    .filter((filename) => filename.endsWith('.json'));
+  try {
+    return fs
+      .readdirSync(path, {withFileTypes: true})
+      .flatMap((dirent) =>
+        dirent.isDirectory()
+          ? getAllJsonFilenamesInDirectory(`${path}/${dirent.name}`)
+          : [`${path}/${dirent.name}`]
+      )
+      .filter((filename) => filename.endsWith('.json'));
+  } catch (error: unknown) {
+    return [];
+  }
 }
 
 export function* iterEachFile<T>(path: string): Generator<[T, string], void, unknown> {
