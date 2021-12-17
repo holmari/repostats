@@ -1,6 +1,7 @@
 import Axios, {AxiosError, AxiosRequestConfig, AxiosResponse} from 'axios';
 import {Response, Request} from 'express';
 import parse from 'parse-link-header';
+import {URLSearchParams} from 'url';
 
 import {writeJsonToFile} from '../file/json';
 import {GithubConnector, GithubSourceDataMetadata, RepoConfig} from '../types/types';
@@ -159,7 +160,7 @@ export async function getGitHubRateLimitedHttpClient(
   return getHttpClient(rateLimit.remaining, 60 * 60 * 1000);
 }
 
-export async function deleteGithubTeamsAndMembers(context: DownloadContext) {
+export function deleteGithubTeamsAndMembers(context: DownloadContext): void {
   deletePath(getGithubTeamsPath(context.repoConfig));
   deletePath(getGithubTeamMembersPath(context.repoConfig));
 }
