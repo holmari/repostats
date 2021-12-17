@@ -77,8 +77,8 @@ function get(context: DownloadContext, url: string, requestConfig: AxiosRequestC
 
   return context.http.get(url, requestConfig).then((response) => {
     updateDownloadStatus(context.request, {
-      rateLimit: response.headers['x-ratelimit-limit'],
-      rateLimitLeft: response.headers['x-ratelimit-remaining'],
+      rateLimit: parseInt(response.headers['x-ratelimit-limit'], 10) ?? undefined,
+      rateLimitLeft: parseInt(response.headers['x-ratelimit-remaining'], 10) ?? undefined,
       fetchedResources: 1,
     });
 
