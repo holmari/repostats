@@ -1,5 +1,5 @@
 {
-  "name": "github-gerritstats-server",
+  "name": "repostats-server",
   "version": "0.0.1",
   "description": "Analyze commit, repository and review data.",
   "repository": "https://github.com/holmari/github-gerritstats",
@@ -91,7 +91,7 @@
     "supertest": "^4.0.2",
     "ts-jest": "^24.1.0",
     "ts-node": "^9.1.1",
-    "typescript": "^4.1.2"
+    "typescript": "^4.5.4"
   },
   "main": "src/server.ts",
   "private": false

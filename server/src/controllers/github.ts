@@ -115,7 +115,8 @@ export function testConnection(req: Request, res: Response): void {
         }
       });
   } catch (e) {
-    res.status(500).send({message: e?.message || 'A server error has occurred.', url});
+    const message = (e instanceof Error ? e?.message : undefined) ?? 'A server error has occurred.';
+    res.status(500).send({message, url});
   }
 }
 
