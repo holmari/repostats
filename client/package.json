@@ -16,7 +16,7 @@
     "@types/react-router-dom": "^5.1.0",
     "bootstrap": "^4.5.3",
     "classnames": "^2.3.1",
-    "d3": "^6.5.0",
+    "d3": "^7.2.1",
     "js-cookie": "3.0.1",
     "luxon": "^1.25.0",
     "react": "^16.11.0",
@@ -31,10 +31,10 @@
     "uuid": "^8.3.2"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "start": "node_modules/react-scripts/bin/react-scripts.js start",
+    "build": "node_modules/react-scripts/bin/react-scripts.js build",
+    "test": "node_modules/react-scripts/bin/react-scripts.js test",
+    "eject": "node_modules/react-scripts/bin/react-scripts.js eject"
   },
   "eslintConfig": {
     "extends": "react-app"
