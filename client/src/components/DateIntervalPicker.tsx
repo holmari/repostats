@@ -34,8 +34,8 @@ const DateIntervalPicker: React.FC<Props> = ({interval, onChange}) => {
 
   const popover = (
     <Popover id="date-interval-popover" placement="top-start">
-      <Popover.Title>Date Interval</Popover.Title>
-      <Popover.Content>
+      <Popover.Header>Date Interval</Popover.Header>
+      <Popover.Body>
         <div className="DateIntervalPicker__popover-content">
           <fieldset>
             <legend>Start Date</legend>
@@ -65,7 +65,7 @@ const DateIntervalPicker: React.FC<Props> = ({interval, onChange}) => {
             Reset
           </Button>
         </div>
-      </Popover.Content>
+      </Popover.Body>
     </Popover>
   );
 

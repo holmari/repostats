@@ -10,13 +10,13 @@ const DeleteButton: React.FC<Props> = ({onConfirm}) => {
   };
   const popover = (
     <Popover id="delete-popover">
-      <Popover.Title as="h3">Confirm Deletion</Popover.Title>
-      <Popover.Content>
+      <Popover.Header as="h3">Confirm Deletion</Popover.Header>
+      <Popover.Body>
         <p>Are you sure you want to delete this?</p>
         <Button onClick={handleConfirm} size="sm" variant="outline-danger">
           Yes, Delete
         </Button>
-      </Popover.Content>
+      </Popover.Body>
     </Popover>
   );
 

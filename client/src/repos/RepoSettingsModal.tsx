@@ -70,9 +70,7 @@ const GithubConnectorInputs: React.FC<GHConnectorInputProps> = ({
         below with at least <strong>read:org</strong> and <strong>repo</strong> access:{' '}
       </p>
       <InputGroup className="mb-3">
-        <InputGroup.Prepend>
-          <InputGroup.Text>GitHub OAuth token</InputGroup.Text>
-        </InputGroup.Prepend>
+        <InputGroup.Text>GitHub OAuth token</InputGroup.Text>
         <FormControl placeholder="" onChange={updateToken} value={repoConfig.connector.token} />
       </InputGroup>
       <p>
@@ -155,9 +153,7 @@ const RepoSettingsModal: React.FC<Props> = ({
           <>
             <p>To add a repository, copypaste its GitHub URL below:</p>
             <InputGroup className="mb-3">
-              <InputGroup.Prepend>
-                <InputGroup.Text>Repository URL</InputGroup.Text>
-              </InputGroup.Prepend>
+              <InputGroup.Text>Repository URL</InputGroup.Text>
               <FormControl
                 onChange={setUrl}
                 placeholder="e.g. https://github.com/holmari/gerritstats"

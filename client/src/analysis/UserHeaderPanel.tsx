@@ -10,8 +10,8 @@ import {Button, OverlayTrigger, Popover} from 'react-bootstrap';
 const UserHeaderPanel: React.FC<Props> = ({user}) => {
   const popover = (
     <Popover id="date-interval-popover" placement="top-start">
-      <Popover.Title>Contact Info</Popover.Title>
-      <Popover.Content>
+      <Popover.Header>Contact Info</Popover.Header>
+      <Popover.Body>
         <div className="DateIntervalPicker__popover-content">
           <fieldset>
             <legend>Email {user.emailAddresses.length > 1 ? 'addresses' : 'address'}</legend>
@@ -24,7 +24,7 @@ const UserHeaderPanel: React.FC<Props> = ({user}) => {
             </ul>
           </fieldset>
         </div>
-      </Popover.Content>
+      </Popover.Body>
     </Popover>
   );
 
