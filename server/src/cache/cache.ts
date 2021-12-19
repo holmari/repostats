@@ -5,7 +5,7 @@ import {readJsonFile, writeJsonToFile} from '../file/json';
 import {deletePath, ensurePathExists, ensurePaths, getCachePath} from '../file/paths';
 
 export enum CachePath {
-  analysis = 'analysis',
+  analysis = 'analysis/responses',
   download = 'download',
 }
 
