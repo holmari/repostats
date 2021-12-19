@@ -6,6 +6,7 @@ import {deletePath, ensurePathExists, ensurePaths, getCachePath} from '../file/p
 
 export enum CachePath {
   analysis = 'analysis/responses',
+  analysisPartial = 'analysis/partial',
   download = 'download',
 }
 

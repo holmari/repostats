@@ -1,6 +1,12 @@
 import {descByCreationDate} from '../../collections/sort';
 import {removeDuplicates} from '../../collections/utils';
-import {createInterval, EMPTY_INTERVAL, unionAllIntervals} from '../../date/utils';
+import {
+  createInterval,
+  EMPTY_INTERVAL,
+  iterateInterval,
+  sliceDate,
+  unionAllIntervals,
+} from '../../date/utils';
 import {
   AnalyzeResult,
   AuthoredTotals,
@@ -266,6 +272,58 @@ function aggregateRepoTotalsByDate(repoTotalsByDay: {
   });
 
   return Object.values(result);
+}
+
+export function getDailyUserResult(
+  result: IntermediateUserResult,
+  date: string
+): IntermediateUserResult {
+  return {
+    id: result.id,
+    displayName: result.displayName,
+    emailAddresses: result.emailAddresses,
+    possibleRealNameCounts: result.possibleRealNameCounts,
+    url: result.url,
+    authoredReviewsByDateAndUserId: {
+      [date]: result.authoredReviewsByDateAndUserId[date],
+    },
+    changesAuthored: result.changesAuthored.filter(
+      (change) => sliceDate(change.createdAt) === date
+    ),
+    changesAuthoredByDay: {[date]: result.changesAuthoredByDay[date]},
+    commentsAuthored: result.commentsAuthored.filter(
+      (comment) => sliceDate(comment.createdAt) === date
+    ),
+    commentsAuthoredByDay: {[date]: result.commentsAuthoredByDay[date]},
+    commentsAuthoredPerChangeByDateAndUserId: {
+      [date]: result.commentsAuthoredPerChangeByDateAndUserId[date],
+    },
+    commentsReceivedByDateAndUserId: {[date]: result.commentsReceivedByDateAndUserId[date]},
+    commentsReceivedByDay: {[date]: result.commentsReceivedByDay[date]},
+    commentsWrittenByDateAndUserId: {[date]: result.commentsWrittenByDateAndUserId[date]},
+    commitsAuthoredByDay: {[date]: result.commitsAuthoredByDay[date]},
+    repoTotalsByDay: {[date]: result.repoTotalsByDay[date]},
+    reviewRequestsAuthoredByDateAndUserId: {
+      [date]: result.reviewRequestsAuthoredByDateAndUserId[date],
+    },
+    reviewRequestsReceivedByDateAndUserId: {
+      [date]: result.reviewRequestsReceivedByDateAndUserId[date],
+    },
+    reviewsAuthoredByDay: {[date]: result.reviewsAuthoredByDay[date]},
+    reviewsReceivedByDateAndUserId: {[date]: result.reviewsReceivedByDateAndUserId[date]},
+    reviewsReceivedByDay: {[date]: result.reviewsReceivedByDay[date]},
+  };
+}
+
+export function* getDailyUserResults(
+  intermediateResult: IntermediateUserResult
+): Generator<[IntermediateUserResult, string], void, unknown> {
+  const postProcessedResult = postProcessUserResult(intermediateResult);
+
+  for (const date of iterateInterval(postProcessedResult.interval)) {
+    const dailyResult = getDailyUserResult(intermediateResult, date);
+    yield [dailyResult, date];
+  }
 }
 
 function postProcessUserResult(userResult: IntermediateUserResult): UserResult {

@@ -75,6 +75,11 @@ export type IntermediateUserResult = Omit<
   readonly changesAuthored: ReadonlyArray<Change>;
 };
 
+// Daily cache results
+export interface DailyUserResult {
+  readonly userResultsById: {readonly [id: string]: IntermediateUserResult};
+}
+
 export type IntermediateAnalyzeResult = Omit<AnalyzeResult, 'interval' | 'userResults'> & {
   readonly userResults: IntermediateUserResultsByUserId;
 };
@@ -84,3 +89,12 @@ export type IntermediateUserResultsByUserId = {
 };
 
 export type UserResultsByDisplayName = {readonly [displayName: string]: UserResult};
+
+export interface AnalyzeRequestOptions {
+  readonly canReadFromCache: boolean;
+  readonly ignorePartialCache?: boolean;
+}
+
+export interface PartialDataRevision {
+  readonly revision: string;
+}

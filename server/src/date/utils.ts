@@ -58,6 +58,24 @@ export function createInterval(...dates: ReadonlyArray<string | null>): DateInte
     }, null);
 }
 
+export function intersectIntervals(
+  left: DateInterval | null,
+  right: DateInterval | null
+): DateInterval | null {
+  if (!left && right) {
+    return left;
+  } else if (left && !right) {
+    return right;
+  } else if (left && right) {
+    return {
+      startDate: left.startDate < right.startDate ? right.startDate : left.startDate,
+      endDate: left.endDate < right.endDate ? left.endDate : right.endDate,
+    };
+  }
+
+  return null;
+}
+
 export function intersects(left: DateInterval | null, right: DateInterval | null): boolean {
   if (!left || !right) {
     return false;
@@ -103,4 +121,19 @@ export function getIntervalDuration(interval: DateInterval | null, unit: Duratio
   return start.toMillis() === 0 || end.toMillis() === 0
     ? NaN
     : end.diff(start, unit)[toDurationKey(unit)];
+}
+
+export function* iterateInterval(interval: DateInterval | null): Generator<string, void, unknown> {
+  if (!interval) {
+    return;
+  }
+
+  const start = DateTime.fromISO(interval.startDate);
+  const end = DateTime.fromISO(interval.endDate);
+  let current = start;
+
+  while (current <= end) {
+    yield current.toISODate();
+    current = current.plus({days: 1});
+  }
 }

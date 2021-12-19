@@ -1,9 +1,16 @@
 import {Response, Request} from 'express';
 import fs from 'fs';
+import path from 'path';
 
 import {CachePath, readFromCache, writeToCache} from '../cache/cache';
-import {ALL_TIME_INTERVAL, sliceDate, unionAllIntervals} from '../date/utils';
-import {getConfigPath, getReposPath} from '../file/paths';
+import {
+  ALL_TIME_INTERVAL,
+  intersectIntervals,
+  iterateInterval,
+  sliceDate,
+  unionAllIntervals,
+} from '../date/utils';
+import {getCachePath, getConfigPath, getReposPath} from '../file/paths';
 import {getConfigFile} from '../file/repo';
 import {
   AnalyzeRequest,
@@ -18,20 +25,98 @@ import {
   UserRepoTotals,
 } from '../types/types';
 import {
+  AnalyzeRequestOptions,
   IntermediateAnalyzeResult,
   IntermediateUserResult,
+  PartialDataRevision,
   ReviewSummariesByDateAndUserId,
 } from './analysis/types';
 import {getGithubRepoResult} from './github/analysis';
-import {postProcessUserResults} from './analysis/utils';
+import {getDailyUserResults, postProcessUserResults} from './analysis/utils';
 import {removeDuplicates} from '../collections/utils';
+import {getAllDirectories, getAllJsonFilenamesInDirectory, getFileMd5Hash} from '../file/utils';
+import {readJsonFile, writeJsonToFile} from '../file/json';
 
 export type NormalizedAnalyzeRequest = Required<AnalyzeRequest>;
 
-function getRepoResult(
+function getPartialDataRevisionPath(repoName: string): string {
+  return `${getCachePath()}/${CachePath.analysisPartial}/${repoName}/revision.json`;
+}
+
+function getPartialDataPath(repoName: string): string {
+  return `${getCachePath()}/${CachePath.analysisPartial}/${repoName}/daily`;
+}
+
+function getPartialDataPathForDate(repoName: string, date: string): string {
+  return `${getCachePath()}/${CachePath.analysisPartial}/${repoName}/daily/${date}`;
+}
+
+function getPartialDataFilename(repoName: string, date: string, userId: string): string {
+  return `${getPartialDataPath(repoName)}/${date}/${userId}.json`;
+}
+
+function computeRepoResult(
+  repoConfig: RepoConfig,
+  request: NormalizedAnalyzeRequest,
+  options: AnalyzeRequestOptions
+): IntermediateAnalyzeResult {
+  if (!options.ignorePartialCache) {
+    aggregatePartialCacheIfNeeded(repoConfig, options);
+  }
+
+  return computeFromPartialCache(repoConfig, request);
+}
+
+function getIntervalFromDates(dates: ReadonlyArray<string>): DateInterval | null {
+  if (!dates.length) {
+    return null;
+  }
+  const sortedDates = [...dates].sort();
+  const startDate = sortedDates[0];
+  const endDate = sortedDates[sortedDates.length - 1];
+
+  return {
+    startDate,
+    endDate,
+  };
+}
+
+function computeFromPartialCache(
   repoConfig: RepoConfig,
   request: NormalizedAnalyzeRequest
 ): IntermediateAnalyzeResult {
+  const resultsByUserId: {[userId: string]: IntermediateUserResult} = {};
+
+  const availableDates = getAllDirectories(getPartialDataPath(repoConfig.name)).map((filename) =>
+    path.basename(filename)
+  );
+  const intervalFromPaths = getIntervalFromDates(availableDates);
+  const availableInterval = intersectIntervals(intervalFromPaths, request.dateInterval);
+
+  const filenamesByUserId: {[userId: string]: string[]} = {};
+  for (const date of iterateInterval(availableInterval)) {
+    const datePath = getPartialDataPathForDate(repoConfig.name, date);
+    const allFiles = getAllJsonFilenamesInDirectory(datePath);
+
+    allFiles
+      .map((filename) => [path.basename(filename, '.json'), filename])
+      .forEach(([userId, filename]) => {
+        filenamesByUserId[userId] = [...(filenamesByUserId[userId] || []), filename];
+      });
+  }
+
+  Object.keys(filenamesByUserId).forEach((userId) => {
+    const allResultsForUser = filenamesByUserId[userId].map<IntermediateUserResult>(readJsonFile);
+    resultsByUserId[userId] = mergeAllResults(allResultsForUser);
+  });
+
+  return {
+    includedRepos: [repoConfig],
+    userResults: resultsByUserId,
+  };
+}
+
+function compute(repoConfig: RepoConfig, request: NormalizedAnalyzeRequest) {
   switch (repoConfig.connector.type) {
     case 'GITHUB':
       return getGithubRepoResult(repoConfig as RepoConfig<GithubConnector>, request);
@@ -40,41 +125,119 @@ function getRepoResult(
   }
 }
 
+function getPartialDataRevisionFile(repoName: string): PartialDataRevision | null {
+  const filename = getPartialDataRevisionPath(repoName);
+  return fs.existsSync(filename) ? readJsonFile(filename) : null;
+}
+
+function aggregatePartialCacheIfNeeded(repoConfig: RepoConfig, options: AnalyzeRequestOptions) {
+  const revisionFilePath = getPartialDataRevisionPath(repoConfig.name);
+  const configHash = getFileMd5Hash(getConfigPath(repoConfig.name));
+  const oldRevisionMetadata = getPartialDataRevisionFile(repoConfig.name);
+  const needToRecompute = !options.canReadFromCache || configHash !== oldRevisionMetadata?.revision;
+
+  if (!configHash) {
+    throw new Error(`Could not compute hash for ${getConfigPath(repoConfig.name)}!`);
+  }
+
+  if (!needToRecompute) {
+    console.info('Partial cache computed, no need to recompute.');
+    return;
+  }
+  console.log(
+    `Need to reaggregate: canReadFromCache=${options.canReadFromCache}, configHash=${configHash}, oldRevisionMetadataRevision=${oldRevisionMetadata?.revision}`
+  );
+
+  const fullRequest = normalizeRequest({});
+  const fullResult = compute(repoConfig, fullRequest);
+
+  Object.keys(fullResult.userResults).forEach((userId) => {
+    const userResult = fullResult.userResults[userId];
+    for (const [dailyResult, date] of getDailyUserResults(userResult)) {
+      const filename = getPartialDataFilename(repoConfig.name, date, dailyResult.id);
+      writeJsonToFile(filename, dailyResult);
+    }
+  });
+
+  const revisionMetadata: PartialDataRevision = {revision: configHash};
+  writeJsonToFile(revisionFilePath, revisionMetadata);
+}
+
+function mergeKeyedCountsMutable(left: Mutable<CountByDay>, right: CountByDay): void {
+  Object.keys(right).forEach((date) => {
+    left[date] = (left[date] ?? 0) + right[date];
+  });
+}
+
+function mergeSummariesByDayMutable(
+  left: Mutable<ReviewSummariesByDay>,
+  right: ReviewSummariesByDay
+): void {
+  Object.keys(right).forEach((date) => {
+    left[date] = {
+      approvals: (left[date]?.approvals ?? 0) + right[date].approvals,
+      rejections: (left[date]?.rejections ?? 0) + right[date].rejections,
+    };
+  });
+}
+
+function mergeDateUserKeyedRecordsMutable(
+  left: {[date: string]: {[userId: string]: number}},
+  right: {readonly [date: string]: {readonly [userId: string]: number}}
+): void {
+  Object.keys(right).forEach((date) => {
+    Object.keys(right[date]).forEach((userId) => {
+      left[date] = left[date] ?? {};
+      left[date][userId] = (left[date][userId] ?? 0) + right[date][userId];
+    });
+  });
+}
+
+function mergeRepoTotalsRecordsMutable(
+  left: {[date: string]: ReadonlyArray<UserRepoTotals>},
+  right: IntermediateUserResult['repoTotalsByDay']
+): void {
+  Object.keys(right).forEach((date) => {
+    if (left[date]) {
+      left[date] = [...left[date], ...right[date]];
+    } else {
+      left[date] = right[date];
+    }
+  });
+}
+
+function mergeReviewSummariesByUserIdMutable(
+  left: {[date: string]: {[userId: string]: ReviewsSummary}},
+  right: ReviewSummariesByDateAndUserId
+): void {
+  Object.keys(right).forEach((date) => {
+    Object.keys(right[date]).forEach((userId) => {
+      const newValue: ReviewsSummary = {
+        approvals: (left[date]?.[userId]?.approvals ?? 0) + right[date][userId].approvals,
+        rejections: (left[date]?.[userId]?.rejections ?? 0) + right[date][userId].rejections,
+      };
+      left[date] = left[date] ?? {};
+      left[date][userId] = newValue;
+    });
+  });
+}
+
 function mergeDateUserKeyedRecords(
   left: {readonly [date: string]: {readonly [userId: string]: number}},
   right: {readonly [date: string]: {readonly [userId: string]: number}}
 ): {readonly [date: string]: {readonly [userId: string]: number}} {
-  if (!left) {
-    return right;
-  } else if (!right) {
-    return left;
-  }
-
   const result: {[date: string]: {[userId: string]: number}} = {...left};
-  Object.keys(right).forEach((date) => {
-    Object.keys(right[date]).forEach((userId) => {
-      result[date] = result[date] ?? {};
-      result[date][userId] = (result[date][userId] ?? 0) + right[date][userId];
-    });
-  });
+  mergeDateUserKeyedRecordsMutable(result, right);
 
   return result;
 }
 
 function mergeRepoTotalsRecords(
-  left: {readonly [date: string]: ReadonlyArray<UserRepoTotals>},
-  right: {readonly [date: string]: ReadonlyArray<UserRepoTotals>}
+  left: IntermediateUserResult['repoTotalsByDay'],
+  right: IntermediateUserResult['repoTotalsByDay']
 ): {readonly [date: string]: ReadonlyArray<UserRepoTotals>} {
-  if (!left) {
-    return right;
-  } else if (!right) {
-    return left;
-  }
-
   const result: {[date: string]: ReadonlyArray<UserRepoTotals>} = {...left};
-  Object.keys(right).forEach((date) => {
-    result[date] = [...(result[date] || []), ...right[date]];
-  });
+  mergeRepoTotalsRecordsMutable(result, right);
 
   return result;
 }
@@ -83,38 +246,15 @@ function mergeReviewSummariesByUserId(
   left: ReviewSummariesByDateAndUserId,
   right: ReviewSummariesByDateAndUserId
 ): ReviewSummariesByDateAndUserId {
-  if (!left) {
-    return right;
-  } else if (!right) {
-    return left;
-  }
-
   const authoredReviews: {[date: string]: {[userId: string]: ReviewsSummary}} = {...left};
-  Object.keys(right).forEach((date) => {
-    Object.keys(right[date]).forEach((userId) => {
-      const newValue: ReviewsSummary = {
-        approvals: (left[date]?.[userId]?.approvals ?? 0) + right[date][userId].approvals,
-        rejections: (left[date]?.[userId]?.rejections ?? 0) + right[date][userId].rejections,
-      };
-      authoredReviews[date] = authoredReviews[date] ?? {};
-      authoredReviews[date][userId] = newValue;
-    });
-  });
+  mergeReviewSummariesByUserIdMutable(authoredReviews, right);
 
   return authoredReviews;
 }
 
 function mergeKeyedCounts(left: CountByDay, right: CountByDay): CountByDay {
-  if (!left) {
-    return right;
-  } else if (!right) {
-    return left;
-  }
-
   const countsByDay: Mutable<CountByDay> = {...left};
-  Object.keys(right).forEach((date) => {
-    countsByDay[date] = (left[date] || 0) + right[date];
-  });
+  mergeKeyedCountsMutable(countsByDay, right);
 
   return countsByDay;
 }
@@ -123,17 +263,8 @@ function mergeSummariesByDay(
   left: ReviewSummariesByDay,
   right: ReviewSummariesByDay
 ): ReviewSummariesByDay {
-  if (!right) {
-    return left;
-  }
-
   const summaries: Mutable<ReviewSummariesByDay> = {...left};
-  Object.keys(right).forEach((date) => {
-    summaries[date] = {
-      approvals: (summaries[date]?.approvals || 0) + right[date].approvals,
-      rejections: (summaries[date]?.rejections || 0) + right[date].rejections,
-    };
-  });
+  mergeSummariesByDayMutable(summaries, right);
 
   return summaries;
 }
@@ -219,6 +350,77 @@ function mergeUserResults(
   };
 }
 
+function mergeUserResultsMutable(
+  left: Mutable<IntermediateUserResult>,
+  right: IntermediateUserResult
+): void {
+  if (left.id !== right.id) {
+    throw new Error(
+      `Tried to merge incompatible records, ids differ '${left.id}' and '${right.id}'.`
+    );
+  }
+
+  if (left.url !== right.url) {
+    throw new Error(
+      `Tried to merge incompatible records, urls differ: '${left.url}' and '${right.url}'.`
+    );
+  }
+
+  if (left.displayName !== right.displayName) {
+    throw new Error(
+      `Tried to merge incompatible records, displayNames differ: '${left.displayName}' and '${right.displayName}'.`
+    );
+  }
+
+  mergeKeyedCountsMutable(left.possibleRealNameCounts, right.possibleRealNameCounts);
+  left.emailAddresses = removeDuplicates([...left.emailAddresses, ...right.emailAddresses]);
+  mergeRepoTotalsRecordsMutable(left.repoTotalsByDay, right.repoTotalsByDay);
+  left.commentsAuthored = [...left.commentsAuthored, ...right.commentsAuthored];
+  left.changesAuthored = [...left.changesAuthored, ...right.changesAuthored];
+  mergeDateUserKeyedRecordsMutable(
+    left.reviewRequestsAuthoredByDateAndUserId,
+    right.reviewRequestsAuthoredByDateAndUserId
+  );
+  mergeDateUserKeyedRecordsMutable(
+    left.reviewRequestsReceivedByDateAndUserId,
+    right.reviewRequestsReceivedByDateAndUserId
+  );
+  mergeDateUserKeyedRecordsMutable(
+    left.commentsWrittenByDateAndUserId,
+    right.commentsWrittenByDateAndUserId
+  );
+  mergeDateUserKeyedRecordsMutable(
+    left.commentsReceivedByDateAndUserId,
+    right.commentsReceivedByDateAndUserId
+  );
+  mergeReviewSummariesByUserIdMutable(
+    left.authoredReviewsByDateAndUserId,
+    right.authoredReviewsByDateAndUserId
+  );
+  mergeReviewSummariesByUserIdMutable(
+    left.reviewsReceivedByDateAndUserId,
+    right.reviewsReceivedByDateAndUserId
+  );
+  mergeKeyedCountsMutable(left.commentsAuthoredByDay, right.commentsAuthoredByDay);
+  mergeKeyedCountsMutable(left.commentsReceivedByDay, right.commentsReceivedByDay);
+  mergeDateUserKeyedRecordsMutable(
+    left.commentsAuthoredPerChangeByDateAndUserId,
+    right.commentsAuthoredPerChangeByDateAndUserId
+  );
+  mergeKeyedCountsMutable(left.changesAuthoredByDay, right.changesAuthoredByDay);
+  mergeKeyedCountsMutable(left.commitsAuthoredByDay, right.commitsAuthoredByDay);
+  mergeSummariesByDayMutable(left.reviewsAuthoredByDay, right.reviewsAuthoredByDay);
+  mergeSummariesByDayMutable(left.reviewsReceivedByDay, right.reviewsReceivedByDay);
+}
+
+function mergeAllResults(results: ReadonlyArray<IntermediateUserResult>): IntermediateUserResult {
+  const result = results[0];
+  for (let i = 1; i < results.length; ++i) {
+    mergeUserResultsMutable(result, results[i]);
+  }
+  return result;
+}
+
 function getAvailableRepoNames(): ReadonlyArray<string> {
   const allRepoDirs = fs.readdirSync(getReposPath());
   return allRepoDirs.filter((repoName) => fs.existsSync(getConfigPath(repoName)));
@@ -241,14 +443,17 @@ function normalizeRequest(request: AnalyzeRequest): NormalizedAnalyzeRequest {
   };
 }
 
-function computeAnalysisResult(request: NormalizedAnalyzeRequest): AnalyzeResult {
+function computeAnalysisResult(
+  request: NormalizedAnalyzeRequest,
+  options: AnalyzeRequestOptions = {canReadFromCache: false}
+): AnalyzeResult {
   const repoMetadatas = fs
     .readdirSync(getReposPath())
     .filter((repoName) => fs.existsSync(getConfigPath(repoName)))
     .filter((repoName) => request.includedRepoNames.includes(repoName))
     .map((repoName) => getConfigFile(repoName));
 
-  const repoResults = repoMetadatas.map((config) => getRepoResult(config, request));
+  const repoResults = repoMetadatas.map((config) => computeRepoResult(config, request, options));
   const includedRepos = repoResults
     .map((result) => result.includedRepos)
     .reduce((acc, item) => [...acc, ...item], []);
@@ -289,7 +494,7 @@ export function analyze(req: Request, res: Response): void {
     return;
   }
 
-  const result = computeAnalysisResult(request);
+  const result = computeAnalysisResult(request, {canReadFromCache});
 
   res.status(200).send(result);
 

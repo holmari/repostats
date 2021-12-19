@@ -18,6 +18,13 @@ export function getAllJsonFilenamesInDirectory(path: string): ReadonlyArray<stri
   }
 }
 
+export function getAllDirectories(path: string): ReadonlyArray<string> {
+  return fs
+    .readdirSync(path, {withFileTypes: true})
+    .filter((dirent) => dirent.isDirectory())
+    .map((dirent) => `${path}/${dirent.name}`);
+}
+
 export function* iterEachFile<T>(path: string): Generator<[T, string], void, unknown> {
   const allFilenames = getAllJsonFilenamesInDirectory(path);
 
