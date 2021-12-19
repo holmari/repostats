@@ -6,9 +6,11 @@ import {
   AuthoredTotals,
   CommentsPerChangeByUserId,
   DateInterval,
+  Mutable,
   ReceivedTotals,
   RepoConfig,
   ReviewComment,
+  ReviewSummariesByUserId,
   UserActivitySummary,
   UserRepoTotals,
   UserResult,
@@ -115,13 +117,13 @@ function pickBestRealName(userResult: IntermediateUserResult) {
   );
 }
 
-type CommentsByUserId = {readonly [userId: string]: ReadonlyArray<ReviewComment>};
+type CommentEntitiesByUserId = {readonly [userId: string]: ReadonlyArray<ReviewComment>};
 
 function getCommentsAuthoredPerChangeByUserId(
   userResult: IntermediateUserResult
 ): CommentsPerChangeByUserId {
-  const commentsByUserId: CommentsByUserId = userResult.commentsAuthored.reduce<CommentsByUserId>(
-    (acc, comment) => {
+  const commentsByUserId: CommentEntitiesByUserId =
+    userResult.commentsAuthored.reduce<CommentEntitiesByUserId>((acc, comment) => {
       if (!comment.recipientUserId) {
         return acc;
       }
@@ -130,9 +132,7 @@ function getCommentsAuthoredPerChangeByUserId(
         ...acc,
         [comment.recipientUserId]: [...existingItem, comment],
       };
-    },
-    {}
-  );
+    }, {});
 
   return Object.keys(commentsByUserId).reduce<CommentsPerChangeByUserId>((acc, userId) => {
     const comments = commentsByUserId[userId];
@@ -188,6 +188,46 @@ function aggregateReceivedTotals(repoTotals: ReadonlyArray<UserRepoTotals>): Rec
     );
 }
 
+function aggregateByDate(values: {readonly [date: string]: {readonly [userId: string]: number}}): {
+  readonly [userId: string]: number;
+} {
+  const result: {[userId: string]: number} = {};
+
+  Object.keys(values).forEach((date) => {
+    const valuesByUserId = values[date] ?? {};
+
+    Object.keys(valuesByUserId).forEach((userId) => {
+      const existingValue = result[userId] ?? 0;
+      result[userId] = existingValue + valuesByUserId[userId];
+    });
+  });
+
+  return result;
+}
+
+function aggregateReviewSummariesByDate(values: {
+  readonly [date: string]: ReviewSummariesByUserId;
+}): ReviewSummariesByUserId {
+  const result: Mutable<ReviewSummariesByUserId> = {};
+
+  Object.keys(values).forEach((date) => {
+    const valuesByUserId = values[date] ?? {};
+
+    Object.keys(valuesByUserId).forEach((userId) => {
+      const existingValue = result[userId] ?? {
+        approvals: 0,
+        rejections: 0,
+      };
+      result[userId] = {
+        approvals: existingValue.approvals + valuesByUserId[userId].approvals,
+        rejections: existingValue.rejections + valuesByUserId[userId].rejections,
+      };
+    });
+  });
+
+  return result;
+}
+
 function postProcessUserResult(userResult: IntermediateUserResult): UserResult {
   const timeSeries = toTimeSeries(userResult);
 
@@ -202,13 +242,21 @@ function postProcessUserResult(userResult: IntermediateUserResult): UserResult {
     url: userResult.url,
     changesAuthored: [...userResult.changesAuthored].sort(descByCreationDate),
     commentsAuthored: [...userResult.commentsAuthored].sort(descByCreationDate),
-    reviewRequestsAuthoredByUserId: userResult.reviewRequestsAuthoredByUserId,
-    reviewRequestsReceivedByUserId: userResult.reviewRequestsReceivedByUserId,
-    commentsWrittenByUserId: userResult.commentsWrittenByUserId,
-    commentsReceivedByUserId: userResult.commentsReceivedByUserId,
+    reviewRequestsAuthoredByUserId: aggregateByDate(
+      userResult.reviewRequestsAuthoredByDateAndUserId
+    ),
+    reviewRequestsReceivedByUserId: aggregateByDate(
+      userResult.reviewRequestsReceivedByDateAndUserId
+    ),
+    commentsWrittenByUserId: aggregateByDate(userResult.commentsWrittenByDateAndUserId),
+    commentsReceivedByUserId: aggregateByDate(userResult.commentsReceivedByDateAndUserId),
     commentsAuthoredPerChangeByUserId: getCommentsAuthoredPerChangeByUserId(userResult),
-    authoredReviewsByUserId: userResult.authoredReviewsByUserId,
-    reviewsReceivedByUserId: userResult.reviewsReceivedByUserId,
+    authoredReviewsByUserId: aggregateReviewSummariesByDate(
+      userResult.authoredReviewsByDateAndUserId
+    ),
+    reviewsReceivedByUserId: aggregateReviewSummariesByDate(
+      userResult.reviewsReceivedByDateAndUserId
+    ),
     timeSeries,
     emailAddresses: [...userResult.emailAddresses].sort((a, b) => a.localeCompare(b)),
     repoTotals,

@@ -159,6 +159,7 @@ export interface UserResult {
   readonly url: string;
   // The totals for each repository that is included in the analysis.
   readonly repoTotals: ReadonlyArray<UserRepoTotals>;
+
   // The review requests that this user initiated, keyed by user id that authored the review.
   readonly reviewRequestsAuthoredByUserId: ReviewRequestsByUserId;
   // The review requests that this user received, keyed by user id that requested the review.
@@ -173,6 +174,7 @@ export interface UserResult {
   readonly reviewsReceivedByUserId: ReviewSummariesByUserId;
   // Mean number of comments per change that this use authored, keyed by receipient user id.
   readonly commentsAuthoredPerChangeByUserId: CommentsPerChangeByUserId;
+
   // A sparse time-series activity summary of the user, ordered by the date of activity.
   readonly timeSeries: ReadonlyArray<UserActivitySummary>;
 

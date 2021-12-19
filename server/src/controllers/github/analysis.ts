@@ -2,7 +2,6 @@ import path from 'path';
 
 import {iterEachFile} from '../../file/utils';
 import {
-  ReviewRequestsByUserId,
   DateInterval,
   RepoConfig,
   ReviewComment,
@@ -11,8 +10,6 @@ import {
   AuthoredTotals,
   ReceivedTotals,
   ReviewsSummary,
-  CommentsByUserId,
-  ReviewSummariesByUserId,
   GithubConnector,
   CountByDay,
   ReviewSummariesByDay,
@@ -36,8 +33,14 @@ import {
 } from '../../date/utils';
 import {NormalizedAnalyzeRequest} from '../analysis';
 import {createDefaultUserRepoTotals, createIntermediateAnalyzeResult} from '../analysis/utils';
-import {IntermediateAnalyzeResult, IntermediateUserResult} from '../analysis/types';
 import {removeDuplicates} from '../../collections/utils';
+import {
+  CommentsByDateAndUserId,
+  IntermediateAnalyzeResult,
+  IntermediateUserResult,
+  ReviewRequestsByDateAndUserId,
+  ReviewSummariesByDateAndUserId,
+} from '../analysis/types';
 import {getPullRequestNumberFromUrl} from './utils';
 
 type PullsByNumber = {readonly [prNumber: string]: PullRequest};
@@ -63,12 +66,13 @@ function createUserResult(user: User, repoConfig: RepoConfig): IntermediateUserR
     repoTotals: [createDefaultUserRepoTotals(repoConfig)],
     commentsAuthored: [],
     changesAuthored: [],
-    authoredReviewsByUserId: {},
-    reviewRequestsAuthoredByUserId: {},
-    reviewRequestsReceivedByUserId: {},
-    commentsWrittenByUserId: {},
-    commentsReceivedByUserId: {},
-    reviewsReceivedByUserId: {},
+    authoredReviewsByDateAndUserId: {},
+    reviewRequestsAuthoredByDateAndUserId: {},
+    reviewRequestsReceivedByDateAndUserId: {},
+    commentsWrittenByDateAndUserId: {},
+    commentsReceivedByDateAndUserId: {},
+    reviewsReceivedByDateAndUserId: {},
+    commentsAuthoredPerChangeByDateAndUserId: {},
     commentsAuthoredByDay: {},
     commentsReceivedByDay: {},
     changesAuthoredByDay: {},
@@ -236,80 +240,103 @@ function getReviewersFromPullRequest(
 }
 
 function incrementCommentsByUserIdCount(
-  commentsByUserId: CommentsByUserId | CommentsByUserId,
+  commentsByDateAndUserId: CommentsByDateAndUserId,
   keyUserId: string | undefined,
   comment: ReviewComment | null
 ) {
   if (!keyUserId || !comment) {
-    return commentsByUserId;
+    return commentsByDateAndUserId;
   }
-  const previousCount = commentsByUserId[keyUserId] || 0;
-  return {...commentsByUserId, [keyUserId]: previousCount + 1};
+  const date = sliceDate(comment.createdAt);
+  const userIdsForDate = commentsByDateAndUserId[date] || {};
+  const previousCount = userIdsForDate[keyUserId] || 0;
+  return {
+    ...commentsByDateAndUserId,
+    [date]: {
+      ...userIdsForDate,
+      [keyUserId]: previousCount + 1,
+    },
+  };
 }
 
 function incrementReviewRequests(
-  requestsByUserId: ReviewRequestsByUserId,
-  userId: string
-): ReviewRequestsByUserId {
-  const existingCount = requestsByUserId[userId];
+  requestsByDateAndUserId: ReviewRequestsByDateAndUserId,
+  userId: string,
+  pull: PullRequest
+): ReviewRequestsByDateAndUserId {
+  const date = sliceDate(pull.created_at);
+  const requestsAtDate = requestsByDateAndUserId[date] || {};
+
+  const existingCount = requestsAtDate[userId];
   const newValue = (existingCount || 0) + 1;
-  return {...requestsByUserId, [userId]: newValue};
+
+  return {...requestsByDateAndUserId, [date]: {...requestsAtDate, [userId]: newValue}};
 }
 
 function adjustReviewsSummaries(
-  summaries: ReviewSummariesByUserId,
+  summaries: ReviewSummariesByDateAndUserId,
   userId: string | undefined,
-  reviewState: Review['state']
-) {
+  review: Review
+): ReviewSummariesByDateAndUserId {
   if (!userId) {
     return summaries;
   }
-  const oldValue = summaries[userId];
+  const date = sliceDate(review.submitted_at);
+  const summariesAtDate = summaries[date] ?? {};
+  const oldValue = summariesAtDate[userId] || {};
   const authoredReviews: ReviewsSummary = {
-    approvals: (oldValue?.approvals || 0) + (reviewState === 'APPROVED' ? 1 : 0),
-    rejections: (oldValue?.rejections || 0) + (reviewState === 'CHANGES_REQUESTED' ? 1 : 0),
+    approvals: (oldValue?.approvals || 0) + (review.state === 'APPROVED' ? 1 : 0),
+    rejections: (oldValue?.rejections || 0) + (review.state === 'CHANGES_REQUESTED' ? 1 : 0),
   };
 
-  return {...summaries, [userId]: authoredReviews};
+  return {
+    ...summaries,
+    [date]: {
+      ...summariesAtDate,
+      [userId]: authoredReviews,
+    },
+  };
 }
 
 function incrementAuthoredReviewRequests(
   userResult: IntermediateUserResult,
-  userId: string
-): ReviewRequestsByUserId {
-  return incrementReviewRequests(userResult.reviewRequestsAuthoredByUserId, userId);
+  userId: string,
+  pull: PullRequest
+): ReviewRequestsByDateAndUserId {
+  return incrementReviewRequests(userResult.reviewRequestsAuthoredByDateAndUserId, userId, pull);
 }
 
 function incrementReceivedReviewRequests(
   userResult: IntermediateUserResult,
-  userId: string
-): ReviewRequestsByUserId {
-  return incrementReviewRequests(userResult.reviewRequestsReceivedByUserId, userId);
+  userId: string,
+  pull: PullRequest
+): ReviewRequestsByDateAndUserId {
+  return incrementReviewRequests(userResult.reviewRequestsReceivedByDateAndUserId, userId, pull);
 }
 
 function adjustAuthoredReviews(
   userResult: IntermediateUserResult,
   pullOwnerId: string | undefined,
-  reviewState: Review['state']
+  review: Review
 ) {
-  return adjustReviewsSummaries(userResult.authoredReviewsByUserId, pullOwnerId, reviewState);
+  return adjustReviewsSummaries(userResult.authoredReviewsByDateAndUserId, pullOwnerId, review);
 }
 
 function adjustReceivedReviews(
   userResult: IntermediateUserResult,
   reviewerId: string,
-  reviewState: Review['state']
+  review: Review
 ) {
-  return adjustReviewsSummaries(userResult.reviewsReceivedByUserId, reviewerId, reviewState);
+  return adjustReviewsSummaries(userResult.reviewsReceivedByDateAndUserId, reviewerId, review);
 }
 
-function incrementCommentsWrittenByUserId(
+function incrementCommentsWrittenByDateAndUserId(
   authorUserResult: IntermediateUserResult,
   recipientUser: User | null,
   comment: ReviewComment | null
 ) {
   return incrementCommentsByUserIdCount(
-    authorUserResult.commentsWrittenByUserId,
+    authorUserResult.commentsWrittenByDateAndUserId,
     recipientUser?.login,
     comment
   );
@@ -321,7 +348,7 @@ function incrementCommentsReceivedByUserId(
   comment: ReviewComment | null
 ) {
   return incrementCommentsByUserIdCount(
-    recipientUserResult.commentsReceivedByUserId,
+    recipientUserResult.commentsReceivedByDateAndUserId,
     authorUserId,
     comment
   );
@@ -439,17 +466,19 @@ function processPullRequests(context: GithubComputeContext, pullsByNumber: Pulls
           context.adjustUserResult({
             ...requestedReviewerUserResult,
             repoTotals: [totals],
-            reviewRequestsReceivedByUserId: incrementReceivedReviewRequests(
+            reviewRequestsReceivedByDateAndUserId: incrementReceivedReviewRequests(
               requestedReviewerUserResult,
-              pullAuthorResult.displayName
+              pullAuthorResult.displayName,
+              pull
             ),
           });
 
           context.adjustUserResult({
             ...pullAuthorResult,
-            reviewRequestsAuthoredByUserId: incrementAuthoredReviewRequests(
+            reviewRequestsAuthoredByDateAndUserId: incrementAuthoredReviewRequests(
               pullAuthorResult,
-              user.login
+              user.login,
+              pull
             ),
           });
         });
@@ -485,7 +514,7 @@ function processComments(context: GithubComputeContext) {
         ? [...commentAuthorUserResult.commentsAuthored, reviewComment]
         : commentAuthorUserResult.commentsAuthored,
       repoTotals: [authoredTotals],
-      commentsWrittenByUserId: incrementCommentsWrittenByUserId(
+      commentsWrittenByDateAndUserId: incrementCommentsWrittenByDateAndUserId(
         commentAuthorUserResult,
         recipientUser,
         reviewComment
@@ -502,7 +531,7 @@ function processComments(context: GithubComputeContext) {
       context.adjustUserResult({
         ...recipientUserResult,
         repoTotals: [receivedTotals],
-        commentsReceivedByUserId: incrementCommentsReceivedByUserId(
+        commentsReceivedByDateAndUserId: incrementCommentsReceivedByUserId(
           recipientUserResult,
           commentAuthorUserResult.displayName,
           reviewComment
@@ -554,12 +583,12 @@ function processReviews(context: GithubComputeContext) {
         ? [...reviewAuthorUserResult.commentsAuthored, reviewComment]
         : reviewAuthorUserResult.commentsAuthored,
       commentsAuthoredByDay: incrementAuthoredCommentsByDay(reviewAuthorUserResult, reviewComment),
-      authoredReviewsByUserId: adjustAuthoredReviews(
+      authoredReviewsByDateAndUserId: adjustAuthoredReviews(
         reviewAuthorUserResult,
         pull.user?.login,
-        review.state
+        review
       ),
-      commentsWrittenByUserId: incrementCommentsWrittenByUserId(
+      commentsWrittenByDateAndUserId: incrementCommentsWrittenByDateAndUserId(
         reviewAuthorUserResult,
         recipientUser,
         reviewComment
@@ -579,10 +608,10 @@ function processReviews(context: GithubComputeContext) {
       context.adjustUserResult({
         ...recipientUserResult,
         repoTotals: [receivedTotals],
-        reviewsReceivedByUserId: adjustReceivedReviews(
+        reviewsReceivedByDateAndUserId: adjustReceivedReviews(
           recipientUserResult,
           review.user.login,
-          review.state
+          review
         ),
         reviewsReceivedByDay: incrementReviewsReceivedByDay(recipientUserResult, review),
       });

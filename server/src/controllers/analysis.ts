@@ -10,16 +10,17 @@ import {
   AnalyzeResult,
   DateInterval,
   RepoConfig,
-  ReviewSummariesByUserId,
   ReviewsSummary,
-  CommentsByUserId,
-  ReviewRequestsByUserId,
   GithubConnector,
   CountByDay,
   Mutable,
   ReviewSummariesByDay,
 } from '../types/types';
-import {IntermediateAnalyzeResult, IntermediateUserResult} from './analysis/types';
+import {
+  IntermediateAnalyzeResult,
+  IntermediateUserResult,
+  ReviewSummariesByDateAndUserId,
+} from './analysis/types';
 import {getGithubRepoResult} from './github/analysis';
 import {postProcessUserResults} from './analysis/utils';
 import {removeDuplicates} from '../collections/utils';
@@ -38,57 +39,50 @@ function getRepoResult(
   }
 }
 
-function mergeReviewRequests(
-  left: ReviewRequestsByUserId,
-  right: ReviewRequestsByUserId
-): ReviewRequestsByUserId {
-  const reviewsByUserId: Mutable<ReviewRequestsByUserId> = {...left};
-  Object.keys(right || {}).forEach((userId) => {
-    reviewsByUserId[userId] = (reviewsByUserId[userId] || 0) + (right[userId] || 0);
-  });
-
-  return reviewsByUserId;
-}
-
-function mergeCommentsByUserId(
-  left: CommentsByUserId | CommentsByUserId,
-  right: CommentsByUserId | CommentsByUserId
-): CommentsByUserId {
+function mergeDateUserKeyedRecords(
+  left: {readonly [date: string]: {readonly [userId: string]: number}},
+  right: {readonly [date: string]: {readonly [userId: string]: number}}
+): {readonly [date: string]: {readonly [userId: string]: number}} {
   if (!left) {
     return right;
   } else if (!right) {
     return left;
   }
 
-  const commentsByUserId: Mutable<CommentsByUserId> = {...left};
-  Object.keys(right).forEach((userId) => {
-    const newCommentCount = (left[userId] || 0) + right[userId];
-    commentsByUserId[userId] = newCommentCount;
+  const result: {[date: string]: {[userId: string]: number}} = {...left};
+  Object.keys(right).forEach((date) => {
+    Object.keys(right[date]).forEach((userId) => {
+      result[date] = result[date] ?? {};
+      result[date][userId] = (result[date][userId] ?? 0) + right[date][userId];
+    });
   });
 
-  return commentsByUserId;
+  return result;
 }
 
 function mergeReviewSummariesByUserId(
-  left: ReviewSummariesByUserId,
-  right: ReviewSummariesByUserId
-) {
+  left: ReviewSummariesByDateAndUserId,
+  right: ReviewSummariesByDateAndUserId
+): ReviewSummariesByDateAndUserId {
   if (!left) {
     return right;
   } else if (!right) {
     return left;
   }
 
-  const authoredReviewsByUserId: Mutable<ReviewSummariesByUserId> = {...left};
-  Object.keys(right).forEach((userId) => {
-    const newValue: ReviewsSummary = {
-      approvals: (left[userId]?.approvals || 0) + right[userId].approvals,
-      rejections: (left[userId]?.rejections || 0) + right[userId].rejections,
-    };
-    authoredReviewsByUserId[userId] = newValue;
+  const authoredReviews: {[date: string]: {[userId: string]: ReviewsSummary}} = {...left};
+  Object.keys(right).forEach((date) => {
+    Object.keys(right[date]).forEach((userId) => {
+      const newValue: ReviewsSummary = {
+        approvals: (left[date]?.[userId]?.approvals ?? 0) + right[date][userId].approvals,
+        rejections: (left[date]?.[userId]?.rejections ?? 0) + right[date][userId].rejections,
+      };
+      authoredReviews[date] = authoredReviews[date] ?? {};
+      authoredReviews[date][userId] = newValue;
+    });
   });
 
-  return authoredReviewsByUserId;
+  return authoredReviews;
 }
 
 function mergeKeyedCounts(left: CountByDay, right: CountByDay): CountByDay {
@@ -157,29 +151,29 @@ function mergeUserResults(
     repoTotals: [...left.repoTotals, ...right.repoTotals],
     commentsAuthored: [...left.commentsAuthored, ...right.commentsAuthored],
     changesAuthored: [...left.changesAuthored, ...right.changesAuthored],
-    reviewRequestsAuthoredByUserId: mergeReviewRequests(
-      left.reviewRequestsAuthoredByUserId,
-      right.reviewRequestsAuthoredByUserId
+    reviewRequestsAuthoredByDateAndUserId: mergeDateUserKeyedRecords(
+      left.reviewRequestsAuthoredByDateAndUserId,
+      right.reviewRequestsAuthoredByDateAndUserId
     ),
-    reviewRequestsReceivedByUserId: mergeReviewRequests(
-      left.reviewRequestsReceivedByUserId,
-      right.reviewRequestsReceivedByUserId
+    reviewRequestsReceivedByDateAndUserId: mergeDateUserKeyedRecords(
+      left.reviewRequestsReceivedByDateAndUserId,
+      right.reviewRequestsReceivedByDateAndUserId
     ),
-    commentsWrittenByUserId: mergeCommentsByUserId(
-      left.commentsWrittenByUserId,
-      right.commentsWrittenByUserId
+    commentsWrittenByDateAndUserId: mergeDateUserKeyedRecords(
+      left.commentsWrittenByDateAndUserId,
+      right.commentsWrittenByDateAndUserId
     ),
-    commentsReceivedByUserId: mergeCommentsByUserId(
-      left.commentsReceivedByUserId,
-      right.commentsReceivedByUserId
+    commentsReceivedByDateAndUserId: mergeDateUserKeyedRecords(
+      left.commentsReceivedByDateAndUserId,
+      right.commentsReceivedByDateAndUserId
     ),
-    authoredReviewsByUserId: mergeReviewSummariesByUserId(
-      left.authoredReviewsByUserId,
-      right.authoredReviewsByUserId
+    authoredReviewsByDateAndUserId: mergeReviewSummariesByUserId(
+      left.authoredReviewsByDateAndUserId,
+      right.authoredReviewsByDateAndUserId
     ),
-    reviewsReceivedByUserId: mergeReviewSummariesByUserId(
-      left.reviewsReceivedByUserId,
-      right.reviewsReceivedByUserId
+    reviewsReceivedByDateAndUserId: mergeReviewSummariesByUserId(
+      left.reviewsReceivedByDateAndUserId,
+      right.reviewsReceivedByDateAndUserId
     ),
     commentsAuthoredByDay: mergeKeyedCounts(
       left.commentsAuthoredByDay,
@@ -188,6 +182,10 @@ function mergeUserResults(
     commentsReceivedByDay: mergeKeyedCounts(
       left.commentsReceivedByDay,
       right.commentsReceivedByDay
+    ),
+    commentsAuthoredPerChangeByDateAndUserId: mergeDateUserKeyedRecords(
+      left.commentsAuthoredPerChangeByDateAndUserId,
+      right.commentsAuthoredPerChangeByDateAndUserId
     ),
     changesAuthoredByDay: mergeKeyedCounts(left.changesAuthoredByDay, right.changesAuthoredByDay),
     commitsAuthoredByDay: mergeKeyedCounts(left.commitsAuthoredByDay, right.commitsAuthoredByDay),
