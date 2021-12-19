@@ -124,17 +124,12 @@ export interface UserRepoTotals {
   readonly receivedTotals: ReceivedTotals;
 }
 
-export interface ReviewRequest {
-  readonly userId: string;
-  readonly timesAdded: number;
-}
-
 export interface ReviewsSummary {
   readonly approvals: number;
   readonly rejections: number;
 }
 
-export type ReviewRequestsByUserId = {readonly [userId: string]: ReviewRequest};
+export type ReviewRequestsByUserId = {readonly [userId: string]: number};
 export type ReviewSummariesByUserId = {readonly [userId: string]: ReviewsSummary};
 export type CommentsByUserId = {readonly [userId: string]: number};
 export type CommentsPerChangeByUserId = {readonly [userId: string]: number};
@@ -150,6 +145,7 @@ export interface UserActivitySummary {
   readonly reviewsAuthored: ReviewsSummary;
   readonly reviewsReceived: ReviewsSummary;
 }
+
 export interface UserResult {
   // Uniquely identifiable user id in the given backend.
   readonly id: string;
@@ -163,11 +159,11 @@ export interface UserResult {
   readonly url: string;
   // The totals for each repository that is included in the analysis.
   readonly repoTotals: ReadonlyArray<UserRepoTotals>;
-  // The review requests that this user initiated.
+  // The review requests that this user initiated, keyed by user id that authored the review.
   readonly reviewRequestsAuthoredByUserId: ReviewRequestsByUserId;
   // The review requests that this user received, keyed by user id that requested the review.
   readonly reviewRequestsReceivedByUserId: ReviewRequestsByUserId;
-  // Number of comments that this user wrote, keyed by user id that comments we addressed towards.
+  // Number of comments that this user wrote, keyed by user id that comments were addressed towards.
   readonly commentsWrittenByUserId: CommentsByUserId;
   // Number of comments that this user received, keyed by user id that wrote the comments.
   readonly commentsReceivedByUserId: CommentsByUserId;

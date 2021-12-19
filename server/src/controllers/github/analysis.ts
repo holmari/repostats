@@ -11,7 +11,6 @@ import {
   AuthoredTotals,
   ReceivedTotals,
   ReviewsSummary,
-  ReviewRequest,
   CommentsByUserId,
   ReviewSummariesByUserId,
   GithubConnector,
@@ -252,12 +251,9 @@ function incrementReviewRequests(
   requestsByUserId: ReviewRequestsByUserId,
   userId: string
 ): ReviewRequestsByUserId {
-  const existingRequest = requestsByUserId[userId];
-  const newRequest: ReviewRequest = {
-    userId,
-    timesAdded: (existingRequest?.timesAdded || 0) + 1,
-  };
-  return {...requestsByUserId, [userId]: newRequest};
+  const existingCount = requestsByUserId[userId];
+  const newValue = (existingCount || 0) + 1;
+  return {...requestsByUserId, [userId]: newValue};
 }
 
 function adjustReviewsSummaries(

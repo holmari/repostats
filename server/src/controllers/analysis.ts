@@ -44,10 +44,7 @@ function mergeReviewRequests(
 ): ReviewRequestsByUserId {
   const reviewsByUserId: Mutable<ReviewRequestsByUserId> = {...left};
   Object.keys(right || {}).forEach((userId) => {
-    reviewsByUserId[userId] = {
-      userId,
-      timesAdded: (reviewsByUserId[userId]?.timesAdded || 0) + right[userId].timesAdded,
-    };
+    reviewsByUserId[userId] = (reviewsByUserId[userId] || 0) + (right[userId] || 0);
   });
 
   return reviewsByUserId;

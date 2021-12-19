@@ -124,17 +124,12 @@ export interface UserRepoTotals {
   readonly receivedTotals: ReceivedTotals;
 }
 
-export interface ReviewRequest {
-  readonly userId: string;
-  readonly timesAdded: number;
-}
-
 export interface ReviewsSummary {
   readonly approvals: number;
   readonly rejections: number;
 }
 
-export type ReviewRequestsByUserId = {readonly [userId: string]: ReviewRequest};
+export type ReviewRequestsByUserId = {readonly [userId: string]: number};
 export type ReviewSummariesByUserId = {readonly [userId: string]: ReviewsSummary};
 export type CommentsByUserId = {readonly [userId: string]: number};
 export type CommentsPerChangeByUserId = {readonly [userId: string]: number};

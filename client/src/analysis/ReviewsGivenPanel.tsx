@@ -64,7 +64,7 @@ function toEntries(userResult: UserResult): ReadonlyArray<ReviewsGivenEntry> {
     return {
       userId,
       userDisplayName: userId,
-      timesAskedToReview: userResult.reviewRequestsReceivedByUserId[userId]?.timesAdded || 0,
+      timesAskedToReview: userResult.reviewRequestsReceivedByUserId[userId] || 0,
       commentsWritten: userResult.commentsWrittenByUserId[userId] || 0,
       approvalsGiven: userResult.authoredReviewsByUserId[userId]?.approvals || 0,
       rejectionsGiven: userResult.authoredReviewsByUserId[userId]?.rejections || 0,
