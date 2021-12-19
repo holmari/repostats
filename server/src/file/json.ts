@@ -3,7 +3,6 @@ import CryptoJs from 'crypto-js';
 import path from 'path';
 import {ensurePathExists} from './paths';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function stringifyJson(jsonObject: unknown): string {
   return JSON.stringify(jsonObject, null, 2);
 }
