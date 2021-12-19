@@ -76,7 +76,6 @@ function createUserResult(user: User, repoConfig: RepoConfig): IntermediateUserR
     commitsAuthoredByDay: {},
     reviewsAuthoredByDay: {},
     reviewsReceivedByDay: {},
-    interval: EMPTY_INTERVAL,
   };
 }
 

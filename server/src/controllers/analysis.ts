@@ -2,7 +2,7 @@ import {Response, Request} from 'express';
 import fs from 'fs';
 
 import {CachePath, readFromCache, writeToCache} from '../cache/cache';
-import {ALL_TIME_INTERVAL, sliceDate, unionAllIntervals, unionIntervals} from '../date/utils';
+import {ALL_TIME_INTERVAL, sliceDate, unionAllIntervals} from '../date/utils';
 import {getConfigPath, getReposPath} from '../file/paths';
 import {getConfigFile} from '../file/repo';
 import {
@@ -148,11 +148,6 @@ function mergeUserResults(
     throw new Error(`Tried to merge incompatible records; urls '${left.url}' and '${right.url}'.`);
   }
 
-  const interval = unionIntervals(left.interval, right.interval);
-  if (!interval) {
-    throw new Error('Merged user had a null interval!');
-  }
-
   return {
     id: left.id,
     displayName: left.displayName,
@@ -207,7 +202,6 @@ function mergeUserResults(
       left.reviewsReceivedByDay,
       right.reviewsReceivedByDay
     ),
-    interval,
   };
 }
 
@@ -241,16 +235,11 @@ function computeAnalysisResult(request: NormalizedAnalyzeRequest): AnalyzeResult
     .map((repoName) => getConfigFile(repoName));
 
   const repoResults = repoMetadatas.map((config) => getRepoResult(config, request));
-  const interval = unionAllIntervals(
-    repoResults
-      .flatMap((result) => Object.values(result.userResults))
-      .map((result) => result.interval)
-  );
   const includedRepos = repoResults
     .map((result) => result.includedRepos)
     .reduce((acc, item) => [...acc, ...item], []);
 
-  const userResults = repoResults
+  const mergedUserResults = repoResults
     .map((result) => result.userResults)
     .reduce((acc, item) => {
       const result = {...acc};
@@ -262,10 +251,14 @@ function computeAnalysisResult(request: NormalizedAnalyzeRequest): AnalyzeResult
       return result;
     }, {});
 
+  const userResults = postProcessUserResults(mergedUserResults);
+  const interval = unionAllIntervals(
+    Object.values(userResults).flatMap((result) => result.interval)
+  );
   return {
     includedRepos,
     interval,
-    userResults: postProcessUserResults(userResults),
+    userResults,
   };
 }
 

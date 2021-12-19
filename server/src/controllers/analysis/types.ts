@@ -12,6 +12,7 @@ export type IntermediateUserResult = Omit<
   | 'aggregatedAuthoredTotals'
   | 'aggregatedReceivedTotals'
   | 'commentsAuthoredPerChangeByUserId'
+  | 'interval'
   | 'realName'
   | 'timeSeries'
 > & {
