@@ -56,14 +56,14 @@ interface GithubComputeContext {
   readonly adjustUserResult: (newUserResult: IntermediateUserResult) => void;
 }
 
-function createUserResult(user: User, repoConfig: RepoConfig): IntermediateUserResult {
+function createUserResult(user: User): IntermediateUserResult {
   return {
     id: `${user.id}`,
     displayName: user.login,
     possibleRealNameCounts: {},
     emailAddresses: [],
     url: user.html_url,
-    repoTotals: [createDefaultUserRepoTotals(repoConfig)],
+    repoTotalsByDay: {},
     commentsAuthored: [],
     changesAuthored: [],
     authoredReviewsByDateAndUserId: {},
@@ -146,24 +146,31 @@ function toChange(repoName: string, pullRequest: PullRequest): Change {
   };
 }
 
-function assertOneRepoTotalsExists(userResult: IntermediateUserResult) {
-  if (userResult.repoTotals.length !== 1) {
+function assertOneRepoTotalsExists(totals: ReadonlyArray<UserRepoTotals>) {
+  if (totals.length !== 1) {
     throw new Error(
-      `Assertion failed: expected only one repo to exist, but was ${userResult.repoTotals.length}`
+      `Assertion failed: expected only one repo to exist, but was ${JSON.stringify(totals)}`
     );
   }
 }
 
 function incrementAuthoredTotals(
   userResult: IntermediateUserResult,
-  adjustments: Partial<AuthoredTotals>
-): UserRepoTotals {
-  assertOneRepoTotalsExists(userResult);
+  adjustments: Partial<AuthoredTotals>,
+  date: string | undefined | null,
+  repoName: string
+): {readonly [date: string]: ReadonlyArray<UserRepoTotals>} {
+  if (!date) {
+    return userResult.repoTotalsByDay;
+  }
 
-  const authoredTotals = userResult.repoTotals[0].authoredTotals;
+  const totalsAtDate = userResult.repoTotalsByDay[date] ?? [createDefaultUserRepoTotals(repoName)];
+  assertOneRepoTotalsExists(totalsAtDate);
 
-  return {
-    ...userResult.repoTotals[0],
+  const authoredTotals = totalsAtDate[0].authoredTotals;
+
+  const newTotals: UserRepoTotals = {
+    ...totalsAtDate[0],
     authoredTotals: {
       approvals: authoredTotals.approvals + (adjustments.approvals || 0),
       changesCreated: authoredTotals.changesCreated + (adjustments.changesCreated || 0),
@@ -176,17 +183,29 @@ function incrementAuthoredTotals(
       meanChangeOpenTimeMsec: NaN, // this is computed in the post-processing step
     },
   };
+
+  return {
+    ...userResult.repoTotalsByDay,
+    [date]: [newTotals],
+  };
 }
 
 function incrementReceivedTotals(
   userResult: IntermediateUserResult,
-  adjustments: Partial<ReceivedTotals>
-): UserRepoTotals {
-  assertOneRepoTotalsExists(userResult);
+  adjustments: Partial<ReceivedTotals>,
+  date: string | null,
+  repoName: string
+): {readonly [date: string]: ReadonlyArray<UserRepoTotals>} {
+  if (!date) {
+    return userResult.repoTotalsByDay;
+  }
+  const totalsAtDate = userResult.repoTotalsByDay[date] ?? [createDefaultUserRepoTotals(repoName)];
+  assertOneRepoTotalsExists(totalsAtDate);
 
-  const receivedTotals = userResult.repoTotals[0].receivedTotals;
-  return {
-    ...userResult.repoTotals[0],
+  const receivedTotals = totalsAtDate[0].receivedTotals;
+
+  const newTotals: UserRepoTotals = {
+    ...totalsAtDate[0],
     receivedTotals: {
       approvals: receivedTotals.approvals + (adjustments.approvals || 0),
       rejections: receivedTotals.rejections + (adjustments.rejections || 0),
@@ -194,6 +213,11 @@ function incrementReceivedTotals(
       commentsByOthers: receivedTotals.commentsByOthers + (adjustments.commentsByOthers || 0),
       reviewRequests: receivedTotals.reviewRequests + (adjustments.reviewRequests || 0),
     },
+  };
+
+  return {
+    ...userResult.repoTotalsByDay,
+    [date]: [newTotals],
   };
 }
 
@@ -460,12 +484,17 @@ function processPullRequests(context: GithubComputeContext, pullsByNumber: Pulls
       if (allReviewerIds.length > 0) {
         requestedReviewers.forEach((user) => {
           const requestedReviewerUserResult = context.acquireUserResult(user);
-          const totals = incrementReceivedTotals(requestedReviewerUserResult, {reviewRequests: 1});
+          const repoTotalsByDay = incrementReceivedTotals(
+            requestedReviewerUserResult,
+            {reviewRequests: 1},
+            pull.created_at,
+            context.repoConfig.name
+          );
           const pullAuthorResult = context.acquireUserResult(pullUser);
 
           context.adjustUserResult({
             ...requestedReviewerUserResult,
-            repoTotals: [totals],
+            repoTotalsByDay,
             reviewRequestsReceivedByDateAndUserId: incrementReceivedReviewRequests(
               requestedReviewerUserResult,
               pullAuthorResult.displayName,
@@ -503,17 +532,22 @@ function processComments(context: GithubComputeContext) {
     const commentCountTotal = reviewComment ? 1 : 0;
     const commentCountToOthers = reviewComment && pull?.user?.id !== comment.user.id ? 1 : 0;
 
-    const authoredTotals = incrementAuthoredTotals(commentAuthorUserResult, {
-      commentsWrittenTotal: commentCountTotal,
-      commentsWrittenToOthers: commentCountToOthers,
-    });
+    const authoredTotals = incrementAuthoredTotals(
+      commentAuthorUserResult,
+      {
+        commentsWrittenTotal: commentCountTotal,
+        commentsWrittenToOthers: commentCountToOthers,
+      },
+      pull ? sliceDate(pull.created_at) : null,
+      context.repoConfig.name
+    );
 
     context.adjustUserResult({
       ...commentAuthorUserResult,
       commentsAuthored: reviewComment
         ? [...commentAuthorUserResult.commentsAuthored, reviewComment]
         : commentAuthorUserResult.commentsAuthored,
-      repoTotals: [authoredTotals],
+      repoTotalsByDay: authoredTotals,
       commentsWrittenByDateAndUserId: incrementCommentsWrittenByDateAndUserId(
         commentAuthorUserResult,
         recipientUser,
@@ -524,13 +558,18 @@ function processComments(context: GithubComputeContext) {
 
     if (recipientUser) {
       const recipientUserResult = context.acquireUserResult(recipientUser);
-      const receivedTotals = incrementReceivedTotals(recipientUserResult, {
-        commentsTotal: commentCountTotal,
-        commentsByOthers: commentCountToOthers,
-      });
+      const receivedTotals = incrementReceivedTotals(
+        recipientUserResult,
+        {
+          commentsTotal: commentCountTotal,
+          commentsByOthers: commentCountToOthers,
+        },
+        reviewComment ? sliceDate(reviewComment.createdAt) : null,
+        context.repoConfig.name
+      );
       context.adjustUserResult({
         ...recipientUserResult,
-        repoTotals: [receivedTotals],
+        repoTotalsByDay: receivedTotals,
         commentsReceivedByDateAndUserId: incrementCommentsReceivedByUserId(
           recipientUserResult,
           commentAuthorUserResult.displayName,
@@ -569,16 +608,21 @@ function processReviews(context: GithubComputeContext) {
     const approvalCount = review.state === 'APPROVED' ? 1 : 0;
     const rejectionCount = review.state === 'CHANGES_REQUESTED' ? 1 : 0;
 
-    const authoredTotals = incrementAuthoredTotals(reviewAuthorUserResult, {
-      rejections: rejectionCount,
-      approvals: approvalCount,
-      commentsWrittenTotal: commentCountTotal,
-      commentsWrittenToOthers: commentCountToOthers,
-    });
+    const authoredTotals = incrementAuthoredTotals(
+      reviewAuthorUserResult,
+      {
+        rejections: rejectionCount,
+        approvals: approvalCount,
+        commentsWrittenTotal: commentCountTotal,
+        commentsWrittenToOthers: commentCountToOthers,
+      },
+      sliceDate(review.submitted_at),
+      context.repoConfig.name
+    );
 
     context.adjustUserResult({
       ...reviewAuthorUserResult,
-      repoTotals: [authoredTotals],
+      repoTotalsByDay: authoredTotals,
       commentsAuthored: reviewComment
         ? [...reviewAuthorUserResult.commentsAuthored, reviewComment]
         : reviewAuthorUserResult.commentsAuthored,
@@ -598,16 +642,21 @@ function processReviews(context: GithubComputeContext) {
 
     if (recipientUser) {
       const recipientUserResult = context.acquireUserResult(recipientUser);
-      const receivedTotals = incrementReceivedTotals(recipientUserResult, {
-        approvals: approvalCount,
-        rejections: rejectionCount,
-        commentsTotal: commentCountTotal,
-        commentsByOthers: commentCountToOthers,
-      });
+      const receivedTotals = incrementReceivedTotals(
+        recipientUserResult,
+        {
+          approvals: approvalCount,
+          rejections: rejectionCount,
+          commentsTotal: commentCountTotal,
+          commentsByOthers: commentCountToOthers,
+        },
+        sliceDate(review.submitted_at),
+        context.repoConfig.name
+      );
 
       context.adjustUserResult({
         ...recipientUserResult,
-        repoTotals: [receivedTotals],
+        repoTotalsByDay: receivedTotals,
         reviewsReceivedByDateAndUserId: adjustReceivedReviews(
           recipientUserResult,
           review.user.login,
@@ -641,7 +690,12 @@ function processCommits(context: GithubComputeContext) {
     }
 
     const userResult = context.acquireUserResult(author);
-    const repoTotals = incrementAuthoredTotals(userResult, {commits: 1});
+    const repoTotalsByDay = incrementAuthoredTotals(
+      userResult,
+      {commits: 1},
+      commitDate ? sliceDate(commitDate) : null,
+      context.repoConfig.name
+    );
     const authorDisplayName = getCommitAuthorDisplayName(commit);
     const committerDisplayName = getCommitCommitterDisplayName(commit);
     // Ignore the display name in case of different committers; it can lead to mismatched names
@@ -658,7 +712,7 @@ function processCommits(context: GithubComputeContext) {
       emailAddresses: emailAddress
         ? removeDuplicates([...userResult.emailAddresses, emailAddress])
         : userResult.emailAddresses,
-      repoTotals: [repoTotals],
+      repoTotalsByDay,
       commitsAuthoredByDay: incrementCountByDay(userResult.commitsAuthoredByDay, commitDate),
     });
   }
@@ -676,7 +730,7 @@ export function getGithubRepoResult(
 
     acquireUserResult: (user: User): IntermediateUserResult => {
       if (!userResults[user.id]) {
-        userResults[user.id] = createUserResult(user, repoConfig);
+        userResults[user.id] = createUserResult(user);
       }
       return userResults[user.id];
     },

@@ -22,9 +22,9 @@ import {
   UserResultsByDisplayName,
 } from './types';
 
-export function createDefaultUserRepoTotals(repoConfig: RepoConfig): UserRepoTotals {
+export function createDefaultUserRepoTotals(repoName: string): UserRepoTotals {
   return {
-    repoName: repoConfig.name,
+    repoName: repoName,
     authoredTotals: {
       approvals: 0,
       rejections: 0,
@@ -228,10 +228,50 @@ function aggregateReviewSummariesByDate(values: {
   return result;
 }
 
+function aggregateRepoTotalsByDate(repoTotalsByDay: {
+  readonly [date: string]: ReadonlyArray<UserRepoTotals>;
+}): ReadonlyArray<UserRepoTotals> {
+  const result: {[repoName: string]: UserRepoTotals} = {};
+
+  Object.keys(repoTotalsByDay).forEach((date) => {
+    const totals = repoTotalsByDay[date];
+    totals.forEach((entity) => {
+      const old = result[entity.repoName] || createDefaultUserRepoTotals(entity.repoName);
+      result[entity.repoName] = {
+        repoName: entity.repoName,
+        authoredTotals: {
+          approvals: old.authoredTotals.approvals + entity.authoredTotals.approvals,
+          rejections: old.authoredTotals.rejections + entity.authoredTotals.rejections,
+          changesCreated: old.authoredTotals.changesCreated + entity.authoredTotals.changesCreated,
+          commentsWrittenToOthers:
+            old.authoredTotals.commentsWrittenToOthers +
+            entity.authoredTotals.commentsWrittenToOthers,
+          commentsWrittenTotal:
+            old.authoredTotals.commentsWrittenTotal + entity.authoredTotals.commentsWrittenTotal,
+          commits: old.authoredTotals.commits + entity.authoredTotals.commits,
+          meanChangeOpenTimeMsec:
+            old.authoredTotals.meanChangeOpenTimeMsec +
+            entity.authoredTotals.meanChangeOpenTimeMsec,
+        },
+        receivedTotals: {
+          approvals: old.receivedTotals.approvals + entity.receivedTotals.approvals,
+          rejections: old.receivedTotals.rejections + entity.receivedTotals.rejections,
+          commentsByOthers:
+            old.receivedTotals.commentsByOthers + entity.receivedTotals.commentsByOthers,
+          commentsTotal: old.receivedTotals.commentsTotal + entity.receivedTotals.commentsTotal,
+          reviewRequests: old.receivedTotals.reviewRequests + entity.receivedTotals.reviewRequests,
+        },
+      };
+    });
+  });
+
+  return Object.values(result);
+}
+
 function postProcessUserResult(userResult: IntermediateUserResult): UserResult {
   const timeSeries = toTimeSeries(userResult);
 
-  const repoTotals = userResult.repoTotals.map((totals) =>
+  const repoTotals = aggregateRepoTotalsByDate(userResult.repoTotalsByDay).map((totals) =>
     postProcessUserRepoTotals(totals, userResult)
   );
 

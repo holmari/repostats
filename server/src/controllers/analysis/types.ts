@@ -6,6 +6,7 @@ import {
   ReviewRequestsByUserId,
   ReviewSummariesByDay,
   ReviewSummariesByUserId,
+  UserRepoTotals,
   UserResult,
 } from '../../types/types';
 
@@ -30,6 +31,7 @@ export type IntermediateUserResult = Omit<
   | 'commentsAuthoredPerChangeByUserId'
   | 'interval'
   | 'realName'
+  | 'repoTotals'
   | 'timeSeries'
   | 'reviewRequestsAuthoredByUserId'
   | 'reviewRequestsReceivedByUserId'
@@ -53,7 +55,8 @@ export type IntermediateUserResult = Omit<
   readonly reviewsReceivedByDateAndUserId: ReviewSummariesByDateAndUserId;
   // Mean number of comments per change that this use authored, keyed by receipient user id.
   readonly commentsAuthoredPerChangeByDateAndUserId: CommentsPerChangeByDateAndUserId;
-
+  // Total contributions per date, per repository.
+  readonly repoTotalsByDay: {readonly [date: string]: ReadonlyArray<UserRepoTotals>};
   // All the real names the user might have.
   readonly possibleRealNameCounts: {readonly [name: string]: number};
   // Number of comments per day (keyed by an ISO date timestamp) that the user wrote to others.

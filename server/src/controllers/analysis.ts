@@ -15,6 +15,7 @@ import {
   CountByDay,
   Mutable,
   ReviewSummariesByDay,
+  UserRepoTotals,
 } from '../types/types';
 import {
   IntermediateAnalyzeResult,
@@ -55,6 +56,24 @@ function mergeDateUserKeyedRecords(
       result[date] = result[date] ?? {};
       result[date][userId] = (result[date][userId] ?? 0) + right[date][userId];
     });
+  });
+
+  return result;
+}
+
+function mergeRepoTotalsRecords(
+  left: {readonly [date: string]: ReadonlyArray<UserRepoTotals>},
+  right: {readonly [date: string]: ReadonlyArray<UserRepoTotals>}
+): {readonly [date: string]: ReadonlyArray<UserRepoTotals>} {
+  if (!left) {
+    return right;
+  } else if (!right) {
+    return left;
+  }
+
+  const result: {[date: string]: ReadonlyArray<UserRepoTotals>} = {...left};
+  Object.keys(right).forEach((date) => {
+    result[date] = [...(result[date] || []), ...right[date]];
   });
 
   return result;
@@ -148,7 +167,7 @@ function mergeUserResults(
     ),
     url: left.url,
     emailAddresses: removeDuplicates([...left.emailAddresses, ...right.emailAddresses]),
-    repoTotals: [...left.repoTotals, ...right.repoTotals],
+    repoTotalsByDay: mergeRepoTotalsRecords(left.repoTotalsByDay, right.repoTotalsByDay),
     commentsAuthored: [...left.commentsAuthored, ...right.commentsAuthored],
     changesAuthored: [...left.changesAuthored, ...right.changesAuthored],
     reviewRequestsAuthoredByDateAndUserId: mergeDateUserKeyedRecords(

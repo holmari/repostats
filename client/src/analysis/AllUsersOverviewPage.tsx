@@ -19,45 +19,46 @@ const columns: ReadonlyArray<SortableColumn<UserResult>> = [
   },
   {
     Header: 'Change Requests',
-    accessor: (row) => row.repoTotals.map((repo) => repo.authoredTotals.changesCreated).reduce(sum),
+    accessor: (row) =>
+      row.repoTotals.map((repo) => repo.authoredTotals.changesCreated).reduce(sum, 0),
     maxWidth: 100,
   },
   {
     Header: 'Comments Written (All)',
     accessor: (row) =>
-      row.repoTotals.map((repo) => repo.authoredTotals.commentsWrittenTotal).reduce(sum),
+      row.repoTotals.map((repo) => repo.authoredTotals.commentsWrittenTotal).reduce(sum, 0),
     maxWidth: 100,
   },
   {
     Header: 'Comments to Others',
     accessor: (row) =>
-      row.repoTotals.map((repo) => repo.authoredTotals.commentsWrittenToOthers).reduce(sum),
+      row.repoTotals.map((repo) => repo.authoredTotals.commentsWrittenToOthers).reduce(sum, 0),
     maxWidth: 100,
   },
   {
     Header: 'Approvals Given',
-    accessor: (row) => row.repoTotals.map((repo) => repo.authoredTotals.approvals).reduce(sum),
+    accessor: (row) => row.repoTotals.map((repo) => repo.authoredTotals.approvals).reduce(sum, 0),
     maxWidth: 100,
   },
   {
     Header: 'Rejections Given',
-    accessor: (row) => row.repoTotals.map((repo) => repo.authoredTotals.rejections).reduce(sum),
+    accessor: (row) => row.repoTotals.map((repo) => repo.authoredTotals.rejections).reduce(sum, 0),
     maxWidth: 100,
   },
   {
     Header: 'Comments Received',
     accessor: (row) =>
-      row.repoTotals.map((repo) => repo.receivedTotals.commentsByOthers).reduce(sum),
+      row.repoTotals.map((repo) => repo.receivedTotals.commentsByOthers).reduce(sum, 0),
     maxWidth: 100,
   },
   {
     Header: 'Approvals Received',
-    accessor: (row) => row.repoTotals.map((repo) => repo.receivedTotals.approvals).reduce(sum),
+    accessor: (row) => row.repoTotals.map((repo) => repo.receivedTotals.approvals).reduce(sum, 0),
     maxWidth: 100,
   },
   {
     Header: 'Rejections Received',
-    accessor: (row) => row.repoTotals.map((repo) => repo.receivedTotals.rejections).reduce(sum),
+    accessor: (row) => row.repoTotals.map((repo) => repo.receivedTotals.rejections).reduce(sum, 0),
     maxWidth: 100,
   },
   {
