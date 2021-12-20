@@ -37,7 +37,7 @@ import {
 import {NormalizedAnalyzeRequest} from '../analysis';
 import {createDefaultUserRepoTotals, createIntermediateAnalyzeResult} from '../analysis/utils';
 import {IntermediateAnalyzeResult, IntermediateUserResult} from '../analysis/types';
-import {removeDuplicates} from '../../arrays/utils';
+import {removeDuplicates} from '../../collections/utils';
 import {getPullRequestNumberFromUrl} from './utils';
 
 type PullsByNumber = {readonly [prNumber: string]: PullRequest};

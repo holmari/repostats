@@ -1,5 +1,5 @@
-import {descByCreationDate} from '../../arrays/sort';
-import {removeDuplicates} from '../../arrays/utils';
+import {descByCreationDate} from '../../collections/sort';
+import {removeDuplicates} from '../../collections/utils';
 import {createInterval, EMPTY_INTERVAL, unionAllIntervals} from '../../date/utils';
 import {
   AnalyzeResult,

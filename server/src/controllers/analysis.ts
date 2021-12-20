@@ -22,7 +22,7 @@ import {
 import {IntermediateAnalyzeResult, IntermediateUserResult} from './analysis/types';
 import {getGithubRepoResult} from './github/analysis';
 import {postProcessUserResults} from './analysis/utils';
-import {removeDuplicates} from '../arrays/utils';
+import {removeDuplicates} from '../collections/utils';
 
 export type NormalizedAnalyzeRequest = Required<AnalyzeRequest>;
 

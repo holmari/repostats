@@ -40,7 +40,7 @@ import {
 import {getHttpClient} from '../http/axios';
 import {getFileMd5Hash, iterEachFile} from '../file/utils';
 import {getSourceDataMetadata} from '../file/repo';
-import {removeDuplicates} from '../arrays/utils';
+import {removeDuplicates} from '../collections/utils';
 import {DownloadContext} from '../types/download';
 import {RateLimitedAxiosInstance} from 'axios-rate-limit';
 import {updateDownloadStatus} from './utils';
