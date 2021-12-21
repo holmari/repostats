@@ -8,7 +8,12 @@ export function stringifyJson(jsonObject: unknown): string {
 }
 
 export function readJsonFile<T>(filename: string): T {
-  return JSON.parse(fs.readFileSync(filename, 'utf-8'));
+  try {
+    return JSON.parse(fs.readFileSync(filename, 'utf-8'));
+  } catch (e: unknown) {
+    console.error(`could not parse ${filename}`);
+    throw e;
+  }
 }
 
 export function writeJsonToFile(filename: string, jsonObject: unknown): string {
