@@ -461,10 +461,20 @@ export async function getGithubRepoComments(context: DownloadContext): Promise<v
       return existingHash === writtenHash ? acc : [...acc, filePath];
     }, []);
 
-    return Promise.resolve(
+    const needsNextPage =
       editedCommentPaths.length > 0 ||
-        hasMissingData(metaHolder.meta.fetchedCommentIds, metaHolder.meta.totalCommentCount)
-    );
+      hasMissingData(metaHolder.meta.fetchedCommentIds, metaHolder.meta.totalCommentCount);
+
+    if (needsNextPage) {
+      const reason = editedCommentPaths.length
+        ? `${editedCommentPaths.length} comments changed`
+        : `has missing data,
+      ${metaHolder.meta.fetchedCommentIds?.length} fetched, but ${metaHolder.meta.totalCommentCount} comments exist`;
+
+      console.info(`Fetching next page of comments: ${reason}`);
+    }
+
+    return Promise.resolve(needsNextPage);
   };
 
   await new Promise((resolve, reject) => {
