@@ -541,9 +541,7 @@ function getMissedPullNumbersForReviews(context: DownloadContext): ReadonlyArray
     if (!pullsWithoutReviews.includes(pull.number)) {
       continue;
     }
-    if (pull.merged_at || pull.closed_at) {
-      continue;
-    }
+
     result.push(pull.number);
   }
 
