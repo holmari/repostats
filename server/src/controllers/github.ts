@@ -260,6 +260,9 @@ async function computeTotalEntityCount(
         // comments at the end of a large repository with multi-year history as of writing this),
         // assume that the last page has no entries. This results in a slightly incorrect count
         // but the next download will fix it.
+        console.error(
+          `Could not determine number of entities, response was '${e.response?.status}'`
+        );
         return 0;
       }
       throw e;
@@ -285,14 +288,7 @@ function createComparableRepoForPull(pull: PullRequest): Repository {
     open_issues_count: 0,
     updated_at: null,
     pushed_at: null,
-    template_repository: !pull.base.repo.template_repository
-      ? pull.base.repo.template_repository
-      : {
-          ...pull.base.repo.template_repository,
-          open_issues_count: 0,
-          updated_at: undefined,
-          pushed_at: undefined,
-        },
+    template_repository: null,
   };
 }
 
@@ -356,6 +352,14 @@ async function downloadGithubPullRequestsForUrl(
     const needsNextPage =
       editedPullPaths.length > 0 ||
       hasMissingData(metaHolder.meta.fetchedPullNumbers, metaHolder.meta.totalPullsInRepository);
+    if (needsNextPage) {
+      const reason = editedPullPaths.length
+        ? `${editedPullPaths.length} pulls changed`
+        : `has missing data,
+      ${metaHolder.meta.fetchedPullNumbers?.length} fetched, but ${metaHolder.meta.totalPullsInRepository} pulls exist`;
+
+      console.info(`Fetching next page of pulls: ${reason}`);
+    }
 
     return Promise.resolve(needsNextPage);
   };
