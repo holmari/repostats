@@ -281,14 +281,47 @@ function hasMissingData(
   return (fetchedItems?.length || 0) < (totalCount || 0);
 }
 
-function createComparableRepoForPull(pull: PullRequest): Repository {
+function createComparableRepoForPull(baseRepo: Repository): Repository {
   return {
-    ...pull.base.repo,
+    ...baseRepo,
     open_issues: 0,
+    forks: 0,
+    permissions: undefined,
+    owner: null,
+    private: false,
+    description: null,
+    homepage: null,
+    language: null,
+    forks_count: 0,
+    stargazers_count: 0,
+    watchers_count: 0,
+    size: 0,
+    default_branch: 'main',
     open_issues_count: 0,
+    is_template: undefined,
+    topics: undefined,
+    has_issues: false,
+    has_projects: false,
+    has_wiki: false,
+    has_pages: false,
+    has_downloads: false,
+    archived: false,
+    fork: false,
+    disabled: false,
+    visibility: undefined,
     updated_at: null,
     pushed_at: null,
+    allow_rebase_merge: false,
     template_repository: null,
+    temp_clone_token: undefined,
+    allow_squash_merge: undefined,
+    delete_branch_on_merge: undefined,
+    allow_merge_commit: undefined,
+    subscribers_count: undefined,
+    network_count: undefined,
+    watchers: 0,
+    master_branch: undefined,
+    starred_at: undefined,
   };
 }
 
@@ -334,8 +367,8 @@ async function downloadGithubPullRequestsForUrl(
     const editedPullPaths = pulls.reduce<ReadonlyArray<string>>((acc, pull) => {
       const adjustedPull: PullRequest = {
         ...pull,
-        base: {...pull.base, repo: createComparableRepoForPull(pull)},
-        head: {...pull.head, repo: createComparableRepoForPull(pull)},
+        base: {...pull.base, repo: createComparableRepoForPull(pull.base.repo)},
+        head: {...pull.head, repo: createComparableRepoForPull(pull.head.repo)},
       };
       if (adjustedPull.updated_at > (metaHolder.meta.updatedAt || '')) {
         metaHolder.meta = {...metaHolder.meta, updatedAt: adjustedPull.updated_at};
