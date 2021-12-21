@@ -335,6 +335,7 @@ async function downloadGithubPullRequestsForUrl(
       const adjustedPull: PullRequest = {
         ...pull,
         base: {...pull.base, repo: createComparableRepoForPull(pull)},
+        head: {...pull.head, repo: createComparableRepoForPull(pull)},
       };
       if (adjustedPull.updated_at > (metaHolder.meta.updatedAt || '')) {
         metaHolder.meta = {...metaHolder.meta, updatedAt: adjustedPull.updated_at};
