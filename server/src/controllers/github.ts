@@ -1,4 +1,4 @@
-import Axios, {AxiosError, AxiosRequestConfig, AxiosResponse} from 'axios';
+import Axios, {AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse} from 'axios';
 import {Response, Request} from 'express';
 import parse from 'parse-link-header';
 import {URLSearchParams} from 'url';
@@ -42,7 +42,6 @@ import {getFileMd5Hash, iterEachFile} from '../file/utils';
 import {getSourceDataMetadata} from '../file/repo';
 import {removeDuplicates} from '../collections/utils';
 import {DownloadContext} from '../types/download';
-import {RateLimitedAxiosInstance} from 'axios-rate-limit';
 import {updateDownloadStatus} from './utils';
 import {deletePath} from '../file/paths';
 
@@ -155,7 +154,7 @@ async function getGithubRateLimit(repoConfig: RepoConfig<GithubConnector>): Prom
 
 export async function getGitHubRateLimitedHttpClient(
   repoConfig: RepoConfig<GithubConnector>
-): Promise<RateLimitedAxiosInstance> {
+): Promise<AxiosInstance> {
   const rateLimit = await getGithubRateLimit(repoConfig);
   return getHttpClient(rateLimit.remaining, 60 * 60 * 1000);
 }
