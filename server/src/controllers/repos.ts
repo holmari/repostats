@@ -106,11 +106,9 @@ async function fetchWitGithubConnector(
 
   const fetchedPullNumbers = await getGithubPullRequests(context);
 
-  await Promise.all([getGithubRepoComments(context), getGithubTeamsAndMembers(context)]);
-
-  console.log('Loaded all PRs, teams and comments. Will load reviews and commits next.');
-
   await Promise.all([
+    getGithubRepoComments(context),
+    getGithubTeamsAndMembers(context),
     getGithubReviewsForPullRequests(context, fetchedPullNumbers),
     getGithubCommitsForPullRequests(context, fetchedPullNumbers),
   ]);
