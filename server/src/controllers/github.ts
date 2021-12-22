@@ -423,7 +423,7 @@ export async function getGithubPullRequests(
     context.repoConfig
   )}/pulls?state=all&sort=updated&direction=desc&per_page=${MAX_PER_PAGE}&page=1`;
 
-  return downloadGithubPullRequestsForUrl(context, url);
+  return await downloadGithubPullRequestsForUrl(context, url);
 }
 
 export async function getGithubRepoComments(context: DownloadContext): Promise<void> {
@@ -555,7 +555,7 @@ export async function getGithubReviewsForPullRequests(
     ...requestedPullNumbers,
     ...getMissedPullNumbersForReviews(context),
   ]);
-  return Promise.all(
+  return await Promise.all(
     pullNumbers.map((pullNumber) => getGithubReviewsForPullRequest(context, pullNumber))
   );
 }
@@ -594,7 +594,7 @@ export async function getGithubCommitsForPullRequests(
   context: DownloadContext,
   pullNumbers: ReadonlyArray<number>
 ): Promise<void[]> {
-  return Promise.all(
+  return await Promise.all(
     pullNumbers.map((pullNumber) => getGithubCommitsForPullRequest(context, pullNumber))
   );
 }
