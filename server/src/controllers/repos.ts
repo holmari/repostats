@@ -111,7 +111,9 @@ async function fetchWitGithubConnector(
     getGithubTeamsAndMembers(context),
     getGithubReviewsForPullRequests(context, fetchedPullNumbers),
     getGithubCommitsForPullRequests(context, fetchedPullNumbers),
-  ]);
+  ]).catch((e: unknown) => {
+    console.error(`Request failed, will not reattempt for now: ${e}`);
+  });
 }
 
 async function fetchWithConnector(repoConfig: RepoConfig, request: DownloadRequest): Promise<void> {
