@@ -555,6 +555,8 @@ export async function getGithubReviewsForPullRequests(
     ...requestedPullNumbers,
     ...getMissedPullNumbersForReviews(context),
   ]);
+  console.log(`Fetching reviews for ${pullNumbers.length} pulls`);
+
   return await Promise.all(
     pullNumbers.map((pullNumber) => getGithubReviewsForPullRequest(context, pullNumber))
   );
