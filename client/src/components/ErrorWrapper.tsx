@@ -11,6 +11,14 @@ const ErrorWrapper: React.FC<Props> = (props) => {
         <div className="ErrorWrapper">
           <h2>An error has occurred</h2>
           <div className="ErrorWrapper__error-details">{error.message}</div>
+          {Array.isArray(error.stack) && (
+            <div className="ErrorWrapper__error-stack">
+              {error.stack.map((line) => (
+                <pre className="ErrorWrapper__error-stack-line">{line}</pre>
+              ))}
+            </div>
+          )}
+
           <Button onClick={onClear} variant="outline-warning">
             Let me out!
           </Button>

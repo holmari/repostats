@@ -5,3 +5,12 @@
 .ErrorWrapper__error-details {
   margin-bottom: 16px;
 }
+
+.ErrorWrapper__error-stack {
+  font-family: monospace;
+  margin-bottom: 1.6rem;
+}
+
+.ErrorWrapper__error-stack-line {
+  margin-bottom: 0;
+}

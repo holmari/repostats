@@ -1,8 +1,16 @@
-import errorHandler from 'errorhandler';
-
+import {ErrorRequestHandler} from 'express';
 import app from './app';
 
-app.use(errorHandler());
+const jsonErrorHandler: ErrorRequestHandler = (err, _, res) => {
+  if (!(err instanceof Error)) {
+    res.status(400).send({error: err});
+    return;
+  }
+
+  res.status(500).send({error: err, message: err.message, stack: err.stack?.split('\n') || []});
+};
+
+app.use(jsonErrorHandler);
 
 const server = app.listen(app.get('port'), () => {
   console.log(
