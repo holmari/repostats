@@ -3,6 +3,8 @@ import React from 'react';
 import Panel from 'components/Panel';
 import {Change, UserResult} from 'types/types';
 import Table, {SortableColumn} from 'components/Table';
+import {CellProps} from 'react-table';
+import Format from 'format/format';
 
 const columns: ReadonlyArray<SortableColumn<Change>> = [
   {
@@ -22,9 +24,10 @@ const columns: ReadonlyArray<SortableColumn<Change>> = [
     maxWidth: 170,
   },
   {
-    Header: 'Time open (h)',
-    accessor: (row) => (row.timeOpenMsec / 1000 / 60 / 60).toFixed(2),
+    Header: 'Time open',
+    accessor: (row) => row.timeOpenMsec,
     maxWidth: 100,
+    Cell: (props: CellProps<UserResult, number>) => <span>{Format.duration(props.value)}</span>,
   },
 ];
 
