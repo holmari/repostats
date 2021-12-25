@@ -291,9 +291,9 @@ export function analyze(req: Request, res: Response): void {
 
   const result = computeAnalysisResult(request);
 
+  res.status(200).send(result);
+
   if (canStoreInCache) {
     writeToCache(request, CachePath.analysis, result);
   }
-
-  res.status(200).send(result);
 }
