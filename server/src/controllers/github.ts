@@ -12,7 +12,6 @@ import {
   getGithubTeamPath,
   getGithubTeamMemberPath,
   getGithubCommitPath,
-  getGithubPullsPath,
   getGithubTeamsPath,
   getGithubTeamMembersPath,
 } from './github/paths';
@@ -38,7 +37,7 @@ import {
   User,
 } from '../types/github';
 import {getHttpClient} from '../http/axios';
-import {getFileMd5Hash, iterEachFile} from '../file/utils';
+import {getFileMd5Hash} from '../file/utils';
 import {getSourceDataMetadata} from '../file/repo';
 import {removeDuplicates} from '../collections/utils';
 import {DownloadContext} from '../types/download';
@@ -531,20 +530,18 @@ function getMissedPullNumbersForReviews(context: DownloadContext): ReadonlyArray
   const downloadedPullNumbers = getDownloadedPullRequestNumbers(context.repoConfig);
   const reviewPullNumbers = getDownloadedPullRequestNumbersForReviews(context.repoConfig);
 
-  const pullsWithoutReviews = downloadedPullNumbers
+  return downloadedPullNumbers
     .filter((prNumber) => !reviewPullNumbers.includes(prNumber))
     .sort((a, b) => a - b);
+}
 
-  const result: number[] = [];
-  for (const [pull] of iterEachFile<PullRequest>(getGithubPullsPath(context.repoConfig))) {
-    if (!pullsWithoutReviews.includes(pull.number)) {
-      continue;
-    }
+function getMissedPullNumbersForCommits(context: DownloadContext): ReadonlyArray<number> {
+  const downloadedPullNumbers = getDownloadedPullRequestNumbers(context.repoConfig);
+  const commitPullNumbers = getDownloadedPullRequestNumbersForReviews(context.repoConfig);
 
-    result.push(pull.number);
-  }
-
-  return result;
+  return downloadedPullNumbers
+    .filter((pullNumber) => !commitPullNumbers.includes(pullNumber))
+    .sort((a, b) => a - b);
 }
 
 export async function getGithubReviewsForPullRequests(
@@ -594,8 +591,14 @@ async function getGithubCommitsForPullRequest(
 
 export async function getGithubCommitsForPullRequests(
   context: DownloadContext,
-  pullNumbers: ReadonlyArray<number>
+  requestedPullNumbers: ReadonlyArray<number>
 ): Promise<void[]> {
+  const pullNumbers = removeDuplicates([
+    ...requestedPullNumbers,
+    ...getMissedPullNumbersForCommits(context),
+  ]);
+  console.log(`Fetching reviews for ${pullNumbers.length} pulls`);
+
   return await Promise.all(
     pullNumbers.map((pullNumber) => getGithubCommitsForPullRequest(context, pullNumber))
   );

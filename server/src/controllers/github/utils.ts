@@ -7,6 +7,7 @@ import {getAllJsonFilenamesInDirectory} from '../../file/utils';
 import {GithubConnector, GithubSourceDataMetadata, RepoConfig} from '../../types/types';
 import {
   getGithubCommentsPath,
+  getGithubCommitsPath,
   getGithubDataPath,
   getGithubMetadataPath,
   getGithubPullsPath,
@@ -73,6 +74,14 @@ export function getDownloadedPullRequestNumbersForReviews(
 ): ReadonlyArray<number> {
   return fs
     .readdirSync(getGithubReviewsPath(repoConfig))
+    .map((filename) => parseInt(path.basename(filename, path.extname(filename))));
+}
+
+export function getDownloadedPullRequestNumbersForCommits(
+  repoConfig: RepoConfig
+): ReadonlyArray<number> {
+  return fs
+    .readdirSync(getGithubCommitsPath(repoConfig))
     .map((filename) => parseInt(path.basename(filename, path.extname(filename))));
 }
 
