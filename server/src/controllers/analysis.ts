@@ -99,7 +99,7 @@ function computeFromPartialCache(
     const allFiles = getAllJsonFilenamesInDirectory(datePath);
 
     allFiles
-      .map((filename) => [path.basename(filename, '.json'), filename])
+      .map((filename) => [path.basename(filename, path.extname(filename)), filename])
       .forEach(([userId, filename]) => {
         filenamesByUserId[userId] = [...(filenamesByUserId[userId] || []), filename];
       });
