@@ -94,7 +94,7 @@ export function deleteRepo(req: Request, res: Response): void {
 async function fetchWitGithubConnector(
   repoConfig: RepoConfig<GithubConnector>,
   request: DownloadRequest
-): Promise<void> {
+): Promise<unknown> {
   ensureGithubPaths(repoConfig);
 
   const http = await getGitHubRateLimitedHttpClient(repoConfig);
@@ -105,22 +105,27 @@ async function fetchWitGithubConnector(
   };
 
   const fetchedPullNumbers = await getGithubPullRequests(context);
+  console.log('PRs loaded');
 
-  await Promise.all([
+  return Promise.all([
     getGithubRepoComments(context),
     getGithubTeamsAndMembers(context),
     getGithubReviewsForPullRequests(context, fetchedPullNumbers),
     getGithubCommitsForPullRequests(context, fetchedPullNumbers),
   ]).catch((e: unknown) => {
-    console.error(`Request failed, will not reattempt for now: ${e}`);
+    console.error(
+      `Top-level promise failed, should have been caught earlier. Will not reattempt for now: ${e}`
+    );
   });
 }
 
-async function fetchWithConnector(repoConfig: RepoConfig, request: DownloadRequest): Promise<void> {
+async function fetchWithConnector(
+  repoConfig: RepoConfig,
+  request: DownloadRequest
+): Promise<unknown> {
   switch (repoConfig.connector.type) {
     case 'GITHUB':
-      await fetchWitGithubConnector(repoConfig as RepoConfig<GithubConnector>, request);
-      return;
+      return fetchWitGithubConnector(repoConfig as RepoConfig<GithubConnector>, request);
     default:
       throw new Error(`Unsupported connector ${repoConfig.connector.type}`);
   }
@@ -140,6 +145,8 @@ export async function startDownload(req: Request, res: Response): Promise<void> 
 
   const repoConfig = getConfigFile(req.params.repoName);
   await fetchWithConnector(repoConfig, downloadRequest);
+
+  console.log('download finished somehow');
 
   clearCache();
 

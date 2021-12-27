@@ -18,6 +18,7 @@ import {
 import {
   getDownloadedCommentIds,
   getDownloadedPullRequestNumbers,
+  getDownloadedPullRequestNumbersForCommits,
   getDownloadedPullRequestNumbersForReviews,
   getDownloadedTeamSlugs,
   getPullRequestNumberFromUrl,
@@ -70,7 +71,11 @@ export function getGithubToken(_: Request, res: Response): void {
   });
 }
 
-async function get(context: DownloadContext, url: string, requestConfig: AxiosRequestConfig) {
+function get<T>(
+  context: DownloadContext,
+  url: string,
+  requestConfig: AxiosRequestConfig
+): Promise<AxiosResponse<T, unknown>> {
   console.log(`GET ${url}`);
 
   return context.http.get(url, requestConfig).then((response) => {
@@ -119,12 +124,12 @@ export function testConnection(req: Request, res: Response): void {
   }
 }
 
-function consumePagedRequests(
+function consumePagedRequests<T>(
   context: DownloadContext,
   url: string,
   requestConfig: AxiosRequestConfig,
   consumer: PageConsumer,
-  resolve: (value: unknown) => void,
+  resolve: PromiseLike<T> | ((value: T | null) => void),
   reject: () => void
 ) {
   return get(context, url, requestConfig)
@@ -138,8 +143,10 @@ function consumePagedRequests(
 
       if (nextUrl && needsNextPage) {
         consumePagedRequests(context, nextUrl, requestConfig, consumer, resolve, reject);
-      } else {
+      } else if (typeof resolve === 'function') {
         resolve(null);
+      } else {
+        resolve.then(null);
       }
     })
     .catch(reject);
@@ -250,7 +257,11 @@ async function computeTotalEntityCount(
     return response.data?.length || 0;
   }
 
-  const lastPageLength: number = await get(context, parsedLinkHeader.last.url, requestConfig)
+  const lastPageLength: number = await get<{length: number}>(
+    context,
+    parsedLinkHeader.last.url,
+    requestConfig
+  )
     .then((response) => response.data.length)
     .catch((e: AxiosError) => {
       if ((e.response?.status || -1) >= 500) {
@@ -484,15 +495,17 @@ export async function getGithubRepoComments(context: DownloadContext): Promise<v
       resolve,
       reject
     );
+  }).catch((e: unknown) => {
+    console.error(`Failed to fetch repo comments, will not reattempt for now: ${e}`);
   });
 
   updateMetadataFile(context.repoConfig, metaHolder.meta);
 }
 
-async function getGithubReviewsForPullRequest(
+function getGithubReviewsForPullRequest(
   context: DownloadContext,
   pullNumber: number
-): Promise<void> {
+): Promise<unknown> {
   const url = `${repoUrl(
     context.repoConfig
   )}/pulls/${pullNumber}/reviews?per_page=${MAX_PER_PAGE}&page=1`;
@@ -514,14 +527,18 @@ async function getGithubReviewsForPullRequest(
     return Promise.resolve(!isCurrentPageUpToDate);
   };
 
-  await new Promise((resolve, reject) => {
-    consumePagedRequests(
+  return new Promise<boolean | null>((resolve, reject) => {
+    consumePagedRequests<boolean | null>(
       context,
       url,
       {headers: getDefaultHeaders(context.repoConfig)},
       responsePageConsumer,
       resolve,
       reject
+    );
+  }).catch((e: unknown) => {
+    console.error(
+      `Failed to fetch reviews for pull ${pullNumber}, will not reattempt for now: ${e}`
     );
   });
 }
@@ -537,7 +554,7 @@ function getMissedPullNumbersForReviews(context: DownloadContext): ReadonlyArray
 
 function getMissedPullNumbersForCommits(context: DownloadContext): ReadonlyArray<number> {
   const downloadedPullNumbers = getDownloadedPullRequestNumbers(context.repoConfig);
-  const commitPullNumbers = getDownloadedPullRequestNumbersForReviews(context.repoConfig);
+  const commitPullNumbers = getDownloadedPullRequestNumbersForCommits(context.repoConfig);
 
   return downloadedPullNumbers
     .filter((pullNumber) => !commitPullNumbers.includes(pullNumber))
@@ -547,22 +564,22 @@ function getMissedPullNumbersForCommits(context: DownloadContext): ReadonlyArray
 export async function getGithubReviewsForPullRequests(
   context: DownloadContext,
   requestedPullNumbers: ReadonlyArray<number>
-): Promise<void[]> {
+): Promise<unknown> {
   const pullNumbers = removeDuplicates([
     ...requestedPullNumbers,
     ...getMissedPullNumbersForReviews(context),
   ]);
   console.log(`Fetching reviews for ${pullNumbers.length} pulls`);
 
-  return await Promise.all(
+  return Promise.all(
     pullNumbers.map((pullNumber) => getGithubReviewsForPullRequest(context, pullNumber))
   );
 }
 
-async function getGithubCommitsForPullRequest(
+function getGithubCommitsForPullRequest(
   context: DownloadContext,
   pullNumber: number
-): Promise<void> {
+): Promise<unknown> {
   const url = `${repoUrl(
     context.repoConfig
   )}/pulls/${pullNumber}/commits?per_page=${MAX_PER_PAGE}&page=1`;
@@ -577,8 +594,8 @@ async function getGithubCommitsForPullRequest(
     return Promise.resolve(true);
   };
 
-  await new Promise((resolve, reject) => {
-    consumePagedRequests(
+  return new Promise((resolve, reject) => {
+    consumePagedRequests<boolean | null>(
       context,
       url,
       {headers: getDefaultHeaders(context.repoConfig)},
@@ -586,20 +603,22 @@ async function getGithubCommitsForPullRequest(
       resolve,
       reject
     );
+  }).catch((e: unknown) => {
+    console.error(`Failed to fetch commits, will not reattempt for now: ${e}`);
   });
 }
 
 export async function getGithubCommitsForPullRequests(
   context: DownloadContext,
   requestedPullNumbers: ReadonlyArray<number>
-): Promise<void[]> {
+): Promise<unknown[]> {
   const pullNumbers = removeDuplicates([
     ...requestedPullNumbers,
     ...getMissedPullNumbersForCommits(context),
   ]);
-  console.log(`Fetching reviews for ${pullNumbers.length} pulls`);
+  console.log(`Fetching commits for ${pullNumbers.length} pulls`);
 
-  return await Promise.all(
+  return Promise.all(
     pullNumbers.map((pullNumber) => getGithubCommitsForPullRequest(context, pullNumber))
   );
 }
