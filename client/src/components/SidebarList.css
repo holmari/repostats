@@ -35,6 +35,10 @@
   padding: 8px;
 }
 
+.SidebarList__item {
+  text-decoration: none;
+}
+
 .SidebarList__item--selected {
   background-color: #f4f4f4;
 }
