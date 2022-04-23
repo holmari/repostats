@@ -6,9 +6,9 @@ import {NavLink} from 'react-router-dom';
 import {AnalyzeResult, UserResult} from 'types/types';
 import Panel from 'components/Panel';
 import Table, {SortableColumn} from 'components/Table';
+import ExportToCsvButton from 'components/ExportToCsvButton';
 import {formatIsoDate} from 'date/utils';
-
-const sum = (acc: number, item: number) => acc + item;
+import {sum} from '../utils/utils';
 
 const columns: ReadonlyArray<SortableColumn<UserResult>> = [
   {
@@ -112,6 +112,7 @@ const AllUsersOverviewPage: React.FC<Props> = ({result}) => {
   return (
     <div className="AllUsersOverviewPage">
       <Panel title="Overview" size="flex">
+        <ExportToCsvButton users={data} />
         <Table columns={columns} data={data} />
       </Panel>
     </div>
