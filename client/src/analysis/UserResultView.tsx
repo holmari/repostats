@@ -6,7 +6,6 @@ import React from 'react';
 import {AnalyzeResult, UserResult} from 'types/types';
 import ValueCell from 'components/ValueCell';
 import Panel from 'components/Panel';
-import ExportCsv from 'components/ExportCsv';
 import {formatIsoDate, getIntervalDuration} from 'date/utils';
 import RepositoriesContributionPanel from './RepositoriesContributionPanel';
 import ReviewsGivenPanel from './ReviewsGivenPanel';
@@ -70,7 +69,6 @@ const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
               1
             )}
           />
-          <ExportCsv user={user} />
         </Panel>
 
         <Panel title="Received" size="third">

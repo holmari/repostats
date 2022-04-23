@@ -4,7 +4,6 @@ import {ExportToCsv} from 'export-to-csv';
 const sum = (acc: number, item: number) => acc + item;
 
 function csvExporter(users: any) {
-  // const data = [];
   let data = users.map((row: any) => {
     return {
       Username: row.displayName,
@@ -64,7 +63,6 @@ function csvExporter(users: any) {
     decimalSeparator: '.',
     showLabels: true,
     showTitle: true,
-    title: 'User Code Review Stats',
     filename: `codereview-stats.csv`,
     useTextFile: false,
     useBom: true,
@@ -72,9 +70,6 @@ function csvExporter(users: any) {
   };
   const csvExporter = new ExportToCsv(options);
   csvExporter.generateCsv(data);
-  //   console.log(data);
-  //   console.log(csvExporter);
-  //   console.log(users);
 }
 
 const ExportCsv = ({users}: any) => {
