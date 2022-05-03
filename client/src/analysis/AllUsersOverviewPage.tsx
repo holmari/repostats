@@ -2,13 +2,78 @@ import './AllUsersOverviewPage.css';
 
 import React, {useMemo} from 'react';
 import {NavLink} from 'react-router-dom';
+import {ExportToCsv, Options} from 'export-to-csv';
 
 import {AnalyzeResult, UserResult} from 'types/types';
 import Panel from 'components/Panel';
 import Table, {SortableColumn} from 'components/Table';
-import ExportToCsvButton from 'components/ExportToCsvButton';
 import {formatIsoDate} from 'date/utils';
-import {sum} from '../utils/utils';
+import {sum} from 'utils/math';
+
+const defaultOptions: Options = {
+  fieldSeparator: ',',
+  quoteStrings: '"',
+  decimalSeparator: '.',
+  showLabels: true,
+  showTitle: false,
+  filename: 'repostats.csv',
+  useTextFile: false,
+  useBom: true,
+  useKeysAsHeaders: true,
+};
+
+export function exportToCsv(users: ReadonlyArray<UserResult>, options = defaultOptions) {
+  const data = users.map((row) => {
+    return {
+      Username: row.displayName,
+      'Change Requests': row.repoTotals
+        .map((repo) => repo.authoredTotals.changesCreated)
+        .reduce(sum),
+      'Comments Written (All)': row.repoTotals
+        .map((repo) => repo.authoredTotals.commentsWrittenTotal)
+        .reduce(sum),
+      'Comments to Others': row.repoTotals
+        .map((repo) => repo.authoredTotals.commentsWrittenToOthers)
+        .reduce(sum),
+      'Approvals Given': row.repoTotals.map((repo) => repo.authoredTotals.approvals).reduce(sum),
+      'Rejections Given': row.repoTotals.map((repo) => repo.authoredTotals.rejections).reduce(sum),
+      'Comments Received': row.repoTotals
+        .map((repo) => repo.receivedTotals.commentsByOthers)
+        .reduce(sum),
+      'Approvals Received': row.repoTotals.map((repo) => repo.receivedTotals.approvals).reduce(sum),
+      'Rejections Received': row.repoTotals
+        .map((repo) => repo.receivedTotals.rejections)
+        .reduce(sum),
+      'Review requests': row.aggregatedReceivedTotals.reviewRequests,
+      'Comments / Change': Number.isNaN(
+        row.aggregatedReceivedTotals.commentsByOthers / row.aggregatedAuthoredTotals.changesCreated
+      )
+        ? '-'
+        : (
+            row.aggregatedReceivedTotals.commentsByOthers /
+            row.aggregatedAuthoredTotals.changesCreated
+          ).toFixed(3),
+      'Comments / Request': Number.isNaN(
+        row.aggregatedAuthoredTotals.commentsWrittenToOthers /
+          row.aggregatedReceivedTotals.reviewRequests
+      )
+        ? '-'
+        : (
+            row.aggregatedAuthoredTotals.commentsWrittenToOthers /
+            row.aggregatedReceivedTotals.reviewRequests
+          ).toFixed(3),
+      'First Seen': formatIsoDate(row.interval?.startDate),
+      'Last Seen': formatIsoDate(row.interval?.endDate),
+      'Active Days': row.activeDaysCount,
+      'Avg. time in review': Math.round(
+        row.aggregatedAuthoredTotals.meanChangeOpenTimeMsec / 1000 / 60 / 60
+      ),
+    };
+  });
+
+  const csvExporter = new ExportToCsv(options);
+  csvExporter.generateCsv(data);
+}
 
 const columns: ReadonlyArray<SortableColumn<UserResult>> = [
   {
@@ -112,7 +177,12 @@ const AllUsersOverviewPage: React.FC<Props> = ({result}) => {
   return (
     <div className="AllUsersOverviewPage">
       <Panel title="Overview" size="flex">
-        <ExportToCsvButton users={data} />
+        <button
+          className="AllUsersOverviewPage__export-button btn btn-primary"
+          onClick={() => exportToCsv(data)}
+        >
+          Export to CSV
+        </button>
         <Table columns={columns} data={data} />
       </Panel>
     </div>
