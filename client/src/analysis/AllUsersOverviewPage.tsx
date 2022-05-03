@@ -10,69 +10,38 @@ import Table, {SortableColumn} from 'components/Table';
 import {formatIsoDate} from 'date/utils';
 import {sum} from 'utils/math';
 
-const defaultOptions: Options = {
+const csvExportOptions: Options = {
   fieldSeparator: ',',
   quoteStrings: '"',
   decimalSeparator: '.',
   showLabels: true,
   showTitle: false,
-  filename: 'repostats.csv',
+  filename: 'repostats',
   useTextFile: false,
   useBom: true,
   useKeysAsHeaders: true,
 };
 
-export function exportToCsv(users: ReadonlyArray<UserResult>, options = defaultOptions) {
-  const data = users.map((row) => {
-    return {
-      Username: row.displayName,
-      'Change Requests': row.repoTotals
-        .map((repo) => repo.authoredTotals.changesCreated)
-        .reduce(sum),
-      'Comments Written (All)': row.repoTotals
-        .map((repo) => repo.authoredTotals.commentsWrittenTotal)
-        .reduce(sum),
-      'Comments to Others': row.repoTotals
-        .map((repo) => repo.authoredTotals.commentsWrittenToOthers)
-        .reduce(sum),
-      'Approvals Given': row.repoTotals.map((repo) => repo.authoredTotals.approvals).reduce(sum),
-      'Rejections Given': row.repoTotals.map((repo) => repo.authoredTotals.rejections).reduce(sum),
-      'Comments Received': row.repoTotals
-        .map((repo) => repo.receivedTotals.commentsByOthers)
-        .reduce(sum),
-      'Approvals Received': row.repoTotals.map((repo) => repo.receivedTotals.approvals).reduce(sum),
-      'Rejections Received': row.repoTotals
-        .map((repo) => repo.receivedTotals.rejections)
-        .reduce(sum),
-      'Review requests': row.aggregatedReceivedTotals.reviewRequests,
-      'Comments / Change': Number.isNaN(
-        row.aggregatedReceivedTotals.commentsByOthers / row.aggregatedAuthoredTotals.changesCreated
-      )
-        ? '-'
-        : (
-            row.aggregatedReceivedTotals.commentsByOthers /
-            row.aggregatedAuthoredTotals.changesCreated
-          ).toFixed(3),
-      'Comments / Request': Number.isNaN(
-        row.aggregatedAuthoredTotals.commentsWrittenToOthers /
-          row.aggregatedReceivedTotals.reviewRequests
-      )
-        ? '-'
-        : (
-            row.aggregatedAuthoredTotals.commentsWrittenToOthers /
-            row.aggregatedReceivedTotals.reviewRequests
-          ).toFixed(3),
-      'First Seen': formatIsoDate(row.interval?.startDate),
-      'Last Seen': formatIsoDate(row.interval?.endDate),
-      'Active Days': row.activeDaysCount,
-      'Avg. time in review': Math.round(
-        row.aggregatedAuthoredTotals.meanChangeOpenTimeMsec / 1000 / 60 / 60
-      ),
-    };
+export function exportToCsv(users: ReadonlyArray<UserResult>) {
+  const exportableData = users.map((userResult) => {
+    const mappedData: any = {};
+    columns.forEach((column, index) => {
+      const accessor = column.accessor;
+      if (accessor && column.Header && typeof accessor === 'function') {
+        mappedData[`${column.Header}`] = accessor(userResult, index, {
+          subRows: [],
+          depth: 0,
+          data: [userResult],
+        });
+      }
+    });
+    // special case due to the need for using a NavLink in the accessor
+    mappedData['Username'] = userResult.displayName;
+    return mappedData;
   });
 
-  const csvExporter = new ExportToCsv(options);
-  csvExporter.generateCsv(data);
+  const csvExporter = new ExportToCsv(csvExportOptions);
+  csvExporter.generateCsv(exportableData);
 }
 
 const columns: ReadonlyArray<SortableColumn<UserResult>> = [
