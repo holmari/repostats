@@ -1,9 +1,0 @@
-.AllUsersOverviewPage {
-  overflow: auto;
-  flex: 1;
-  padding: 16px;
-}
-
-.AllUsersOverviewPage__export-button {
-  float: right;
-}
