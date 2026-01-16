@@ -9,5 +9,5 @@ export function getHttpClient(
   const axios = Axios.create();
   axiosRetry(axios, {retries: 3});
 
-  return rateLimit(Axios.create(), {maxRequests, perMilliseconds});
+  return rateLimit(axios, {maxRequests, perMilliseconds});
 }
