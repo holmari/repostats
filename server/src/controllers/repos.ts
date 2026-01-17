@@ -13,7 +13,9 @@ import {DownloadRequest, GithubConnector, RepoConfig} from '../types/types';
 import {stringifyJson} from '../file/json';
 import {getConfigFile, getSourceDataMetadata} from '../file/repo';
 import {getRepoGithubSlug} from './github/utils';
+import pLimit from 'p-limit';
 import {
+  calculateConcurrency,
   getGithubCommitsForPullRequests,
   getGithubPullRequests,
   getGitHubRateLimitedHttpClient,
@@ -97,11 +99,17 @@ async function fetchWitGithubConnector(
 ): Promise<void> {
   ensureGithubPaths(repoConfig);
 
-  const http = await getGitHubRateLimitedHttpClient(repoConfig);
+  const {http, rateLimit} = await getGitHubRateLimitedHttpClient(repoConfig);
+  const concurrency = calculateConcurrency(rateLimit);
+  console.log(
+    `Rate limit: ${rateLimit.remaining}/${rateLimit.limit} remaining. Using concurrency: ${concurrency}`
+  );
+
   const context: DownloadContext = {
     http,
     repoConfig,
     request,
+    limit: pLimit(concurrency),
   };
 
   const fetchedPullNumbers = await getGithubPullRequests(context);

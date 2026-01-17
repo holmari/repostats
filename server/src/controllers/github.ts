@@ -4,15 +4,16 @@ import parse from 'parse-link-header';
 
 import fs from 'fs';
 import {readJsonFile, writeJsonToFile} from '../file/json';
+import {ensurePathExists} from '../file/paths';
 import {GithubConnector, GithubSourceDataMetadata, RepoConfig} from '../types/types';
 import {
   getGithubCommentPath,
   getGithubPullPath,
+  getGithubPullReviewsPath,
   getGithubReviewPath,
   getGithubTeamPath,
   getGithubTeamMemberPath,
   getGithubCommitPath,
-  getGithubPullsPath,
 } from './github/paths';
 import {
   getDownloadedCommentIds,
@@ -36,7 +37,6 @@ import {
   User,
 } from '../types/github';
 import {getHttpClient} from '../http/axios';
-import {iterEachFile} from '../file/utils';
 import {getSourceDataMetadata} from '../file/repo';
 import {removeDuplicates} from '../arrays/utils';
 import {DownloadContext} from '../types/download';
@@ -151,9 +151,41 @@ async function getGithubRateLimit(repoConfig: RepoConfig<GithubConnector>): Prom
 
 export async function getGitHubRateLimitedHttpClient(
   repoConfig: RepoConfig<GithubConnector>
-): Promise<RateLimitedAxiosInstance> {
+): Promise<{http: RateLimitedAxiosInstance; rateLimit: RateLimit}> {
   const rateLimit = await getGithubRateLimit(repoConfig);
-  return getHttpClient(rateLimit.remaining, 60 * 60 * 1000);
+
+  // Calculate sustainable requests per second: remaining / seconds until reset.
+  // This ensures we don't exhaust the limit before it resets.
+  const secondsUntilReset = Math.max(1, rateLimit.reset - Math.floor(Date.now() / 1000));
+  const sustainableRate = rateLimit.remaining / secondsUntilReset;
+
+  // Clamp to reasonable bounds:
+  // - Min 1 req/sec to always make progress
+  // - Max 30 req/sec to avoid GitHub's secondary rate limits
+  const requestsPerSecond = Math.max(1, Math.min(30, Math.floor(sustainableRate)));
+
+  console.log(
+    `Rate limit: ${rateLimit.remaining} remaining, resets in ${secondsUntilReset}s. ` +
+      `Using ${requestsPerSecond} req/sec.`
+  );
+
+  const http = getHttpClient(requestsPerSecond, 1000);
+  return {http, rateLimit};
+}
+
+/**
+ * Calculate appropriate concurrency based on rate limit.
+ * GitHub's secondary rate limits aren't exposed, but we scale based on remaining requests.
+ * Conservative: 2-10 concurrent requests depending on headroom.
+ */
+export function calculateConcurrency(rateLimit: RateLimit): number {
+  const {remaining} = rateLimit;
+
+  if (remaining < 100) return 1; // Very low, be careful
+  if (remaining < 500) return 2;
+  if (remaining < 1000) return 3;
+  if (remaining < 2000) return 5;
+  return 10; // Plenty of headroom
 }
 
 export async function getGithubTeams(context: DownloadContext): Promise<void> {
@@ -575,8 +607,11 @@ export async function getGithubReviewsForPullRequests(
     ...requestedPullNumbers,
     ...getMissedPullNumbersForReviews(context),
   ]);
+  // Use p-limit for concurrency control based on rate limit
   return Promise.all(
-    pullNumbers.map((pullNumber) => getGithubReviewsForPullRequest(context, pullNumber))
+    pullNumbers.map((pullNumber) =>
+      context.limit(() => getGithubReviewsForPullRequest(context, pullNumber))
+    )
   );
 }
 
@@ -614,7 +649,10 @@ export async function getGithubCommitsForPullRequests(
   context: DownloadContext,
   pullNumbers: ReadonlyArray<number>
 ): Promise<void[]> {
+  // Use p-limit for concurrency control based on rate limit
   return Promise.all(
-    pullNumbers.map((pullNumber) => getGithubCommitsForPullRequest(context, pullNumber))
+    pullNumbers.map((pullNumber) =>
+      context.limit(() => getGithubCommitsForPullRequest(context, pullNumber))
+    )
   );
 }
