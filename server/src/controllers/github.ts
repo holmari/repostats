@@ -534,6 +534,10 @@ async function getGithubReviewsForPullRequest(
   context: DownloadContext,
   pullNumber: number
 ): Promise<void> {
+  // Create the PR's reviews directory upfront, even if empty.
+  // This marks that we've checked this PR for reviews, so we don't re-fetch on subsequent runs.
+  ensurePathExists(getGithubPullReviewsPath(context.repoConfig, pullNumber));
+
   const url = `${repoUrl(
     context.repoConfig
   )}/pulls/${pullNumber}/reviews?per_page=${MAX_PER_PAGE}&page=1`;
@@ -545,24 +549,20 @@ async function getGithubReviewsForPullRequest(
   const responsePageConsumer = (response: AxiosResponse) => {
     const reviews: ReadonlyArray<Review> = response.data;
 
-    // Process reviews until we find one that's already cached.
-    // Reviews are immutable, so if the file exists, it's cached.
-    let foundCachedReview = false;
-
+    // Reviews are fetched per-PR and aren't sorted by time like PRs/comments.
+    // We need to process all reviews, skipping ones already cached.
     for (const review of reviews) {
       const filePath = getGithubReviewPath(context.repoConfig, pullNumber, review.id);
 
       if (isReviewCached(filePath)) {
-        foundCachedReview = true;
-        break;
+        continue; // Skip already cached, but keep processing others
       }
 
-      // New review - write to disk
       writeJsonToFile(filePath, review);
     }
 
-    // Stop if we found a cached review; otherwise continue
-    return Promise.resolve(!foundCachedReview);
+    // Always fetch all pages for reviews
+    return Promise.resolve(true);
   };
 
   await new Promise((resolve, reject) => {
@@ -581,22 +581,10 @@ function getMissedPullNumbersForReviews(context: DownloadContext): ReadonlyArray
   const downloadedPullNumbers = getDownloadedPullRequestNumbers(context.repoConfig);
   const reviewPullNumbers = getDownloadedPullRequestNumbersForReviews(context.repoConfig);
 
-  const pullsWithoutReviews = downloadedPullNumbers
+  // Return all PRs that don't have reviews yet (regardless of merged/closed status)
+  return downloadedPullNumbers
     .filter((prNumber) => !reviewPullNumbers.includes(prNumber))
     .sort((a, b) => a - b);
-
-  const result: number[] = [];
-  for (const [pull] of iterEachFile<PullRequest>(getGithubPullsPath(context.repoConfig))) {
-    if (!pullsWithoutReviews.includes(pull.number)) {
-      continue;
-    }
-    if (pull.merged_at || pull.closed_at) {
-      continue;
-    }
-    result.push(pull.number);
-  }
-
-  return result;
 }
 
 export async function getGithubReviewsForPullRequests(

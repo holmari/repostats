@@ -21,12 +21,16 @@ export function getGithubReviewsPath(repoConfig: RepoConfig): string {
   return `${getGithubDataPath(repoConfig)}/reviews`;
 }
 
+export function getGithubPullReviewsPath(repoConfig: RepoConfig, pullNumber: number): string {
+  return `${getGithubReviewsPath(repoConfig)}/${pullNumber}`;
+}
+
 export function getGithubReviewPath(
   repoConfig: RepoConfig,
   pullNumber: number,
   reviewId: number
 ): string {
-  return `${getGithubReviewsPath(repoConfig)}/${pullNumber}/${reviewId}.json`;
+  return `${getGithubPullReviewsPath(repoConfig, pullNumber)}/${reviewId}.json`;
 }
 
 export function getGithubCommentsPath(repoConfig: RepoConfig): string {
