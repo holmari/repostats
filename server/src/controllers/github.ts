@@ -2,7 +2,8 @@ import Axios, {AxiosError, AxiosRequestConfig, AxiosResponse} from 'axios';
 import {Response, Request} from 'express';
 import parse from 'parse-link-header';
 
-import {writeJsonToFile} from '../file/json';
+import fs from 'fs';
+import {readJsonFile, writeJsonToFile} from '../file/json';
 import {GithubConnector, GithubSourceDataMetadata, RepoConfig} from '../types/types';
 import {
   getGithubCommentPath,
@@ -35,7 +36,7 @@ import {
   User,
 } from '../types/github';
 import {getHttpClient} from '../http/axios';
-import {getFileMd5Hash, iterEachFile} from '../file/utils';
+import {iterEachFile} from '../file/utils';
 import {getSourceDataMetadata} from '../file/repo';
 import {removeDuplicates} from '../arrays/utils';
 import {DownloadContext} from '../types/download';
@@ -267,6 +268,44 @@ function hasMissingData(
   return (fetchedItems?.length || 0) < (totalCount || 0);
 }
 
+/**
+ * Check if a PR is already cached by comparing updated_at timestamps.
+ * GitHub updates this field whenever the PR changes.
+ */
+function isPullRequestCached(filePath: string, apiUpdatedAt: string): boolean {
+  if (!fs.existsSync(filePath)) {
+    return false;
+  }
+  try {
+    const cached = readJsonFile<PullRequest>(filePath);
+    return cached.updated_at === apiUpdatedAt;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Check if a comment is already cached by comparing updated_at timestamps.
+ */
+function isCommentCached(filePath: string, apiUpdatedAt: string): boolean {
+  if (!fs.existsSync(filePath)) {
+    return false;
+  }
+  try {
+    const cached = readJsonFile<Comment>(filePath);
+    return cached.updated_at === apiUpdatedAt;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Check if a review is already cached. Reviews are immutable, so we just check existence.
+ */
+function isReviewCached(filePath: string): boolean {
+  return fs.existsSync(filePath);
+}
+
 function createComparableRepoForPull(pull: PullRequest): Repository {
   return {
     ...pull.base.repo,
@@ -306,16 +345,6 @@ async function downloadGithubPullRequestsForUrl(
     requestConfig: AxiosRequestConfig
   ) => {
     const pulls: ReadonlyArray<PullRequest> = response.data;
-    const pullNumbers = pulls.map((pull) => pull.number);
-    metaHolder.updatedPullNumbers = removeDuplicates([
-      ...metaHolder.updatedPullNumbers,
-      ...pullNumbers,
-    ]);
-
-    metaHolder.meta = {
-      ...metaHolder.meta,
-      fetchedPullNumbers: getDownloadedPullRequestNumbers(context.repoConfig),
-    };
 
     if (metaHolder.meta.totalPullsInRepository === UNKNOWN_ENTITY_COUNT && pulls.length) {
       metaHolder.meta = {
@@ -324,7 +353,20 @@ async function downloadGithubPullRequestsForUrl(
       };
     }
 
-    const editedPullPaths = pulls.reduce<ReadonlyArray<string>>((acc, pull) => {
+    // Process PRs until we find one that's already cached.
+    // PRs are sorted by updated_at desc, so once we find a cached PR,
+    // all older PRs (later in the list) should also be cached.
+    let foundCachedPr = false;
+
+    for (const pull of pulls) {
+      const filePath = getGithubPullPath(context.repoConfig, pull.number);
+
+      if (isPullRequestCached(filePath, pull.updated_at)) {
+        foundCachedPr = true;
+        break;
+      }
+
+      // PR is new or updated - write to disk
       const adjustedPull: PullRequest = {
         ...pull,
         base: {...pull.base, repo: createComparableRepoForPull(pull)},
@@ -333,20 +375,24 @@ async function downloadGithubPullRequestsForUrl(
         metaHolder.meta = {...metaHolder.meta, updatedAt: adjustedPull.updated_at};
       }
 
-      const filePath = getGithubPullPath(context.repoConfig, adjustedPull.number);
-      const existingFileHash = getFileMd5Hash(filePath);
-      const writtenHash = writeJsonToFile(filePath, adjustedPull);
+      writeJsonToFile(filePath, adjustedPull);
+      metaHolder.updatedPullNumbers = [...metaHolder.updatedPullNumbers, pull.number];
+    }
 
-      return writtenHash === existingFileHash ? acc : [...acc, filePath];
-    }, []);
+    // Stop if we found a cached PR; otherwise continue if missing data
+    if (foundCachedPr) {
+      return false;
+    }
 
-    // We only need a next page if we know that there's gaps from most recent to
-    // latest, or if one of this page's requests did not yet exist.
-    const needsNextPage =
-      editedPullPaths.length > 0 ||
-      hasMissingData(metaHolder.meta.fetchedPullNumbers, metaHolder.meta.totalPullsInRepository);
+    metaHolder.meta = {
+      ...metaHolder.meta,
+      fetchedPullNumbers: getDownloadedPullRequestNumbers(context.repoConfig),
+    };
 
-    return Promise.resolve(needsNextPage);
+    return hasMissingData(
+      metaHolder.meta.fetchedPullNumbers,
+      metaHolder.meta.totalPullsInRepository
+    );
   };
 
   await new Promise((resolve, reject) => {
@@ -397,24 +443,44 @@ export async function getGithubRepoComments(context: DownloadContext): Promise<v
   ) => {
     const comments: ReadonlyArray<Comment> = response.data;
 
-    if (metaHolder.meta.totalCommentCount === UNKNOWN_ENTITY_COUNT) {
+    if (metaHolder.meta.totalCommentCount === UNKNOWN_ENTITY_COUNT && comments.length) {
       metaHolder.meta = {
-        fetchedCommentIds: getDownloadedCommentIds(context.repoConfig),
+        ...metaHolder.meta,
         totalCommentCount: await computeTotalEntityCount(context, response, requestConfig),
       };
     }
 
-    const editedCommentPaths = comments.reduce<ReadonlyArray<string>>((acc, comment) => {
+    // Process comments until we find one that's already cached.
+    // Comments are sorted by updated_at desc, so once we find a cached comment,
+    // all older comments should also be cached.
+    let foundCachedComment = false;
+
+    for (const comment of comments) {
       const pullNumber = getPullRequestNumberFromUrl(comment.pull_request_url);
       const filePath = getGithubCommentPath(context.repoConfig, pullNumber, comment.id);
-      const existingHash = getFileMd5Hash(filePath);
-      const writtenHash = writeJsonToFile(filePath, comment);
-      return existingHash === writtenHash ? acc : [...acc, filePath];
-    }, []);
 
-    return Promise.resolve(
-      editedCommentPaths.length > 0 ||
-        hasMissingData(metaHolder.meta.fetchedCommentIds, metaHolder.meta.totalCommentCount)
+      if (isCommentCached(filePath, comment.updated_at)) {
+        foundCachedComment = true;
+        break;
+      }
+
+      // Comment is new or updated - write to disk
+      writeJsonToFile(filePath, comment);
+    }
+
+    // Stop if we found a cached comment; otherwise continue if missing data
+    if (foundCachedComment) {
+      return false;
+    }
+
+    metaHolder.meta = {
+      ...metaHolder.meta,
+      fetchedCommentIds: getDownloadedCommentIds(context.repoConfig),
+    };
+
+    return hasMissingData(
+      metaHolder.meta.fetchedCommentIds,
+      metaHolder.meta.totalCommentCount
     );
   };
 
@@ -447,14 +513,24 @@ async function getGithubReviewsForPullRequest(
   const responsePageConsumer = (response: AxiosResponse) => {
     const reviews: ReadonlyArray<Review> = response.data;
 
-    const isCurrentPageUpToDate = reviews.reduce((acc, review) => {
-      const filePath = getGithubReviewPath(context.repoConfig, pullNumber, review.id);
-      const existingHash = getFileMd5Hash(filePath);
-      const writtenHash = writeJsonToFile(filePath, review);
-      return acc && existingHash === writtenHash;
-    }, true);
+    // Process reviews until we find one that's already cached.
+    // Reviews are immutable, so if the file exists, it's cached.
+    let foundCachedReview = false;
 
-    return Promise.resolve(!isCurrentPageUpToDate);
+    for (const review of reviews) {
+      const filePath = getGithubReviewPath(context.repoConfig, pullNumber, review.id);
+
+      if (isReviewCached(filePath)) {
+        foundCachedReview = true;
+        break;
+      }
+
+      // New review - write to disk
+      writeJsonToFile(filePath, review);
+    }
+
+    // Stop if we found a cached review; otherwise continue
+    return Promise.resolve(!foundCachedReview);
   };
 
   await new Promise((resolve, reject) => {
