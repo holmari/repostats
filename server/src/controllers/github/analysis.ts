@@ -525,6 +525,11 @@ function processReviews(context: GithubComputeContext) {
       continue;
     }
 
+    // Skip reviews where the user is null (deleted accounts, ghost users, etc.)
+    if (!review.user) {
+      continue;
+    }
+
     const reviewAuthorUserResult = context.acquireUserResult(review.user);
     const pull = context.getPull(getPullRequestNumberFromUrl(review.pull_request_url));
     if (!pull) {
