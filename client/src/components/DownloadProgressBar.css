@@ -1,0 +1,202 @@
+.DownloadProgressBar {
+  width: 100%;
+  padding: 24px 16px;
+}
+
+.DownloadProgressBar__track {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.DownloadProgressBar__step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.DownloadProgressBar__step-indicator {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+  border: 3px solid #dee2e6;
+  background-color: #fff;
+  position: relative;
+  transition: all 0.3s ease-in-out;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.DownloadProgressBar__step--endpoint .DownloadProgressBar__step-indicator {
+  background-color: #6c757d;
+  border-color: #6c757d;
+  color: #fff;
+}
+
+.DownloadProgressBar__step--completed .DownloadProgressBar__step-indicator {
+  background-color: #28a745;
+  border-color: #28a745;
+  color: #fff;
+}
+
+.DownloadProgressBar__step--just-completed .DownloadProgressBar__step-indicator {
+  animation: completeStep 0.4s ease-out;
+}
+
+.DownloadProgressBar__step--just-completed .DownloadProgressBar__checkmark {
+  animation: checkmarkPop 0.3s ease-out;
+}
+
+.DownloadProgressBar__step--current .DownloadProgressBar__step-indicator {
+  border-color: #007bff;
+  background-color: #007bff;
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.25);
+  animation: subtlePulse 2s ease-in-out infinite;
+}
+
+.DownloadProgressBar__step--error .DownloadProgressBar__step-indicator {
+  border-color: #dc3545;
+  background-color: #dc3545;
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(220, 53, 69, 0.25);
+}
+
+.DownloadProgressBar__step--pending .DownloadProgressBar__step-indicator {
+  border-color: #dee2e6;
+  background-color: #f8f9fa;
+}
+
+.DownloadProgressBar__step-label {
+  margin-top: 10px;
+  font-size: 11px;
+  color: #6c757d;
+  text-align: center;
+  max-width: 70px;
+  line-height: 1.3;
+  transition: all 0.3s ease-in-out;
+}
+
+.DownloadProgressBar__step--completed .DownloadProgressBar__step-label {
+  color: #28a745;
+  font-weight: 600;
+}
+
+.DownloadProgressBar__step--current .DownloadProgressBar__step-label {
+  color: #007bff;
+  font-weight: 600;
+}
+
+.DownloadProgressBar__step--error .DownloadProgressBar__step-label {
+  color: #dc3545;
+  font-weight: 600;
+}
+
+.DownloadProgressBar__connector {
+  flex: 1;
+  height: 4px;
+  background-color: #dee2e6;
+  margin-top: 16px;
+  min-width: 24px;
+  border-radius: 2px;
+  transition: background-color 0.3s ease-in-out;
+}
+
+.DownloadProgressBar__connector--completed {
+  background-color: #28a745;
+}
+
+.DownloadProgressBar__checkmark {
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.DownloadProgressBar__error-x {
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.DownloadProgressBar__pulse {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-color: #007bff;
+  animation: pulse 1.5s ease-in-out infinite;
+  z-index: -1;
+}
+
+.DownloadProgressBar__progress-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-90deg);
+  z-index: 1;
+}
+
+.DownloadProgressBar__progress-ring-separator {
+  stroke: #fff;
+}
+
+.DownloadProgressBar__progress-ring-bg {
+  stroke: #fff;
+}
+
+.DownloadProgressBar__progress-ring-fill {
+  stroke: #FFD700;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.3s ease-out;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+@keyframes completeStep {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes checkmarkPop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes subtlePulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}

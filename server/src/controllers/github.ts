@@ -41,7 +41,7 @@ import {getSourceDataMetadata} from '../file/repo';
 import {removeDuplicates} from '../arrays/utils';
 import {DownloadContext} from '../types/download';
 import {RateLimitedAxiosInstance} from 'axios-rate-limit';
-import {updateDownloadStatus} from './utils';
+import {incrementPhaseProgress, initPhaseProgress, setPhaseTotal, updateDownloadStatus} from './utils';
 
 const githubDefaultHeaders = {
   Accept: 'application/vnd.github.v3+json',
@@ -398,10 +398,13 @@ async function downloadGithubPullRequestsForUrl(
     const pulls: ReadonlyArray<PullRequest> = response.data;
 
     if (metaHolder.meta.totalPullsInRepository === UNKNOWN_ENTITY_COUNT && pulls.length) {
+      const totalCount = await computeTotalEntityCount(context, response, requestConfig);
+      const alreadyFetched = getDownloadedPullRequestNumbers(context.repoConfig).length;
       metaHolder.meta = {
         ...metaHolder.meta,
-        totalPullsInRepository: await computeTotalEntityCount(context, response, requestConfig),
+        totalPullsInRepository: totalCount,
       };
+      initPhaseProgress(context.request, alreadyFetched, totalCount);
     }
 
     // Process PRs until we find one that's already cached.
@@ -428,6 +431,7 @@ async function downloadGithubPullRequestsForUrl(
 
       writeJsonToFile(filePath, adjustedPull);
       metaHolder.updatedPullNumbers = [...metaHolder.updatedPullNumbers, pull.number];
+      incrementPhaseProgress(context.request);
     }
 
     // Stop if we found a cached PR; otherwise continue if missing data
@@ -495,10 +499,13 @@ export async function getGithubRepoComments(context: DownloadContext): Promise<v
     const comments: ReadonlyArray<Comment> = response.data;
 
     if (metaHolder.meta.totalCommentCount === UNKNOWN_ENTITY_COUNT && comments.length) {
+      const totalCount = await computeTotalEntityCount(context, response, requestConfig);
+      const alreadyFetched = getDownloadedCommentIds(context.repoConfig).length;
       metaHolder.meta = {
         ...metaHolder.meta,
-        totalCommentCount: await computeTotalEntityCount(context, response, requestConfig),
+        totalCommentCount: totalCount,
       };
+      initPhaseProgress(context.request, alreadyFetched, totalCount);
     }
 
     // Process comments until we find one that's already cached.
@@ -517,6 +524,7 @@ export async function getGithubRepoComments(context: DownloadContext): Promise<v
 
       // Comment is new or updated - write to disk
       writeJsonToFile(filePath, comment);
+      incrementPhaseProgress(context.request);
     }
 
     // Stop if we found a cached comment; otherwise continue if missing data
@@ -614,10 +622,18 @@ export async function getGithubReviewsForPullRequests(
     ...requestedPullNumbers,
     ...getMissedPullNumbersForReviews(context),
   ]);
+
+  const allPrNumbers = getDownloadedPullRequestNumbers(context.repoConfig);
+  const prsWithReviews = getDownloadedPullRequestNumbersForReviews(context.repoConfig);
+  initPhaseProgress(context.request, prsWithReviews.length, allPrNumbers.length);
+
   // Use p-limit for concurrency control based on rate limit
   return Promise.all(
     pullNumbers.map((pullNumber) =>
-      context.limit(() => getGithubReviewsForPullRequest(context, pullNumber))
+      context.limit(async () => {
+        await getGithubReviewsForPullRequest(context, pullNumber);
+        incrementPhaseProgress(context.request);
+      })
     )
   );
 }
@@ -656,10 +672,15 @@ export async function getGithubCommitsForPullRequests(
   context: DownloadContext,
   pullNumbers: ReadonlyArray<number>
 ): Promise<void[]> {
+  setPhaseTotal(context.request, pullNumbers.length);
+
   // Use p-limit for concurrency control based on rate limit
   return Promise.all(
     pullNumbers.map((pullNumber) =>
-      context.limit(() => getGithubCommitsForPullRequest(context, pullNumber))
+      context.limit(async () => {
+        await getGithubCommitsForPullRequest(context, pullNumber);
+        incrementPhaseProgress(context.request);
+      })
     )
   );
 }

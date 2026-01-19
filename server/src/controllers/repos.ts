@@ -9,7 +9,7 @@ import {
   deletePath,
   ensurePaths,
 } from '../file/paths';
-import {DownloadRequest, GithubConnector, RepoConfig} from '../types/types';
+import {DownloadPhase, DownloadRequest, GithubConnector, PhaseProgress, RepoConfig} from '../types/types';
 import {stringifyJson} from '../file/json';
 import {getConfigFile, getSourceDataMetadata} from '../file/repo';
 import {getRepoGithubSlug} from './github/utils';
@@ -93,6 +93,13 @@ export function deleteRepo(req: Request, res: Response): void {
   res.status(200).send({repoName: repoNameToDelete});
 }
 
+function setPhase(request: DownloadRequest, phase: DownloadPhase, totalItems?: number): void {
+  const phaseProgress: PhaseProgress | null = totalItems != null
+    ? {current: 0, total: totalItems}
+    : null;
+  updateDownloadStatus(request, {phase, phaseProgress});
+}
+
 async function fetchWitGithubConnector(
   repoConfig: RepoConfig<GithubConnector>,
   request: DownloadRequest
@@ -113,16 +120,30 @@ async function fetchWitGithubConnector(
     concurrency,
   };
 
+  // Phase 1: Pull Requests
+  setPhase(request, 'pulls');
   const fetchedPullNumbers = await getGithubPullRequests(context);
 
-  await Promise.all([getGithubRepoComments(context), getGithubTeamsAndMembers(context)]);
+  // Phase 2: Comments
+  setPhase(request, 'comments');
+  await getGithubRepoComments(context);
+
+  // Phase 3: Teams
+  setPhase(request, 'teams');
+  await getGithubTeamsAndMembers(context);
 
   console.log('Loaded all PRs, teams and comments. Will load reviews and commits next.');
 
-  await Promise.all([
-    getGithubReviewsForPullRequests(context, fetchedPullNumbers),
-    getGithubCommitsForPullRequests(context, fetchedPullNumbers),
-  ]);
+  // Phase 4: Reviews
+  setPhase(request, 'reviews');
+  await getGithubReviewsForPullRequests(context, fetchedPullNumbers);
+
+  // Phase 5: Commits
+  setPhase(request, 'commits');
+  await getGithubCommitsForPullRequests(context, fetchedPullNumbers);
+
+  // Phase 6: Finish
+  setPhase(request, 'finish');
 }
 
 async function fetchWithConnector(repoConfig: RepoConfig, request: DownloadRequest): Promise<void> {

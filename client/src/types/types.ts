@@ -38,7 +38,23 @@ export interface DownloadRequest {
   readonly requestId: string;
 }
 
+export type DownloadPhase =
+  | 'start'
+  | 'comments'
+  | 'commits'
+  | 'finish'
+  | 'pulls'
+  | 'reviews'
+  | 'teams';
+
+export interface PhaseProgress {
+  readonly current: number;
+  readonly total: number | null;
+}
+
 export interface DownloadStatus {
+  readonly phase: DownloadPhase;
+  readonly phaseProgress: PhaseProgress | null;
   readonly rateLimit: number | null;
   readonly rateLimitLeft: number | null;
   readonly startedAt: string;

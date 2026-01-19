@@ -18,6 +18,7 @@ import {
   RepoSourceDataMetadata,
 } from 'types/types';
 import DeleteButton from 'components/DeleteButton';
+import DownloadProgressBar from 'components/DownloadProgressBar';
 import {Navigate} from 'react-router';
 import {Spinner} from 'react-bootstrap';
 import {RequestStatus} from 'requests/types';
@@ -112,6 +113,14 @@ const RepoPage: React.FC<Props> = ({repoName}) => {
     setLoadingSourceDataStatus(RequestStatus.IN_PROGRESS);
     const requestId = uuid();
     setRequestId(requestId);
+    setDownloadStatus({
+      phase: 'start',
+      phaseProgress: null,
+      fetchedResources: 0,
+      rateLimit: null,
+      rateLimitLeft: null,
+      startedAt: new Date().toISOString(),
+    });
 
     post(`repos/${repoName}/download`, {requestId})
       .then((sourceDataMetadata: RepoSourceDataMetadata) => {
@@ -202,25 +211,24 @@ const RepoPage: React.FC<Props> = ({repoName}) => {
           <Panel className="RepoPage__download-content" title="" size="flex">
             <div className="RepoPage__download-content-progress-indicator">
               <h4>{getDisplayStatus(loadingSourceDataStatus)}</h4>
+              {downloadStatus && (
+                <DownloadProgressBar
+                  currentPhase={downloadStatus.phase}
+                  phaseProgress={downloadStatus.phaseProgress}
+                  hasError={loadingSourceDataStatus === RequestStatus.FAILURE}
+                />
+              )}
               {!!downloadStatus && (
-                <div>
+                <div className="RepoPage__download-stats">
                   Fetched <strong>{downloadStatus.fetchedResources}</strong> resource(s).{' '}
                   {downloadStatus.rateLimitLeft !== null &&
-                    `Rate limit
-                  ${downloadStatus.rateLimitLeft}/${downloadStatus.rateLimit}.`}
+                    `Rate limit: ${downloadStatus.rateLimitLeft}/${downloadStatus.rateLimit}.`}
                 </div>
               )}
               {loadingSourceDataStatus === RequestStatus.IN_PROGRESS && (
-                <>
-                  <div>
-                    This can take minutes, or hours, depending on the size of the repository being
-                    fetched.
-                  </div>
-                  <div>☕️</div>
-                  <div className="RepoPage__download-content-progress-indicator-spinner">
-                    <Spinner animation="border" />
-                  </div>
-                </>
+                <div className="RepoPage__download-hint">
+                  This can take minutes or hours, depending on the size of the repository.
+                </div>
               )}
             </div>
           </Panel>
