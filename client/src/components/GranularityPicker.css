@@ -1,0 +1,32 @@
+.GranularityPicker {
+  min-width: 120px;
+}
+
+.GranularityPicker__popover-content {
+  padding: 0;
+}
+
+.GranularityPicker__options {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.GranularityPicker__option {
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.GranularityPicker__option:hover {
+  background-color: #efefef;
+}
+
+.GranularityPicker__option--selected {
+  background-color: #0d6efd;
+  color: white;
+}
+
+.GranularityPicker__option--selected:hover {
+  background-color: #0d6efd;
+}

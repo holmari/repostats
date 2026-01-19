@@ -1,14 +1,17 @@
 import {descByCreationDate} from '../../arrays/sort';
 import {removeDuplicates} from '../../arrays/utils';
-import {createInterval, EMPTY_INTERVAL, unionAllIntervals} from '../../date/utils';
+import {createInterval, EMPTY_INTERVAL, getPeriodStartDate, unionAllIntervals} from '../../date/utils';
 import {
   AnalyzeResult,
   AuthoredTotals,
   CommentsPerChangeByUserId,
   DateInterval,
+  Granularity,
+  Mutable,
   ReceivedTotals,
   RepoConfig,
   ReviewComment,
+  ReviewsSummary,
   UserActivitySummary,
   UserRepoTotals,
   UserResult,
@@ -70,7 +73,10 @@ function postProcessUserRepoTotals(
   };
 }
 
-function toTimeSeries(userResult: IntermediateUserResult): ReadonlyArray<UserActivitySummary> {
+function toTimeSeries(
+  userResult: IntermediateUserResult,
+  granularity: Granularity
+): ReadonlyArray<UserActivitySummary> {
   const authoredCommentsDates = Object.keys(userResult.commentsAuthoredByDay);
   const commentsReceivedDates = Object.keys(userResult.commentsReceivedByDay);
   const changesAuthoredDates = Object.keys(userResult.changesAuthoredByDay);
@@ -89,17 +95,50 @@ function toTimeSeries(userResult: IntermediateUserResult): ReadonlyArray<UserAct
     ]),
   ].sort((a, b) => -b.localeCompare(a));
 
-  return allDates.map((date) => {
-    return {
-      date,
-      changesAuthored: userResult.changesAuthoredByDay[date] || 0,
-      commentsAuthored: userResult.commentsAuthoredByDay[date] || 0,
-      commentsReceived: userResult.commentsReceivedByDay[date] || 0,
-      commitsAuthored: userResult.commitsAuthoredByDay[date] || 0,
-      reviewsAuthored: userResult.reviewsAuthoredByDay[date] || {approvals: 0, rejections: 0},
-      reviewsReceived: userResult.reviewsReceivedByDay[date] || {approvals: 0, rejections: 0},
-    };
-  });
+  // Group daily data by period
+  const groupedByPeriod: Mutable<{[period: string]: Mutable<UserActivitySummary>}> = {};
+
+  for (const date of allDates) {
+    const periodStart = getPeriodStartDate(date, granularity);
+
+    if (!groupedByPeriod[periodStart]) {
+      groupedByPeriod[periodStart] = {
+        date: periodStart,
+        changesAuthored: 0,
+        commentsAuthored: 0,
+        commentsReceived: 0,
+        commitsAuthored: 0,
+        reviewsAuthored: {approvals: 0, rejections: 0},
+        reviewsReceived: {approvals: 0, rejections: 0},
+      };
+    }
+
+    const period = groupedByPeriod[periodStart];
+    period.changesAuthored += userResult.changesAuthoredByDay[date] || 0;
+    period.commentsAuthored += userResult.commentsAuthoredByDay[date] || 0;
+    period.commentsReceived += userResult.commentsReceivedByDay[date] || 0;
+    period.commitsAuthored += userResult.commitsAuthoredByDay[date] || 0;
+
+    const reviewsAuthored = userResult.reviewsAuthoredByDay[date];
+    if (reviewsAuthored) {
+      period.reviewsAuthored = {
+        approvals: (period.reviewsAuthored as ReviewsSummary).approvals + reviewsAuthored.approvals,
+        rejections:
+          (period.reviewsAuthored as ReviewsSummary).rejections + reviewsAuthored.rejections,
+      };
+    }
+
+    const reviewsReceived = userResult.reviewsReceivedByDay[date];
+    if (reviewsReceived) {
+      period.reviewsReceived = {
+        approvals: (period.reviewsReceived as ReviewsSummary).approvals + reviewsReceived.approvals,
+        rejections:
+          (period.reviewsReceived as ReviewsSummary).rejections + reviewsReceived.rejections,
+      };
+    }
+  }
+
+  return Object.values(groupedByPeriod).sort((a, b) => -b.date.localeCompare(a.date));
 }
 
 function pickBestRealName(userResult: IntermediateUserResult) {
@@ -188,8 +227,11 @@ function aggregateReceivedTotals(repoTotals: ReadonlyArray<UserRepoTotals>): Rec
     );
 }
 
-function postProcessUserResult(userResult: IntermediateUserResult): UserResult {
-  const timeSeries = toTimeSeries(userResult);
+function postProcessUserResult(
+  userResult: IntermediateUserResult,
+  granularity: Granularity
+): UserResult {
+  const timeSeries = toTimeSeries(userResult, granularity);
 
   const repoTotals = userResult.repoTotals.map((totals) =>
     postProcessUserRepoTotals(totals, userResult)
@@ -220,20 +262,24 @@ function postProcessUserResult(userResult: IntermediateUserResult): UserResult {
 }
 
 export function postProcessUserResults(
-  results: IntermediateUserResultsByUserId
+  results: IntermediateUserResultsByUserId,
+  granularity: Granularity
 ): UserResultsByDisplayName {
   const mappedResultsHolder: {[displayName: string]: UserResult} = {};
 
   Object.keys(results).forEach((userId) => {
-    const processedResult = postProcessUserResult(results[userId]);
+    const processedResult = postProcessUserResult(results[userId], granularity);
     mappedResultsHolder[processedResult.displayName] = processedResult;
   });
 
   return mappedResultsHolder;
 }
 
-export function createAnalyzeResult(result: IntermediateAnalyzeResult): AnalyzeResult {
-  const userResults = postProcessUserResults(result.userResults);
+export function createAnalyzeResult(
+  result: IntermediateAnalyzeResult,
+  granularity: Granularity = 'day'
+): AnalyzeResult {
+  const userResults = postProcessUserResults(result.userResults, granularity);
   const interval: DateInterval | null = unionAllIntervals(
     Object.values(userResults).map((userResult) => userResult.interval)
   );

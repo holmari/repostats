@@ -1,5 +1,5 @@
 import {DateTime, DurationUnit} from 'luxon';
-import {DateInterval} from '../types/types';
+import {DateInterval, Granularity} from '../types/types';
 
 export const EMPTY_INTERVAL: DateInterval = {
   startDate: new Date(0).toISOString(),
@@ -103,4 +103,20 @@ export function getIntervalDuration(interval: DateInterval | null, unit: Duratio
   return start.toMillis() === 0 || end.toMillis() === 0
     ? NaN
     : end.diff(start, unit)[toDurationKey(unit)];
+}
+
+export function getPeriodStartDate(dateStr: string, granularity: Granularity): string {
+  const dt = DateTime.fromISO(dateStr);
+  switch (granularity) {
+    case 'day':
+      return dateStr.slice(0, 10);
+    case 'week':
+      return dt.startOf('week').toISODate()!;
+    case 'month':
+      return dt.startOf('month').toISODate()!;
+    case 'quarter':
+      return dt.startOf('quarter').toISODate()!;
+    case 'year':
+      return dt.startOf('year').toISODate()!;
+  }
 }

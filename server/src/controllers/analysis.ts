@@ -9,6 +9,7 @@ import {
   AnalyzeRequest,
   AnalyzeResult,
   DateInterval,
+  Granularity,
   RepoConfig,
   ReviewSummariesByUserId,
   ReviewsSummary,
@@ -25,7 +26,9 @@ import {postProcessUserResults} from './analysis/utils';
 import {removeDuplicates} from '../arrays/utils';
 import {getSettings} from './settings';
 
-export type NormalizedAnalyzeRequest = Required<AnalyzeRequest>;
+export type NormalizedAnalyzeRequest = Required<AnalyzeRequest> & {
+  readonly granularity: Granularity;
+};
 
 function getRepoResult(
   repoConfig: RepoConfig,
@@ -233,6 +236,7 @@ function normalizeRequest(request: AnalyzeRequest): NormalizedAnalyzeRequest {
       : ALL_TIME_INTERVAL,
     includedRepoNames: request.includedRepoNames || getAvailableRepoNames(),
     excludedUserIds: request.excludedUserIds ?? [...settings.excludedUserIds],
+    granularity: request.granularity ?? 'day',
   };
 }
 
@@ -274,7 +278,7 @@ function computeAnalysisResult(request: NormalizedAnalyzeRequest): AnalyzeResult
   return {
     includedRepos,
     interval,
-    userResults: postProcessUserResults(userResults),
+    userResults: postProcessUserResults(userResults, request.granularity),
   };
 }
 

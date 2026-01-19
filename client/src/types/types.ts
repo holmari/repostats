@@ -84,10 +84,14 @@ export interface DateInterval {
   readonly startDate: string;
   readonly endDate: string;
 }
+
+export type Granularity = 'day' | 'week' | 'month' | 'quarter' | 'year';
+
 export interface AnalyzeRequest {
   readonly dateInterval?: DateInterval;
   readonly includedRepoNames?: ReadonlyArray<string>;
   readonly excludedUserIds?: ReadonlyArray<string>;
+  readonly granularity?: Granularity;
 }
 
 export interface ReviewComment {
