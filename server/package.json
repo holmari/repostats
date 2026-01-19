@@ -45,7 +45,7 @@
     "lodash": "^4.17.15",
     "lusca": "^1.6.1",
     "luxon": "^1.25.0",
-    "p-limit": "^7.2.0",
+    "p-limit": "^3.1.0",
     "parse-link-header": "^1.0.1",
     "request": "^2.88.0",
     "request-promise": "^4.2.4",

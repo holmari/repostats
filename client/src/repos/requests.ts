@@ -1,6 +1,6 @@
 import {AnalyzeRequest, AnalyzeResult, RepoConfig} from 'types/types';
 
-const baseUrl = 'http://localhost:3001/api';
+const baseUrl = 'http://localhost:3003/api';
 
 const defaultOptions = {};
 
