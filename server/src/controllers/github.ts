@@ -69,6 +69,20 @@ export function getGithubToken(_: Request, res: Response): void {
   });
 }
 
+// p-limit supports dynamic concurrency but the types don't expose it
+type LimitWithConcurrency = DownloadContext['limit'] & {concurrency: number};
+
+function updateConcurrency(context: DownloadContext, remaining: number): void {
+  const limit = context.limit as LimitWithConcurrency;
+  const newConcurrency = calculateConcurrencyFromRemaining(remaining);
+  if (newConcurrency !== context.concurrency) {
+    console.log(`Adjusting concurrency: ${context.concurrency} -> ${newConcurrency} (${remaining} requests remaining)`);
+    limit.concurrency = newConcurrency;
+    context.concurrency = newConcurrency;
+    context.http.setMaxRPS(newConcurrency);
+  }
+}
+
 function get(context: DownloadContext, url: string, requestConfig: AxiosRequestConfig) {
   const active = context.limit.activeCount;
   const pending = context.limit.pendingCount;
@@ -76,11 +90,15 @@ function get(context: DownloadContext, url: string, requestConfig: AxiosRequestC
   console.log(`[${timestamp}] GET ${url} [concurrency: ${context.concurrency}, active: ${active}, pending: ${pending}]`);
 
   return context.http.get(url, requestConfig).then((response) => {
+    const rateLimitRemaining = parseInt(response.headers['x-ratelimit-remaining'], 10);
+
     updateDownloadStatus(context.request, {
       rateLimit: response.headers['x-ratelimit-limit'],
-      rateLimitLeft: response.headers['x-ratelimit-remaining'],
+      rateLimitLeft: rateLimitRemaining,
       fetchedResources: 1,
     });
+
+    updateConcurrency(context, rateLimitRemaining);
 
     return response;
   });
@@ -193,18 +211,23 @@ export async function getGitHubRateLimitedHttpClient(
 }
 
 /**
- * Calculate appropriate concurrency based on rate limit.
+ * Calculate appropriate concurrency based on remaining requests.
  * GitHub's secondary rate limits aren't exposed, but we scale based on remaining requests.
- * Conservative: 2-10 concurrent requests depending on headroom.
+ * Conservative: 1-10 concurrent requests depending on headroom.
  */
-export function calculateConcurrency(rateLimit: RateLimit): number {
-  const {remaining} = rateLimit;
-
+export function calculateConcurrencyFromRemaining(remaining: number): number {
   if (remaining < 100) return 1; // Very low, be careful
   if (remaining < 500) return 2;
   if (remaining < 1000) return 3;
   if (remaining < 2000) return 5;
   return 10; // Plenty of headroom
+}
+
+/**
+ * Calculate appropriate concurrency based on rate limit.
+ */
+export function calculateConcurrency(rateLimit: RateLimit): number {
+  return calculateConcurrencyFromRemaining(rateLimit.remaining);
 }
 
 export async function getGithubTeams(context: DownloadContext): Promise<void> {
