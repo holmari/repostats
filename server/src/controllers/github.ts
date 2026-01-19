@@ -152,27 +152,43 @@ async function getGithubRateLimit(repoConfig: RepoConfig<GithubConnector>): Prom
   );
 }
 
+/**
+ * Calculate requests per second based on rate limit state.
+ *
+ * The goal is to use the sustainable rate: remaining / seconds until reset.
+ * This ensures we never exhaust the rate limit before it resets.
+ *
+ * @param remaining - Remaining API requests allowed
+ * @param secondsUntilReset - Seconds until the rate limit resets
+ * @returns Requests per second to use
+ */
+export function calculateRequestsPerSecond(remaining: number, secondsUntilReset: number): number {
+  // Sustainable rate: if we made this many requests per second continuously,
+  // we'd exactly use up our remaining limit when it resets.
+  const sustainableRate = remaining / Math.max(1, secondsUntilReset);
+
+  // Use floor to ensure we stay under the sustainable rate.
+  // Clamp to reasonable bounds:
+  // - Min 1 req/sec to always make progress
+  // - Max 15 req/sec to avoid GitHub's secondary rate limits
+  return Math.max(1, Math.min(15, Math.floor(sustainableRate)));
+}
+
 export async function getGitHubRateLimitedHttpClient(
   repoConfig: RepoConfig<GithubConnector>
 ): Promise<{http: RateLimitedAxiosInstance; rateLimit: RateLimit}> {
   const rateLimit = await getGithubRateLimit(repoConfig);
 
-  // Calculate sustainable requests per second: remaining / seconds until reset.
-  // This ensures we don't exhaust the limit before it resets.
-  const secondsUntilReset = Math.max(1, rateLimit.reset - Math.floor(Date.now() / 1000));
-  const sustainableRate = rateLimit.remaining / secondsUntilReset;
-
-  // Clamp to reasonable bounds:
-  // - Min 1 req/sec to always make progress
-  // - Max 30 req/sec to avoid GitHub's secondary rate limits
-  const requestsPerSecond = Math.max(1, Math.min(30, Math.floor(sustainableRate)));
+  // Use concurrency as the rate limit so requests can go out in parallel.
+  // When we exhaust the GitHub rate limit, the retry logic will wait for reset.
+  const concurrency = calculateConcurrency(rateLimit);
 
   console.log(
-    `Rate limit: ${rateLimit.remaining} remaining, resets in ${secondsUntilReset}s. ` +
-      `Using ${requestsPerSecond} req/sec.`
+    `Rate limit: ${rateLimit.remaining} remaining. ` +
+      `Using ${concurrency} req/sec to match concurrency.`
   );
 
-  const http = getHttpClient(requestsPerSecond, 1000);
+  const http = getHttpClient(concurrency, 1000);
   return {http, rateLimit};
 }
 
