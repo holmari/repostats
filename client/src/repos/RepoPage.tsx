@@ -90,6 +90,7 @@ const RepoPage: React.FC<Props> = ({repoName}) => {
   const [downloadStatus, setDownloadStatus] = useState<DownloadStatus | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
   const [loadingSourceDataStatus, setLoadingSourceDataStatus] = useState(RequestStatus.UNSTARTED);
+  const [metadataLoaded, setMetadataLoaded] = useState(false);
   const [isSettingsOpen, setSettingsOpen] = useState(false);
   const [error, setError] = useState(undefined);
   const clearError = useCallback(() => setError(undefined), [setError]);
@@ -150,7 +151,10 @@ const RepoPage: React.FC<Props> = ({repoName}) => {
         .then((sourceDataMetadata) =>
           dispatch({type: 'setRepoSourceDataMetadata', repoName, sourceDataMetadata})
         )
-        .catch(setError);
+        .catch(setError)
+        .finally(() => setMetadataLoaded(true));
+    else
+      setMetadataLoaded(true);
   }, [dispatch, getSourceDataMetadata, repoName]);
 
   if (!repo) {
@@ -182,7 +186,8 @@ const RepoPage: React.FC<Props> = ({repoName}) => {
           </fieldset>
           <RepoSourceDataContent metadata={getSourceDataMetadata()} />
         </Panel>
-        {!hasContent(getSourceDataMetadata()) &&
+        {metadataLoaded &&
+          !hasContent(getSourceDataMetadata()) &&
           loadingSourceDataStatus === RequestStatus.UNSTARTED && (
             <Panel className="RepoPage__download-content" title="" size="flex">
               <EmptyContentView
