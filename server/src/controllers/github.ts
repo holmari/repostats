@@ -18,6 +18,7 @@ import {
 import {
   getDownloadedCommentIds,
   getDownloadedPullRequestNumbers,
+  getDownloadedPullRequestNumbersForCommits,
   getDownloadedPullRequestNumbersForReviews,
   getDownloadedTeamSlugs,
   getPullRequestNumberFromUrl,
@@ -41,7 +42,7 @@ import {getSourceDataMetadata} from '../file/repo';
 import {removeDuplicates} from '../arrays/utils';
 import {DownloadContext} from '../types/download';
 import {RateLimitedAxiosInstance} from 'axios-rate-limit';
-import {incrementPhaseProgress, initPhaseProgress, setPhaseTotal, updateDownloadStatus} from './utils';
+import {incrementPhaseProgress, initPhaseProgress, updateDownloadStatus} from './utils';
 
 const githubDefaultHeaders = {
   Accept: 'application/vnd.github.v3+json',
@@ -691,11 +692,30 @@ async function getGithubCommitsForPullRequest(
   });
 }
 
+function getMissedPullNumbersForCommits(context: DownloadContext): ReadonlyArray<number> {
+  const downloadedPullNumbers = getDownloadedPullRequestNumbers(context.repoConfig);
+  const commitPullNumbers = getDownloadedPullRequestNumbersForCommits(context.repoConfig);
+
+  // Return all PRs that don't have commits yet
+  return downloadedPullNumbers
+    .filter((prNumber) => !commitPullNumbers.includes(prNumber))
+    .sort((a, b) => a - b);
+}
+
 export async function getGithubCommitsForPullRequests(
   context: DownloadContext,
-  pullNumbers: ReadonlyArray<number>
+  requestedPullNumbers: ReadonlyArray<number>
 ): Promise<void[]> {
-  setPhaseTotal(context.request, pullNumbers.length);
+  const pullNumbers = removeDuplicates([
+    ...requestedPullNumbers,
+    ...getMissedPullNumbersForCommits(context),
+  ]);
+
+  const allPrNumbers = getDownloadedPullRequestNumbers(context.repoConfig);
+  const prsWithCommits = getDownloadedPullRequestNumbersForCommits(context.repoConfig);
+  initPhaseProgress(context.request, prsWithCommits.length, allPrNumbers.length);
+
+  console.log(`Fetching commits for ${pullNumbers.length} PRs`);
 
   // Use p-limit for concurrency control based on rate limit
   return Promise.all(
