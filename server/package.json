@@ -72,7 +72,7 @@
     "@types/lodash": "^4.14.141",
     "@types/lusca": "^1.6.1",
     "@types/luxon": "^1.25.1",
-    "@types/node": "^12.7.8",
+    "@types/node": "^14.18.63",
     "@types/node-sass": "^4.11.0",
     "@types/nodemailer": "^6.2.1",
     "@types/request": "^2.48.3",

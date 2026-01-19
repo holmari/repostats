@@ -58,5 +58,5 @@ export function deletePath(path: string): void {
     }
   });
 
-  fs.rmdirSync(path, {recursive: true});
+  fs.rmSync(path, {recursive: true});
 }
