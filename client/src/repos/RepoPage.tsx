@@ -125,6 +125,7 @@ const RepoPage: React.FC<Props> = ({repoName}) => {
     post(`repos/${repoName}/download`, {requestId})
       .then((sourceDataMetadata: RepoSourceDataMetadata) => {
         dispatch({type: 'setRepoSourceDataMetadata', repoName, sourceDataMetadata});
+        setDownloadStatus((prev) => prev ? {...prev, phase: 'finish'} : prev);
         setLoadingSourceDataStatus(RequestStatus.SUCCESS);
       })
       .catch((e) => {

@@ -113,8 +113,9 @@ const DownloadProgressBar: React.FC<Props> = ({currentPhase, phaseProgress, hasE
     <div className="DownloadProgressBar">
       <div className="DownloadProgressBar__track">
         {STEPS.map((step, index) => {
-          const isCompleted = index < currentIndex;
-          const isCurrent = index === currentIndex;
+          const isFinished = currentPhase === 'finish';
+          const isCompleted = index < currentIndex || (isFinished && index === currentIndex);
+          const isCurrent = index === currentIndex && !isFinished;
           const isPending = index > currentIndex;
 
           const isJustCompleted = animatingSteps.has(index);
@@ -172,3 +173,5 @@ const DownloadProgressBar: React.FC<Props> = ({currentPhase, phaseProgress, hasE
     </div>
   );
 };
+
+export default DownloadProgressBar;
