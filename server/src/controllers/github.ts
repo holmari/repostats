@@ -254,9 +254,11 @@ export async function getGithubTeams(context: DownloadContext): Promise<void> {
   }).catch((e) => {
     // it's ok for the teams request to fail in this way: if the repo is someone's private one,
     // there is no org, and no teams.
-    if (e.response.status === 404) {
+    if (e.response?.status === 404) {
+      console.log('No teams found (404) - this is normal for personal repos');
       return Promise.resolve();
     } else {
+      console.log(`Teams fetch error: ${e.response?.status} - ${e.message}`);
       throw e;
     }
   });
@@ -297,11 +299,14 @@ export async function getGithubTeamMembersForAllTeams(
 
 export async function getGithubTeamsAndMembers(context: DownloadContext): Promise<void> {
   try {
+    console.log(`Fetching teams from ${orgsUrl(context.repoConfig)}/teams`);
     await getGithubTeams(context);
     await getGithubTeamMembersForAllTeams(context);
   } catch (err) {
-    // do nothing; the teams are not mandatory and it's possible that the user does not have
-    // permissions to view the teams and members.
+    // Teams are not mandatory - user may not have permissions to view org teams
+    const errorMessage = (err as Error).message || String(err);
+    console.log(`Failed to fetch teams: ${errorMessage}`);
+    setPhaseError(context.request, errorMessage);
   }
 }
 
