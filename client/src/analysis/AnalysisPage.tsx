@@ -1,8 +1,7 @@
 import './AnalysisPage.css';
 
 import React, {useCallback, useEffect, useState} from 'react';
-import {StaticContext} from 'react-router';
-import {Switch, Route, RouteComponentProps} from 'react-router-dom';
+import {Outlet} from 'react-router';
 
 import ErrorWrapper from 'components/ErrorWrapper';
 import {cacheOff, post} from 'repos/requests';
@@ -14,13 +13,13 @@ import DateIntervalPicker, {ALL_TIME_INTERVAL} from 'components/DateIntervalPick
 import CenteredSpinner from 'components/CenteredSpinner';
 import RepositoryPicker from 'components/RepositoryPicker';
 import {useRootState} from 'state';
-
-import AnalysisPerUserPage from './AnalysisPerUserPage';
-import AnalysisTeamGraphPage from './AnalysisTeamGraphPage';
-import AllUsersOverviewPage from './AllUsersOverviewPage';
 import {getCookieAsJson, writeCookieFromJson} from 'cookies/utils';
 
-const AnalysisPage: React.FC<Props> = () => {
+export interface AnalysisOutletContext {
+  result: AnalyzeResult;
+}
+
+const AnalysisPage: React.FC = () => {
   const [status, setStatus] = useState(RequestStatus.UNSTARTED);
   const [includedRepoNames, setIncludedRepoNames] = useState<ReadonlyArray<string> | undefined>(
     getCookieAsJson('includedRepoNames')
@@ -82,22 +81,6 @@ const AnalysisPage: React.FC<Props> = () => {
     </>
   );
 
-  const perUserPageRenderer = useCallback(
-    (props: RouteComponentProps<any, StaticContext, unknown>) =>
-      result && <AnalysisPerUserPage match={props.match} result={result} />,
-    [result]
-  );
-
-  const teamGraphPageRenderer = useCallback(
-    () => result && <AnalysisTeamGraphPage result={result} />,
-    [result]
-  );
-
-  const allUsersOverviewPageRenderer = useCallback(
-    () => result && <AllUsersOverviewPage result={result} />,
-    [result]
-  );
-
   const hasUserResults = Object.keys(result?.userResults || {}).length > 0;
 
   return (
@@ -106,11 +89,7 @@ const AnalysisPage: React.FC<Props> = () => {
       {status === RequestStatus.IN_PROGRESS || status === RequestStatus.UNSTARTED || !result ? (
         <CenteredSpinner />
       ) : hasUserResults ? (
-        <Switch>
-          <Route path="/analysis/people/:userId?" render={perUserPageRenderer} />
-          <Route path="/analysis/team-graph" render={teamGraphPageRenderer} />
-          <Route path="/analysis/overview" render={allUsersOverviewPageRenderer} />
-        </Switch>
+        <Outlet context={{ result } satisfies AnalysisOutletContext} />
       ) : (
         <EmptyContentView />
       )}
@@ -118,7 +97,5 @@ const AnalysisPage: React.FC<Props> = () => {
   );
 };
 AnalysisPage.displayName = 'AnalysisPage';
-
-interface Props {}
 
 export default AnalysisPage;

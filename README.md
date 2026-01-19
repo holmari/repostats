@@ -9,16 +9,16 @@ an HTTP API.
 
 ## Quickstart
 
-to run the backend (http://localhost:3001):
+to run the backend (http://localhost:3003):
 
 ```
 cd server; npm run watch
 ```
 
-to run the frontend (http://localhost:3000):
+to run the frontend (http://localhost:3002):
 
 ```
-cd client; npm run start
+cd client; npm run dev
 ```
 
 More detailed instructions in the separate READMEs for the client and server.

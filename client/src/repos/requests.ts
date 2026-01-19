@@ -1,6 +1,7 @@
 import {AnalyzeRequest, AnalyzeResult, RepoConfig} from 'types/types';
+import {SERVER_PORT} from 'shared/config';
 
-const baseUrl = 'http://localhost:3003/api';
+const baseUrl = `http://localhost:${SERVER_PORT}/api`;
 
 const defaultOptions = {};
 

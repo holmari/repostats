@@ -18,7 +18,7 @@ import {
   RepoSourceDataMetadata,
 } from 'types/types';
 import DeleteButton from 'components/DeleteButton';
-import {Redirect} from 'react-router';
+import {Navigate} from 'react-router';
 import {Spinner} from 'react-bootstrap';
 import {RequestStatus} from 'requests/types';
 import RepoSourceDataContent from './RepoSourceDataContent';
@@ -158,7 +158,7 @@ const RepoPage: React.FC<Props> = ({repoName}) => {
   }, [dispatch, getSourceDataMetadata, repoName]);
 
   if (!repo) {
-    return <Redirect to="/settings/repos" />;
+    return <Navigate to="/settings/repos" replace />;
   }
 
   return (

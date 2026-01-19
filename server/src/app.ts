@@ -6,12 +6,13 @@ import * as analysis from './controllers/analysis';
 import * as repos from './controllers/repos';
 import * as github from './controllers/github';
 import {ensurePaths} from './file/paths';
+import {SERVER_PORT} from '../../shared/config';
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.set('port', process.env.PORT || 3003);
+app.set('port', process.env.PORT || SERVER_PORT);
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));

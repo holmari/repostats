@@ -1,10 +1,8 @@
 import './ReposPage.css';
 
 import classNames from 'classnames';
-import * as History from 'history';
 import React, {useState, useEffect, useCallback} from 'react';
-import {NavLink, Route, Switch} from 'react-router-dom';
-import {match as RouterMatch, Redirect} from 'react-router-dom';
+import {NavLink, Navigate, useNavigate, useParams} from 'react-router';
 
 import SidebarList, {SidebarItemRendererProps} from 'components/SidebarList';
 import CenteredSpinner from 'components/CenteredSpinner';
@@ -27,16 +25,10 @@ const defaultRepoConfig: RepoConfig = {
   },
 };
 
-interface SelectedRepoMatch {
-  readonly new?: string;
-  readonly selectedRepo: string;
-}
-
 const RepoItem: React.FC<RepoItemProps> = ({className, item}) => {
   return (
     <NavLink
-      className={classNames('RepoItem', className)}
-      activeClassName="SidebarList__item--selected"
+      className={({isActive}) => classNames('RepoItem', className, isActive && 'SidebarList__item--selected')}
       to={`/settings/repos/${item.name}`}
     >
       {item.name}
@@ -45,7 +37,10 @@ const RepoItem: React.FC<RepoItemProps> = ({className, item}) => {
 };
 type RepoItemProps = SidebarItemRendererProps<RepoConfig>;
 
-const ReposListPage: React.FC<Props> = ({history, match}) => {
+const ReposListPage: React.FC = () => {
+  const navigate = useNavigate();
+  const params = useParams();
+
   const [newRepo, setNewRepo] = useState(defaultRepoConfig);
   const [error, setError] = useState(undefined);
   const clearError = useCallback(() => setError(undefined), [setError]);
@@ -68,43 +63,31 @@ const ReposListPage: React.FC<Props> = ({history, match}) => {
 
   const handleAddRepo = useCallback(
     (config: RepoConfig) => {
-      history.replace(`/settings/repos`);
+      navigate(`/settings/repos`, {replace: true});
       put('repos', config)
         .then((savedRepo) => {
           get('repos')
             .then((repos) => {
               dispatch({type: 'setRepos', repos});
-              history.push(`/settings/repos/${savedRepo.name}`);
+              navigate(`/settings/repos/${savedRepo.name}`);
             })
             .catch(setError);
         })
         .catch(setError);
     },
-    [dispatch, history, setError]
+    [dispatch, navigate, setError]
   );
 
   const closeDialog = useCallback(() => {
-    history.replace('/settings/repos');
-  }, [history]);
+    navigate('/settings/repos', {replace: true});
+  }, [navigate]);
 
-  const newRepoPageRenderer = useCallback(
-    () => (
-      <RepoSettingsModal
-        repo={newRepo}
-        isDialogOpen
-        isNew
-        onClose={closeDialog}
-        onChange={setNewRepo}
-        onSave={handleAddRepo}
-      />
-    ),
-    [closeDialog, handleAddRepo, newRepo]
-  );
+  const isAddDialogOpen = params.add === 'new';
 
   const repos = state.repos.repos;
-  const selectedRepo = repos.find((repo) => repo.name === match.params.selectedRepo);
-  if (!selectedRepo && repos.length) {
-    return <Redirect to={`/settings/repos/${repos[0].name}`} />;
+  const selectedRepo = repos.find((repo) => repo.name === params.selectedRepo);
+  if (!selectedRepo && repos.length && status === RequestStatus.SUCCESS) {
+    return <Navigate to={`/settings/repos/${repos[0].name}`} replace />;
   }
 
   return (
@@ -131,14 +114,18 @@ const ReposListPage: React.FC<Props> = ({history, match}) => {
           <CenteredSpinner />
         )}
       </div>
-      <Switch>
-        <Route path="/settings/repos/:selectedRepo/new" render={newRepoPageRenderer} />
-      </Switch>
+      {isAddDialogOpen && (
+        <RepoSettingsModal
+          repo={newRepo}
+          isDialogOpen
+          isNew
+          onClose={closeDialog}
+          onChange={setNewRepo}
+          onSave={handleAddRepo}
+        />
+      )}
     </ErrorWrapper>
   );
 };
-interface Props {
-  history: History.History;
-  match: RouterMatch<SelectedRepoMatch>;
-}
+
 export default ReposListPage;

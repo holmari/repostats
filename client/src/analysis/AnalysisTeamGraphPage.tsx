@@ -1,15 +1,18 @@
 import './AnalysisTeamGraphPage.css';
 
 import React, {useMemo} from 'react';
+import {useOutletContext} from 'react-router';
 
-import {AnalyzeResult} from 'types/types';
 import Panel from 'components/Panel';
 import TeamGraph from './graph/TeamGraph';
 import {getFullLinkData, getFullNodeData} from './graph/utils';
+import {AnalysisOutletContext} from './AnalysisPage';
 
 const graphSize = {width: 1100, height: 900};
 
-const AnalysisTeamGraphPage: React.FC<Props> = ({result}) => {
+const AnalysisTeamGraphPage: React.FC = () => {
+  const { result } = useOutletContext<AnalysisOutletContext>();
+
   const [nodes, links] = useMemo(() => {
     return [getFullNodeData(result, null), getFullLinkData(result, null)];
   }, [result]);
@@ -31,9 +34,5 @@ const AnalysisTeamGraphPage: React.FC<Props> = ({result}) => {
   );
 };
 AnalysisTeamGraphPage.displayName = 'AnalysisTeamGraphPage';
-
-interface Props {
-  result: AnalyzeResult;
-}
 
 export default AnalysisTeamGraphPage;

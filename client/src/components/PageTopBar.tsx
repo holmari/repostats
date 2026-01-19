@@ -2,11 +2,7 @@ import './PageTopBar.css';
 
 import React from 'react';
 
-const PageTopBar: React.FC<Props> = ({children, leftContent, rightContent}) => {
-  if (children) {
-    throw new Error('PageTopBar usage: use leftContent/rightContent, not children');
-  }
-
+const PageTopBar: React.FC<Props> = ({leftContent, rightContent}) => {
   return (
     <div className="PageTopBar">
       <div className="PageTopBar__left-content">{leftContent}</div>

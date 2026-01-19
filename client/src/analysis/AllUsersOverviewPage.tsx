@@ -1,14 +1,15 @@
 import './AllUsersOverviewPage.css';
 
 import React, {useMemo} from 'react';
-import {NavLink} from 'react-router-dom';
+import {NavLink, useOutletContext} from 'react-router';
 import {ExportToCsv, Options} from 'export-to-csv';
 
-import {AnalyzeResult, UserResult} from 'types/types';
+import {UserResult} from 'types/types';
 import Panel from 'components/Panel';
 import Table, {SortableColumn} from 'components/Table';
 import {formatIsoDate} from 'date/utils';
 import {sum} from 'utils/math';
+import {AnalysisOutletContext} from './AnalysisPage';
 
 const csvExportOptions: Options = {
   fieldSeparator: ',',
@@ -24,7 +25,7 @@ const csvExportOptions: Options = {
 
 export function exportToCsv(users: ReadonlyArray<UserResult>) {
   const exportableData = users.map((userResult) => {
-    const mappedData: any = {};
+    const mappedData: Record<string, unknown> = {};
     columns.forEach((column, index) => {
       const accessor = column.accessor;
       if (accessor && column.Header && typeof accessor === 'function') {
@@ -140,7 +141,8 @@ const columns: ReadonlyArray<SortableColumn<UserResult>> = [
   },
 ];
 
-const AllUsersOverviewPage: React.FC<Props> = ({result}) => {
+const AllUsersOverviewPage: React.FC = () => {
+  const { result } = useOutletContext<AnalysisOutletContext>();
   const data = useMemo(() => Object.values(result.userResults), [result]);
 
   return (
@@ -158,9 +160,5 @@ const AllUsersOverviewPage: React.FC<Props> = ({result}) => {
   );
 };
 AllUsersOverviewPage.displayName = 'AllUsersOverviewPage';
-
-interface Props {
-  result: AnalyzeResult;
-}
 
 export default AllUsersOverviewPage;

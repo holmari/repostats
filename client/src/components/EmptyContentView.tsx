@@ -2,7 +2,7 @@ import './EmptyContentView.css';
 
 import React from 'react';
 import {Button} from 'react-bootstrap';
-import {NavLink} from 'react-router-dom';
+import {NavLink} from 'react-router';
 
 const EmptyContentView: React.FC<Props> = ({
   buttonTitle,

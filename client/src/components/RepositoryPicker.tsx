@@ -40,8 +40,8 @@ const RepositoryPicker: React.FC<Props> = ({
 
   const popover = (
     <Popover id="repositories-popover" placement="top-start">
-      <Popover.Title>Repositories</Popover.Title>
-      <Popover.Content className="RepositoryPicker__popover-content">
+      <Popover.Header>Repositories</Popover.Header>
+      <Popover.Body className="RepositoryPicker__popover-content">
         <PopoverSelectionList
           itemRenderer={defaultItemRenderer}
           items={availableRepositories}
@@ -53,7 +53,7 @@ const RepositoryPicker: React.FC<Props> = ({
             Change
           </Button>
         </div>
-      </Popover.Content>
+      </Popover.Body>
     </Popover>
   );
 

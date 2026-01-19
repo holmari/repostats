@@ -3,7 +3,7 @@ import './SidebarList.css';
 import classNames from 'classnames';
 import React from 'react';
 import Button from 'react-bootstrap/Button';
-import {NavLink} from 'react-router-dom';
+import {NavLink} from 'react-router';
 
 function SidebarList<T>(props: Props<T>) {
   const content = props.items.length ? (
