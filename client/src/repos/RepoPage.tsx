@@ -175,6 +175,7 @@ const RepoPage: React.FC<Props> = ({repoName}) => {
   return (
     <ErrorWrapper className="RepoPage" error={error} onClear={clearError}>
       <PageTopBar
+        variant="light"
         rightContent={
           <>
             <Button onClick={() => setSettingsOpen(true)}>Settings</Button>

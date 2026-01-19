@@ -1,0 +1,35 @@
+.AnalysisSidebar {
+  background-color: #eaeaea;
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  overflow: auto;
+  width: 160px;
+}
+
+.AnalysisSidebar__item {
+  color: inherit;
+  cursor: pointer;
+  padding: 4px 16px;
+  text-decoration: none;
+  user-select: none;
+}
+
+.AnalysisSidebar__item:hover {
+  background-color: #efefef;
+  text-decoration: none;
+}
+
+.AnalysisSidebar__item--selected {
+  background-color: #f4f4f4;
+}
+
+.AnalysisSidebar__item--selected:hover {
+  background-color: #f4f4f4;
+}
+
+.AnalysisSidebar__empty {
+  color: #888;
+  font-style: italic;
+  padding: 8px 16px;
+}

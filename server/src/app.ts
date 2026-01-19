@@ -5,6 +5,9 @@ import bodyParser from 'body-parser';
 import * as analysis from './controllers/analysis';
 import * as repos from './controllers/repos';
 import * as github from './controllers/github';
+import * as teams from './controllers/teams';
+import * as users from './controllers/users';
+import * as settings from './controllers/settings';
 import {ensurePaths} from './file/paths';
 import {SERVER_PORT} from '../../shared/config';
 
@@ -28,6 +31,12 @@ app.get('/api/github/token', github.getGithubToken);
 app.post('/api/github/test', github.testConnection);
 
 app.post('/api/analyze', analysis.analyze);
+
+app.get('/api/teams', teams.getTeams);
+app.get('/api/users', users.getUsers);
+
+app.get('/api/settings', settings.getSettingsHandler);
+app.put('/api/settings', settings.saveSettingsHandler);
 
 ensurePaths();
 

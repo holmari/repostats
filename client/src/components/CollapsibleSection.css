@@ -1,0 +1,42 @@
+.CollapsibleSection {
+  display: flex;
+  flex-direction: column;
+}
+
+.CollapsibleSection__header {
+  align-items: center;
+  background: none;
+  border: none;
+  border-bottom: 1px solid #ddd;
+  color: #666;
+  cursor: pointer;
+  display: flex;
+  font-size: 10px;
+  font-weight: 600;
+  gap: 4px;
+  letter-spacing: 0.5px;
+  padding: 10px 12px 6px;
+  text-align: left;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.CollapsibleSection__header:hover {
+  color: #333;
+}
+
+.CollapsibleSection__arrow {
+  color: #999;
+  font-size: 8px;
+  text-align: center;
+  width: 10px;
+}
+
+.CollapsibleSection__title {
+  flex: 1;
+}
+
+.CollapsibleSection__content {
+  display: flex;
+  flex-direction: column;
+}

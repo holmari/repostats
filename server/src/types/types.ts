@@ -87,6 +87,7 @@ export interface DateInterval {
 export interface AnalyzeRequest {
   readonly dateInterval?: DateInterval;
   readonly includedRepoNames?: ReadonlyArray<string>;
+  readonly excludedUserIds?: ReadonlyArray<string>;
 }
 
 export interface ReviewComment {
@@ -224,8 +225,19 @@ export interface UserResult {
 
 export type UserResultsByUserId = {readonly [userId: string]: UserResult};
 
+export interface TeamInfo {
+  readonly slug: string;
+  readonly name: string;
+  readonly memberLogins: ReadonlyArray<string>;
+}
+
 export interface AnalyzeResult {
   readonly includedRepos: ReadonlyArray<RepoConfig>;
   readonly interval: DateInterval | null;
   readonly userResults: UserResultsByUserId;
+}
+
+export interface AppSettings {
+  readonly excludedUserIds: ReadonlyArray<string>;
+  readonly excludedTeamSlugs: ReadonlyArray<string>;
 }

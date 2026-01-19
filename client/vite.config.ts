@@ -13,6 +13,7 @@ export default defineConfig({
       'shared': '/../shared',
       'components': '/src/components',
       'repos': '/src/repos',
+      'settings': '/src/settings',
       'analysis': '/src/analysis',
       'reducers': '/src/reducers',
       'state': '/src/state.tsx',

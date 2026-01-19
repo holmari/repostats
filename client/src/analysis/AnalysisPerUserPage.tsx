@@ -1,37 +1,24 @@
 import './AnalysisPerUserPage.css';
 
-import classNames from 'classnames';
 import React, {useMemo} from 'react';
-import {NavLink, Navigate, useOutletContext, useParams} from 'react-router';
+import {Navigate, useOutletContext, useParams} from 'react-router';
 
-import SidebarList, {SidebarItemRendererProps} from 'components/SidebarList';
 import {UserResult} from 'types/types';
 
 import UserResultView from './UserResultView';
 import EmptyStatePlaceholder from 'components/EmptyStatePlaceholder';
 import {AnalysisOutletContext} from './AnalysisPage';
-
-const PeopleSidebarItem: React.FC<PeopleSidebarItemProps> = ({className, item}) => {
-  return (
-    <NavLink
-      className={({isActive}) => classNames('AnalysisPerUserPage__sidebar-item', className, isActive && 'SidebarList__item--selected selected')}
-      to={`/analysis/people/${item.id}`}
-    >
-      {item.displayName}
-    </NavLink>
-  );
-};
-type PeopleSidebarItemProps = SidebarItemRendererProps<UserResult>;
+import AnalysisSidebar from './AnalysisSidebar';
 
 const AnalysisPerUserPage: React.FC = () => {
-  const { result } = useOutletContext<AnalysisOutletContext>();
+  const { result, teams, excludedUserIds } = useOutletContext<AnalysisOutletContext>();
   const params = useParams<{userId?: string}>();
 
   const sortedPeopleResults: ReadonlyArray<UserResult> = useMemo(() => {
-    return Object.values(result.userResults).sort((left, right) =>
-      left.displayName.localeCompare(right.displayName)
-    );
-  }, [result]);
+    return Object.values(result.userResults)
+      .filter((user) => !excludedUserIds.includes(user.id))
+      .sort((left, right) => left.displayName.localeCompare(right.displayName));
+  }, [result, excludedUserIds]);
 
   const selectedUser = params.userId ? result.userResults[params.userId] : undefined;
   if (!selectedUser && sortedPeopleResults.length) {
@@ -40,11 +27,10 @@ const AnalysisPerUserPage: React.FC = () => {
 
   return (
     <div className="AnalysisPerUserPage">
-      <SidebarList<UserResult>
+      <AnalysisSidebar
         className="AnalysisPerUserPage__sidebar"
-        items={sortedPeopleResults}
-        isHeaderVisible={false}
-        itemRenderer={PeopleSidebarItem}
+        teams={teams}
+        users={sortedPeopleResults}
       />
       <div className="AnalysisPerUserPage__content-area">
         {selectedUser ? (

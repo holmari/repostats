@@ -9,6 +9,11 @@
   height: 51px;
 }
 
+.PageTopBar--light {
+  background-color: #f4f4f4;
+  color: #333;
+}
+
 .PageTopBar .btn {
   font-size: 12px;
   padding: 4px 8px;

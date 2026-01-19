@@ -1,0 +1,43 @@
+.SettingsPage {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+.SettingsPage__tabs {
+  align-items: stretch;
+  background-color: #505158;
+  display: flex;
+  font-family: 'Gill Sans', 'Gill Sans MT', Calibri, sans-serif;
+  gap: 4px;
+  height: 51px;
+  padding: 0 16px;
+}
+
+.SettingsPage__tab {
+  align-items: center;
+  color: #a0a0a0;
+  display: flex;
+  font-size: 12px;
+  padding: 0 12px;
+  text-decoration: none;
+}
+
+.SettingsPage__tab:hover {
+  background-color: #606168;
+  color: #f4f4f4;
+  text-decoration: none;
+}
+
+.SettingsPage__tab--active,
+.SettingsPage__tab--active:hover {
+  background-color: #F4F4F4;
+  color: #333;
+}
+
+.SettingsPage__content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}

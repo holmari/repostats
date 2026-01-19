@@ -1,0 +1,43 @@
+.TeamResultView {
+  overflow: auto;
+  flex: 1;
+  padding: 16px;
+}
+
+.TeamResultView__row {
+  display: flex;
+}
+
+.TeamResultView__row .Panel:not(:last-child) {
+  margin-right: 8px;
+}
+
+.TeamResultView .Panel {
+  margin-bottom: 8px;
+}
+
+.TeamResultView__members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px 0;
+}
+
+.TeamResultView__members-label {
+  font-weight: 600;
+  margin-right: 8px;
+}
+
+.TeamResultView__member-link {
+  color: #4a91ff;
+  text-decoration: none;
+}
+
+.TeamResultView__member-link:hover {
+  text-decoration: underline;
+}
+
+.TeamResultView__no-members {
+  color: #888;
+  font-style: italic;
+}

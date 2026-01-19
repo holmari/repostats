@@ -23,6 +23,7 @@ import {IntermediateAnalyzeResult, IntermediateUserResult} from './analysis/type
 import {getGithubRepoResult} from './github/analysis';
 import {postProcessUserResults} from './analysis/utils';
 import {removeDuplicates} from '../arrays/utils';
+import {getSettings} from './settings';
 
 export type NormalizedAnalyzeRequest = Required<AnalyzeRequest>;
 
@@ -224,12 +225,14 @@ function normalizeInterval(interval: DateInterval): DateInterval {
 }
 
 function normalizeRequest(request: AnalyzeRequest): NormalizedAnalyzeRequest {
+  const settings = getSettings();
   return {
     ...request,
     dateInterval: request.dateInterval
       ? normalizeInterval(request.dateInterval)
       : ALL_TIME_INTERVAL,
     includedRepoNames: request.includedRepoNames || getAvailableRepoNames(),
+    excludedUserIds: request.excludedUserIds ?? [...settings.excludedUserIds],
   };
 }
 
@@ -250,12 +253,18 @@ function computeAnalysisResult(request: NormalizedAnalyzeRequest): AnalyzeResult
     .map((result) => result.includedRepos)
     .reduce((acc, item) => [...acc, ...item], []);
 
+  const excludedUserIdSet = new Set(request.excludedUserIds.map((id) => id.toLowerCase()));
+
   const userResults = repoResults
     .map((result) => result.userResults)
     .reduce((acc, item) => {
       const result = {...acc};
 
       Object.keys(item).forEach((userId) => {
+        // Skip excluded users
+        if (excludedUserIdSet.has(userId.toLowerCase())) {
+          return;
+        }
         result[userId] = mergeUserResults(result[userId], item[userId]);
       });
 

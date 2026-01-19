@@ -1,4 +1,4 @@
-import {AnalyzeRequest, AnalyzeResult, RepoConfig} from 'types/types';
+import {AnalyzeRequest, AnalyzeResult, AppSettings, RepoConfig, TeamInfo, UserInfo} from 'types/types';
 import {SERVER_PORT} from 'shared/config';
 
 const baseUrl = `http://localhost:${SERVER_PORT}/api`;
@@ -13,8 +13,39 @@ export const cacheOff: HeadersInit = {
   'Cache-Control': 'no-store, max-age=0',
 };
 
+// In-flight request deduplication and short-term cache for GET requests
+const inFlightRequests = new Map<string, Promise<unknown>>();
+const responseCache = new Map<string, {data: unknown; timestamp: number}>();
+const CACHE_TTL_MS = 5000; // 5 second cache
+
+function getCachedResponse<T>(url: string): T | null {
+  const cached = responseCache.get(url);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    return cached.data as T;
+  }
+  responseCache.delete(url);
+  return null;
+}
+
+function setCachedResponse(url: string, data: unknown): void {
+  responseCache.set(url, {data, timestamp: Date.now()});
+}
+
 export function get<Url extends string>(url: Url): Promise<ResponseBody<'get', Url>> {
-  return new Promise((resolve, reject) => {
+  // Check cache first
+  const cached = getCachedResponse<ResponseBody<'get', Url>>(url);
+  if (cached !== null) {
+    return Promise.resolve(cached);
+  }
+
+  // Check for in-flight request
+  const inFlight = inFlightRequests.get(url);
+  if (inFlight) {
+    return inFlight as Promise<ResponseBody<'get', Url>>;
+  }
+
+  // Make new request
+  const promise = new Promise<ResponseBody<'get', Url>>((resolve, reject) => {
     fetch(`${baseUrl}/${url}`, {
       ...defaultOptions,
       headers: defaultHeaders,
@@ -30,11 +61,18 @@ export function get<Url extends string>(url: Url): Promise<ResponseBody<'get', U
       })
       .then((response) => {
         if (!!response) {
+          setCachedResponse(url, response);
           resolve(response);
         }
       })
-      .catch(reject);
+      .catch(reject)
+      .finally(() => {
+        inFlightRequests.delete(url);
+      });
   });
+
+  inFlightRequests.set(url, promise);
+  return promise;
 }
 
 function getFetchInitOptions(
@@ -132,6 +170,7 @@ interface TypedRequests {
   };
   put: {
     repos: RepoConfig;
+    settings: AppSettings;
   };
 }
 
@@ -140,6 +179,9 @@ interface TypedResponses {
   get: {
     'github/token': {token: string};
     repos: RepoConfig[];
+    teams: TeamInfo[];
+    users: UserInfo[];
+    settings: AppSettings;
   };
   post: {
     'github/test': null;
@@ -147,5 +189,6 @@ interface TypedResponses {
   };
   put: {
     repos: RepoConfig;
+    settings: AppSettings;
   };
 }
