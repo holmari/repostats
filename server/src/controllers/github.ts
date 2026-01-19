@@ -70,7 +70,10 @@ export function getGithubToken(_: Request, res: Response): void {
 }
 
 function get(context: DownloadContext, url: string, requestConfig: AxiosRequestConfig) {
-  console.log(`GET ${url}`);
+  const active = context.limit.activeCount;
+  const pending = context.limit.pendingCount;
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] GET ${url} [concurrency: ${context.concurrency}, active: ${active}, pending: ${pending}]`);
 
   return context.http.get(url, requestConfig).then((response) => {
     updateDownloadStatus(context.request, {

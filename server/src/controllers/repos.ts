@@ -110,6 +110,7 @@ async function fetchWitGithubConnector(
     repoConfig,
     request,
     limit: pLimit(concurrency),
+    concurrency,
   };
 
   const fetchedPullNumbers = await getGithubPullRequests(context);

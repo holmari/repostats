@@ -7,4 +7,5 @@ export interface DownloadContext {
   readonly http: AxiosInstance;
   readonly request: DownloadRequest;
   readonly limit: LimitFunction;
+  readonly concurrency: number;
 }
