@@ -13,6 +13,11 @@ const GithubSourceDataMetadataContent: React.FC<Props> = ({metadata}) => {
         {metadata.fetchedPullNumbers.length}
       </fieldset>
       <fieldset>
+        <legend># of fetched reviews</legend>
+        {metadata.fetchedReviewCount ?? 0} (from {metadata.fetchedReviewedPullCount ?? 0} /{' '}
+        {metadata.fetchedPullNumbers.length} PRs)
+      </fieldset>
+      <fieldset>
         <legend>Total # of comments in repository</legend>
         {metadata.totalCommentCount !== -1 ? metadata.totalCommentCount : 'Unknown'}
       </fieldset>

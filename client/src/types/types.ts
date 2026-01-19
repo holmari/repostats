@@ -52,6 +52,8 @@ export interface GitSourceDataMetadata extends BaseSourceDataMetadata {
 export interface GithubSourceDataMetadata extends BaseSourceDataMetadata {
   readonly fetchedCommentIds: ReadonlyArray<number>;
   readonly fetchedPullNumbers: ReadonlyArray<number>;
+  readonly fetchedReviewCount: number;
+  readonly fetchedReviewedPullCount: number;
   readonly totalCommentCount: number;
   readonly totalPullsInRepository: number;
   readonly type: 'GITHUB';

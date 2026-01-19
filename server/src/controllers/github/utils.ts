@@ -76,12 +76,27 @@ export function getDownloadedPullRequestNumbersForReviews(
     .map((filename) => parseInt(path.basename(filename, path.extname(filename))));
 }
 
+export function getDownloadedReviewCount(repoConfig: RepoConfig): number {
+  const reviewsPath = getGithubReviewsPath(repoConfig);
+  let count = 0;
+  const pullDirs = fs.readdirSync(reviewsPath);
+  for (const pullDir of pullDirs) {
+    const pullPath = path.join(reviewsPath, pullDir);
+    if (fs.statSync(pullPath).isDirectory()) {
+      count += fs.readdirSync(pullPath).filter((f) => f.endsWith('.json')).length;
+    }
+  }
+  return count;
+}
+
 export function getDefaultGithubSourceDataMetadata(
   repoConfig: RepoConfig
 ): GithubSourceDataMetadata {
   return {
     fetchedCommentIds: [],
     fetchedPullNumbers: [],
+    fetchedReviewCount: 0,
+    fetchedReviewedPullCount: 0,
     downloadsPath: getGithubDataPath(repoConfig),
     type: 'GITHUB',
     totalCommentCount: -1,
@@ -93,12 +108,15 @@ export function getDefaultGithubSourceDataMetadata(
 export function getGithubSourceDataMetadata(repoConfig: RepoConfig): GithubSourceDataMetadata {
   const path = getGithubMetadataPath(repoConfig);
   const metaFileContent: GithubSourceDataMetadata = readJsonFile(path);
+  const fetchedReviewedPullNumbers = getDownloadedPullRequestNumbersForReviews(repoConfig);
 
   return {
     ...metaFileContent,
     downloadsPath: getGithubDataPath(repoConfig),
     fetchedCommentIds: getDownloadedCommentIds(repoConfig),
     fetchedPullNumbers: getDownloadedPullRequestNumbers(repoConfig),
+    fetchedReviewCount: getDownloadedReviewCount(repoConfig),
+    fetchedReviewedPullCount: fetchedReviewedPullNumbers.length,
     type: 'GITHUB',
   };
 }
