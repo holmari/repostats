@@ -25,7 +25,7 @@ function getDisplayValue(value: number | string): React.ReactNode {
   return value;
 }
 
-const ValueCell: React.FC<Props> = ({className, fontSize, size, title, tooltip, value}) => {
+const ValueCell: React.FC<Props> = ({className, fontSize, size = 'normal', title, tooltip, value}) => {
   const displayValue = getDisplayValue(value);
 
   return (
@@ -41,9 +41,6 @@ const ValueCell: React.FC<Props> = ({className, fontSize, size, title, tooltip, 
   );
 };
 ValueCell.displayName = 'ValueCell';
-ValueCell.defaultProps = {
-  size: 'normal',
-};
 
 interface Props {
   className?: string;

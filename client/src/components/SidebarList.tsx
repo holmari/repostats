@@ -5,7 +5,7 @@ import React from 'react';
 import Button from 'react-bootstrap/Button';
 import {NavLink} from 'react-router';
 
-function SidebarList<T>(props: Props<T>) {
+function SidebarList<T>({isHeaderVisible = true, ...props}: Props<T>) {
   const content = props.items.length ? (
     props.items.map((item, index) => (
       <React.Fragment key={index}>
@@ -20,7 +20,7 @@ function SidebarList<T>(props: Props<T>) {
 
   return (
     <div className={classNames('SidebarList', props.className)}>
-      {props.isHeaderVisible && (
+      {isHeaderVisible && (
         <div className="SidebarList__header">
           {!!props.addLink && (
             <NavLink to={props.addLink}>
@@ -37,9 +37,6 @@ function SidebarList<T>(props: Props<T>) {
   );
 }
 SidebarList.displayName = 'SidebarList';
-SidebarList.defaultProps = {
-  isHeaderVisible: true,
-};
 
 export interface SidebarItemRendererProps<T> {
   className: string;

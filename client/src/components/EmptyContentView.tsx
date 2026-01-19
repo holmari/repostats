@@ -5,11 +5,11 @@ import {Button} from 'react-bootstrap';
 import {NavLink} from 'react-router';
 
 const EmptyContentView: React.FC<Props> = ({
-  buttonTitle,
-  description,
+  buttonTitle = 'Add repository',
+  description = 'To start downloading data, configure a new repository first.',
   onButtonClick,
-  title,
-  toUrl,
+  title = 'No repositories have been configured yet.',
+  toUrl = '/settings/repos/repo/new',
 }) => {
   const button = <Button onClick={onButtonClick}>{buttonTitle}</Button>;
 
@@ -27,12 +27,6 @@ const EmptyContentView: React.FC<Props> = ({
   );
 };
 EmptyContentView.displayName = 'EmptyContentView';
-EmptyContentView.defaultProps = {
-  buttonTitle: 'Add repository',
-  description: 'To start downloading data, configure a new repository first.',
-  title: 'No repositories have been configured yet.',
-  toUrl: '/settings/repos/repo/new',
-};
 interface Props {
   buttonTitle?: string;
   description?: string;

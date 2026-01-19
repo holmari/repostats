@@ -3,7 +3,7 @@ import './Panel.css';
 import classNames from 'classnames';
 import React from 'react';
 
-const Panel: React.FC<Props> = ({children, className, title, titleClass, size}) => {
+const Panel: React.FC<Props> = ({children, className, title, titleClass = 'h2', size = 'normal'}) => {
   return (
     <div
       className={classNames(
@@ -24,16 +24,12 @@ const Panel: React.FC<Props> = ({children, className, title, titleClass, size}) 
   );
 };
 Panel.displayName = 'Panel';
-Panel.defaultProps = {
-  size: 'normal',
-  titleClass: 'h2',
-};
 
 interface Props {
   children: React.ReactNode;
   className?: string;
   titleClass?: 'h1' | 'h2';
-  size: 'normal' | 'third' | 'twoThirds' | 'half' | 'full' | 'flex' | 'fourth' | 'threeFourths';
+  size?: 'normal' | 'third' | 'twoThirds' | 'half' | 'full' | 'flex' | 'fourth' | 'threeFourths';
   title: string;
 }
 

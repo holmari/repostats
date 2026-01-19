@@ -285,7 +285,7 @@ function renderChart(
   return isValid;
 }
 
-const TimeSeriesChart: React.FC<Props> = ({data, margins, size}) => {
+const TimeSeriesChart: React.FC<Props> = ({data, margins = DEFAULT_MARGINS, size = DEFAULT_SIZE}) => {
   const render = useCallback(
     (chart: d3.Selection<SVGGElement, unknown, null, undefined>, shape: ChartShape) => {
       renderChart(chart, shape, data);
@@ -293,20 +293,9 @@ const TimeSeriesChart: React.FC<Props> = ({data, margins, size}) => {
     [data]
   );
 
-  if (!size) {
-    throw new Error(`size must be defined; was '${size}'`);
-  }
-  if (!margins) {
-    throw new Error(`margin must be defined; was '${margins}'`);
-  }
-
   return <D3Chart size={size} margins={margins} renderChart={render} />;
 };
 TimeSeriesChart.displayName = 'TimeSeriesChart';
-TimeSeriesChart.defaultProps = {
-  margins: DEFAULT_MARGINS,
-  size: DEFAULT_SIZE,
-};
 interface Props {
   data: ReadonlyArray<ChartDataSeries>;
   margins?: Margins;

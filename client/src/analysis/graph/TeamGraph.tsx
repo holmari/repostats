@@ -334,22 +334,18 @@ function renderGraph(
 }
 
 const TeamGraph: React.FC<Props> = ({
-  charge,
-  centeredIdentifier,
-  defaultItemOpacity,
-  drawCrosshair,
+  charge = -200,
+  centeredIdentifier = null,
+  defaultItemOpacity = 0.6,
+  drawCrosshair = false,
   highlightSelection,
-  linkDistance,
-  linkForceFactor,
-  relativeLinkValueThreshold,
-  size,
+  linkDistance = 25,
+  linkForceFactor = 1,
+  relativeLinkValueThreshold = 0.025,
+  size = {width: 1050, height: 700},
   nodes,
   links,
 }) => {
-  if (!size) {
-    throw new Error(`size must be defined; was '${size}'`);
-  }
-
   const config = useMemo<ProximityGraphConfig>(
     () => ({
       shape: {size, margins},
@@ -385,18 +381,6 @@ const TeamGraph: React.FC<Props> = ({
   return <D3Chart className="TeamGraph" size={size} margins={margins} renderChart={render} />;
 };
 TeamGraph.displayName = 'TeamGraph';
-TeamGraph.defaultProps = {
-  centeredIdentifier: null,
-  charge: -200,
-  defaultItemOpacity: 0.6,
-  drawCrosshair: false,
-  highlightSelection: true,
-  linkDistance: 25,
-  linkForceFactor: 1,
-  relativeLinkValueThreshold: 0.025,
-  size: {width: 1050, height: 700},
-  selectedIdentifier: null,
-};
 
 interface Props {
   charge?: number;
