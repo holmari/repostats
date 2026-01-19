@@ -18,7 +18,15 @@ export function get<Url extends string>(url: Url): Promise<ResponseBody<'get', U
       ...defaultOptions,
       headers: defaultHeaders,
     })
-      .then((response) => (response === null ? null : response.json()))
+      .then(async (response) => {
+        if (response === null) return null;
+        const text = await response.text();
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          throw new Error(`Failed to parse JSON from ${url}: ${text.substring(0, 500)}`);
+        }
+      })
       .then((response) => {
         if (!!response) {
           resolve(response);
