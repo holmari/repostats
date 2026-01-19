@@ -42,7 +42,7 @@ import {getSourceDataMetadata} from '../file/repo';
 import {removeDuplicates} from '../arrays/utils';
 import {DownloadContext} from '../types/download';
 import {RateLimitedAxiosInstance} from 'axios-rate-limit';
-import {incrementPhaseProgress, initPhaseProgress, updateDownloadStatus} from './utils';
+import {incrementPhaseProgress, initPhaseProgress, setPhaseError, updateDownloadStatus} from './utils';
 
 const githubDefaultHeaders = {
   Accept: 'application/vnd.github.v3+json',

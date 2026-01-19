@@ -52,9 +52,12 @@ export interface PhaseProgress {
   readonly total: number | null;
 }
 
+export type PhaseErrors = {readonly [phase in DownloadPhase]?: string};
+
 export interface DownloadStatus {
   readonly phase: DownloadPhase;
   readonly phaseProgress: PhaseProgress | null;
+  readonly phaseErrors: PhaseErrors;
   readonly rateLimit: number | null;
   readonly rateLimitLeft: number | null;
   readonly startedAt: string;

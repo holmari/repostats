@@ -4,6 +4,7 @@ import {DownloadRequest, DownloadStatus} from '../types/types';
 const DEFAULT_DOWNLOAD_STATUS: DownloadStatus = {
   phase: 'start',
   phaseProgress: null,
+  phaseErrors: {},
   fetchedResources: 0,
   rateLimit: null,
   rateLimitLeft: null,
@@ -61,5 +62,20 @@ export function initPhaseProgress(
 ): void {
   updateDownloadStatus(downloadRequest, {
     phaseProgress: {current: alreadyDownloaded, total},
+  });
+}
+
+export function setPhaseError(
+  downloadRequest: DownloadRequest,
+  error: string
+): void {
+  const status = getDownloadStatus(downloadRequest.requestId);
+  if (!status) return;
+
+  updateDownloadStatus(downloadRequest, {
+    phaseErrors: {
+      ...status.phaseErrors,
+      [status.phase]: error,
+    },
   });
 }

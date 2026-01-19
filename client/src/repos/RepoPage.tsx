@@ -116,6 +116,7 @@ const RepoPage: React.FC<Props> = ({repoName}) => {
     setDownloadStatus({
       phase: 'start',
       phaseProgress: null,
+      phaseErrors: {},
       fetchedResources: 0,
       rateLimit: null,
       rateLimitLeft: null,
@@ -216,7 +217,7 @@ const RepoPage: React.FC<Props> = ({repoName}) => {
                 <DownloadProgressBar
                   currentPhase={downloadStatus.phase}
                   phaseProgress={downloadStatus.phaseProgress}
-                  hasError={loadingSourceDataStatus === RequestStatus.FAILURE}
+                  phaseErrors={downloadStatus.phaseErrors}
                 />
               )}
               {!!downloadStatus && (

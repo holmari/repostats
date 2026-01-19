@@ -1,7 +1,7 @@
 import './DownloadProgressBar.css';
 
 import React, {useEffect, useRef, useState} from 'react';
-import {DownloadPhase, PhaseProgress} from 'types/types';
+import {DownloadPhase, PhaseErrors, PhaseProgress} from 'types/types';
 
 interface ProgressRingProps {
   progress: number; // 0 to 1
@@ -76,10 +76,10 @@ function getStepIndex(phase: DownloadPhase): number {
 interface Props {
   currentPhase: DownloadPhase;
   phaseProgress?: PhaseProgress | null;
-  hasError?: boolean;
+  phaseErrors?: PhaseErrors;
 }
 
-const DownloadProgressBar: React.FC<Props> = ({currentPhase, phaseProgress, hasError = false}) => {
+const DownloadProgressBar: React.FC<Props> = ({currentPhase, phaseProgress, phaseErrors = {}}) => {
   const currentIndex = getStepIndex(currentPhase ?? 'start');
   const progressPercent = phaseProgress?.total
     ? Math.min(1, phaseProgress.current / phaseProgress.total)
@@ -120,19 +120,20 @@ const DownloadProgressBar: React.FC<Props> = ({currentPhase, phaseProgress, hasE
 
           const isJustCompleted = animatingSteps.has(index);
 
-          const isError = hasError && isCurrent;
+          const hasPhaseError = step.phase in phaseErrors;
+          const isError = hasPhaseError;
 
           let stepClass = 'DownloadProgressBar__step';
           if (step.isEndpoint) {
             stepClass += ' DownloadProgressBar__step--endpoint';
           }
-          if (isCompleted) {
+          if (isError) {
+            stepClass += ' DownloadProgressBar__step--error';
+          } else if (isCompleted) {
             stepClass += ' DownloadProgressBar__step--completed';
             if (isJustCompleted) {
               stepClass += ' DownloadProgressBar__step--just-completed';
             }
-          } else if (isError) {
-            stepClass += ' DownloadProgressBar__step--error';
           } else if (isCurrent) {
             stepClass += ' DownloadProgressBar__step--current';
           } else if (isPending) {
@@ -153,9 +154,9 @@ const DownloadProgressBar: React.FC<Props> = ({currentPhase, phaseProgress, hasE
               )}
               <div className={stepClass}>
                 <div className="DownloadProgressBar__step-indicator">
-                  {isCompleted && <span className="DownloadProgressBar__checkmark">&#10003;</span>}
                   {isError && <span className="DownloadProgressBar__error-x">&#10005;</span>}
-                  {isCurrent && !isError && !step.isEndpoint && (
+                  {!isError && isCompleted && <span className="DownloadProgressBar__checkmark">&#10003;</span>}
+                  {!isError && isCurrent && !step.isEndpoint && (
                     <>
                       <span className="DownloadProgressBar__pulse" />
                       {phaseProgress?.total != null && (
