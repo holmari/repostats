@@ -1,6 +1,28 @@
 import {AnalyzeRequest, AnalyzeResult, AppSettings, RepoConfig, TeamInfo, UserInfo} from 'types/types';
 import {SERVER_PORT} from 'shared/config';
 
+export interface SSHKeyInfo {
+  readonly id: string;
+  readonly name: string;
+  readonly fingerprint: string;
+  readonly createdAt: string;
+}
+
+export interface SSHKeyListResponse {
+  readonly keys: SSHKeyInfo[];
+  readonly activeKeyId: string | null;
+}
+
+export interface SSHKeySaveRequest {
+  readonly name: string;
+  readonly privateKey: string;
+}
+
+export interface SSHKeyTestResult {
+  readonly success: boolean;
+  readonly message: string;
+}
+
 const baseUrl = `http://localhost:${SERVER_PORT}/api`;
 
 const defaultOptions = {};
@@ -167,6 +189,8 @@ interface TypedRequests {
   post: {
     'github/test': RepoConfig;
     analyze: AnalyzeRequest;
+    'ssh-keys': SSHKeySaveRequest;
+    'ssh-keys/test': {keyId: string};
   };
   put: {
     repos: RepoConfig;
@@ -182,10 +206,13 @@ interface TypedResponses {
     teams: TeamInfo[];
     users: UserInfo[];
     settings: AppSettings;
+    'ssh-keys': SSHKeyListResponse;
   };
   post: {
     'github/test': null;
     analyze: AnalyzeResult;
+    'ssh-keys': SSHKeyInfo;
+    'ssh-keys/test': SSHKeyTestResult;
   };
   put: {
     repos: RepoConfig;

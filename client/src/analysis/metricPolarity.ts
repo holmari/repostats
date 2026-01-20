@@ -28,6 +28,8 @@ export const AUTHORED_METRIC_POLARITY: Record<string, MetricPolarity> = {
   changesCreated: 'positive',
   commits: 'positive',
   meanChangeOpenTimeMsec: 'negative', // less time in review is better
+  linesAdded: 'positive',
+  linesDeleted: 'positive', // deletion is neutral/positive - cleaning up code
 };
 
 export const RECEIVED_METRIC_POLARITY: Record<string, MetricPolarity> = {

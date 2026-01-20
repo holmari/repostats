@@ -45,6 +45,8 @@ export function compareAuthoredTotals(
       current.meanChangeOpenTimeMsec,
       previous.meanChangeOpenTimeMsec
     ),
+    linesAdded: createMetricComparison(current.linesAdded, previous.linesAdded),
+    linesDeleted: createMetricComparison(current.linesDeleted, previous.linesDeleted),
   };
 }
 
@@ -70,6 +72,8 @@ function createEmptyAuthoredTotals(): AuthoredTotals {
     changesCreated: 0,
     commits: 0,
     meanChangeOpenTimeMsec: 0,
+    linesAdded: 0,
+    linesDeleted: 0,
   };
 }
 

@@ -32,6 +32,8 @@ function aggregateAuthoredTotals(members: ReadonlyArray<UserResult>): AuthoredTo
   let commits = 0;
   let totalOpenTime = 0;
   let changeCount = 0;
+  let linesAdded = 0;
+  let linesDeleted = 0;
 
   for (const member of members) {
     const t = member.aggregatedAuthoredTotals;
@@ -41,6 +43,8 @@ function aggregateAuthoredTotals(members: ReadonlyArray<UserResult>): AuthoredTo
     commentsWrittenToOthers += t.commentsWrittenToOthers;
     changesCreated += t.changesCreated;
     commits += t.commits;
+    linesAdded += t.linesAdded;
+    linesDeleted += t.linesDeleted;
     if (t.changesCreated > 0) {
       totalOpenTime += t.meanChangeOpenTimeMsec * t.changesCreated;
       changeCount += t.changesCreated;
@@ -55,6 +59,8 @@ function aggregateAuthoredTotals(members: ReadonlyArray<UserResult>): AuthoredTo
     changesCreated,
     commits,
     meanChangeOpenTimeMsec: changeCount > 0 ? totalOpenTime / changeCount : 0,
+    linesAdded,
+    linesDeleted,
   };
 }
 
@@ -118,6 +124,8 @@ function aggregateTeamComparison(
     changesCreated: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.changesCreated)),
     commits: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.commits)),
     meanChangeOpenTimeMsec: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.meanChangeOpenTimeMsec)),
+    linesAdded: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.linesAdded)),
+    linesDeleted: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.linesDeleted)),
   };
 
   const receivedTotals: ReceivedTotalsComparison = {
@@ -270,6 +278,22 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
             value={authoredTotals.commits}
             comparison={comparison?.authoredTotals.commits}
             comparisonPolarity={AUTHORED_METRIC_POLARITY.commits}
+            comparisonGranularity={comparisonGranularity}
+          />
+          <ValueCell
+            tooltip="Total lines of code added by team members."
+            title="Lines Added"
+            value={authoredTotals.linesAdded.toLocaleString()}
+            comparison={comparison?.authoredTotals.linesAdded}
+            comparisonPolarity={AUTHORED_METRIC_POLARITY.linesAdded}
+            comparisonGranularity={comparisonGranularity}
+          />
+          <ValueCell
+            tooltip="Total lines of code deleted by team members."
+            title="Lines Deleted"
+            value={authoredTotals.linesDeleted.toLocaleString()}
+            comparison={comparison?.authoredTotals.linesDeleted}
+            comparisonPolarity={AUTHORED_METRIC_POLARITY.linesDeleted}
             comparisonGranularity={comparisonGranularity}
           />
           <ValueCell

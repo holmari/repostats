@@ -34,6 +34,8 @@ export function createDefaultUserRepoTotals(repoConfig: RepoConfig): UserRepoTot
       changesCreated: 0,
       commits: 0,
       meanChangeOpenTimeMsec: NaN,
+      linesAdded: 0,
+      linesDeleted: 0,
     },
     receivedTotals: {
       commentsTotal: 0,
@@ -198,6 +200,8 @@ function aggregateAuthoredTotals(repoTotals: ReadonlyArray<UserRepoTotals>): Aut
           meanChangeOpenTimeMsec: isNaN(totals.meanChangeOpenTimeMsec)
             ? item.meanChangeOpenTimeMsec
             : (totals.meanChangeOpenTimeMsec + item.meanChangeOpenTimeMsec) / 2,
+          linesAdded: totals.linesAdded + item.linesAdded,
+          linesDeleted: totals.linesDeleted + item.linesDeleted,
         };
       },
       {
@@ -208,6 +212,8 @@ function aggregateAuthoredTotals(repoTotals: ReadonlyArray<UserRepoTotals>): Aut
         rejections: 0,
         commits: 0,
         meanChangeOpenTimeMsec: NaN,
+        linesAdded: 0,
+        linesDeleted: 0,
       }
     );
 }

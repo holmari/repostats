@@ -43,6 +43,7 @@ export type DownloadPhase =
   | 'comments'
   | 'commits'
   | 'finish'
+  | 'gitClone'
   | 'pulls'
   | 'reviews'
   | 'teams';
@@ -103,6 +104,8 @@ export interface AuthoredTotalsComparison {
   readonly changesCreated: MetricComparison;
   readonly commits: MetricComparison;
   readonly meanChangeOpenTimeMsec: MetricComparison;
+  readonly linesAdded: MetricComparison;
+  readonly linesDeleted: MetricComparison;
 }
 
 export interface ReceivedTotalsComparison {
@@ -161,6 +164,10 @@ export interface AuthoredTotals {
   readonly meanChangeOpenTimeMsec: number;
   // The number of commits this user created.
   readonly commits: number;
+  // Lines of code added by this user.
+  readonly linesAdded: number;
+  // Lines of code deleted by this user.
+  readonly linesDeleted: number;
 }
 
 export interface ReceivedTotals {
@@ -283,4 +290,5 @@ export interface AnalyzeResult {
 export interface AppSettings {
   readonly excludedUserIds: ReadonlyArray<string>;
   readonly excludedTeamSlugs: ReadonlyArray<string>;
+  readonly activeSSHKeyId?: string;
 }

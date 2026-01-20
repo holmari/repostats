@@ -66,6 +66,7 @@ const STEPS: Step[] = [
   {phase: 'teams', label: 'Teams', isEndpoint: false},
   {phase: 'reviews', label: 'Reviews', isEndpoint: false},
   {phase: 'commits', label: 'Commits', isEndpoint: false},
+  {phase: 'gitClone', label: 'Git Clone', isEndpoint: false},
   {phase: 'finish', label: 'Finish', isEndpoint: true},
 ];
 

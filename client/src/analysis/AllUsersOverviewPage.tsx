@@ -56,6 +56,16 @@ const columns: ReadonlyArray<SortableColumn<UserResult>> = [
     maxWidth: 100,
   },
   {
+    Header: 'Lines Added',
+    accessor: (row) => row.repoTotals.map((repo) => repo.authoredTotals.linesAdded).reduce(sum),
+    maxWidth: 100,
+  },
+  {
+    Header: 'Lines Deleted',
+    accessor: (row) => row.repoTotals.map((repo) => repo.authoredTotals.linesDeleted).reduce(sum),
+    maxWidth: 100,
+  },
+  {
     Header: 'Comments Written (All)',
     accessor: (row) =>
       row.repoTotals.map((repo) => repo.authoredTotals.commentsWrittenTotal).reduce(sum),

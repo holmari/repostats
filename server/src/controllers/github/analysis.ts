@@ -1,4 +1,5 @@
 import path from 'path';
+import fs from 'fs';
 
 import {iterEachFile} from '../../file/utils';
 import {
@@ -40,6 +41,8 @@ import {createDefaultUserRepoTotals, createIntermediateAnalyzeResult} from '../a
 import {IntermediateAnalyzeResult, IntermediateUserResult} from '../analysis/types';
 import {removeDuplicates} from '../../arrays/utils';
 import {getPullRequestNumberFromUrl} from './utils';
+import {getGitClonePath} from '../../file/paths';
+import {buildEmailMapping} from '../../git/emailMapping';
 
 type PullsByNumber = {readonly [prNumber: string]: PullRequest};
 type TeamMembersBySlug = {readonly [teamSlug: string]: ReadonlyArray<User>};
@@ -172,6 +175,8 @@ function incrementAuthoredTotals(
         authoredTotals.commentsWrittenToOthers + (adjustments.commentsWrittenToOthers || 0),
       commits: authoredTotals.commits + (adjustments.commits || 0),
       meanChangeOpenTimeMsec: NaN, // this is computed in the post-processing step
+      linesAdded: authoredTotals.linesAdded + (adjustments.linesAdded || 0),
+      linesDeleted: authoredTotals.linesDeleted + (adjustments.linesDeleted || 0),
     },
   };
 }
@@ -682,5 +687,169 @@ export function getGithubRepoResult(
   processReviews(context);
   processCommits(context);
 
+  // Process git stats if repo is cloned and SSH key is available
+  processGitStats(context, request.dateInterval, userResults);
+
   return createIntermediateAnalyzeResult(repoConfig, userResults);
+}
+
+function processGitStats(
+  context: GithubComputeContext,
+  dateInterval: DateInterval,
+  userResults: {[userId: string]: IntermediateUserResult}
+): void {
+  const repoPath = getGitClonePath(context.repoConfig.name);
+
+  // Check if repo is cloned
+  if (!fs.existsSync(repoPath) || !fs.existsSync(`${repoPath}/.git`)) {
+    return;
+  }
+
+  // Build email mapping from GitHub commit data
+  const emailMapping = buildEmailMapping(context.repoConfig);
+
+  // Get git log stats synchronously using spawnSync to avoid async complexity
+  const {spawnSync} = require('child_process');
+
+  const args = [
+    'log',
+    '--format=%H|%ae|%aI',
+    '--shortstat',
+    '--all',
+    `--since=${dateInterval.startDate}`,
+    `--until=${dateInterval.endDate}`,
+  ];
+
+  const result = spawnSync('git', args, {cwd: repoPath, encoding: 'utf-8', maxBuffer: 50 * 1024 * 1024});
+  if (result.status !== 0) {
+    console.error(`Git log failed for ${context.repoConfig.name}: ${result.stderr}`);
+    return;
+  }
+
+  // Parse git log output
+  const entries = parseGitLogOutput(result.stdout);
+
+  // Aggregate stats by user login
+  const statsByLogin: {[login: string]: {linesAdded: number; linesDeleted: number}} = {};
+
+  for (const entry of entries) {
+    const login = emailMapping.get(entry.email);
+    if (!login) {
+      continue;
+    }
+
+    if (!statsByLogin[login]) {
+      statsByLogin[login] = {linesAdded: 0, linesDeleted: 0};
+    }
+
+    statsByLogin[login].linesAdded += entry.insertions;
+    statsByLogin[login].linesDeleted += entry.deletions;
+  }
+
+  // Update user results with line stats by finding users by their displayName
+  for (const userResult of Object.values(userResults)) {
+    const login = userResult.displayName;
+    const stats = statsByLogin[login];
+
+    if (!stats || userResult.repoTotals.length === 0) {
+      continue;
+    }
+
+    // Update the repoTotals with line stats
+    const updatedRepoTotals = userResult.repoTotals.map((totals) => ({
+      ...totals,
+      authoredTotals: {
+        ...totals.authoredTotals,
+        linesAdded: totals.authoredTotals.linesAdded + stats.linesAdded,
+        linesDeleted: totals.authoredTotals.linesDeleted + stats.linesDeleted,
+      },
+    }));
+
+    userResults[userResult.id] = {
+      ...userResult,
+      repoTotals: updatedRepoTotals,
+    };
+  }
+}
+
+interface ParsedGitLogEntry {
+  sha: string;
+  email: string;
+  date: string;
+  insertions: number;
+  deletions: number;
+}
+
+function parseGitLogOutput(output: string): ParsedGitLogEntry[] {
+  const entries: ParsedGitLogEntry[] = [];
+  const lines = output.split('\n');
+
+  let currentEntry: Partial<ParsedGitLogEntry> | null = null;
+
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+
+    if (!trimmedLine) {
+      continue;
+    }
+
+    // Check if this is a commit line (SHA|email|date)
+    if (trimmedLine.includes('|') && trimmedLine.length >= 40) {
+      // If we have a previous entry without stats, add it with zeros
+      if (currentEntry && currentEntry.sha) {
+        entries.push({
+          sha: currentEntry.sha,
+          email: currentEntry.email ?? '',
+          date: currentEntry.date ?? '',
+          insertions: currentEntry.insertions ?? 0,
+          deletions: currentEntry.deletions ?? 0,
+        });
+      }
+
+      const parts = trimmedLine.split('|');
+      if (parts.length >= 3) {
+        currentEntry = {
+          sha: parts[0],
+          email: parts[1].toLowerCase(),
+          date: parts[2],
+          insertions: 0,
+          deletions: 0,
+        };
+      }
+    } else if (currentEntry && (trimmedLine.includes('insertion') || trimmedLine.includes('deletion'))) {
+      // Parse shortstat line
+      const insertionMatch = trimmedLine.match(/(\d+)\s+insertion/);
+      const deletionMatch = trimmedLine.match(/(\d+)\s+deletion/);
+
+      if (insertionMatch) {
+        currentEntry.insertions = parseInt(insertionMatch[1], 10);
+      }
+      if (deletionMatch) {
+        currentEntry.deletions = parseInt(deletionMatch[1], 10);
+      }
+
+      // Add entry and reset
+      entries.push({
+        sha: currentEntry.sha ?? '',
+        email: currentEntry.email ?? '',
+        date: currentEntry.date ?? '',
+        insertions: currentEntry.insertions ?? 0,
+        deletions: currentEntry.deletions ?? 0,
+      });
+      currentEntry = null;
+    }
+  }
+
+  // Handle last entry if no stats line followed
+  if (currentEntry && currentEntry.sha) {
+    entries.push({
+      sha: currentEntry.sha,
+      email: currentEntry.email ?? '',
+      date: currentEntry.date ?? '',
+      insertions: currentEntry.insertions ?? 0,
+      deletions: currentEntry.deletions ?? 0,
+    });
+  }
+
+  return entries;
 }

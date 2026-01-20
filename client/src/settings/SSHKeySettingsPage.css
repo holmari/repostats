@@ -1,0 +1,192 @@
+.SSHKeySettingsPage {
+  padding: 20px;
+  max-width: 800px;
+}
+
+.SSHKeySettingsPage__section {
+  margin-bottom: 32px;
+}
+
+.SSHKeySettingsPage__title {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.SSHKeySettingsPage__description {
+  color: var(--color-text-secondary);
+  margin: 0 0 20px 0;
+  line-height: 1.5;
+}
+
+.SSHKeySettingsPage__error {
+  background: var(--color-error-bg, #ffebee);
+  color: var(--color-error, #d32f2f);
+  padding: 12px 16px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+
+.SSHKeySettingsPage__testResult {
+  padding: 12px 16px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+
+.SSHKeySettingsPage__testResult--success {
+  background: var(--color-success-bg, #e8f5e9);
+  color: var(--color-success, #2e7d32);
+}
+
+.SSHKeySettingsPage__testResult--error {
+  background: var(--color-error-bg, #ffebee);
+  color: var(--color-error, #d32f2f);
+}
+
+.SSHKeySettingsPage__keyList {
+  margin-bottom: 24px;
+}
+
+.SSHKeySettingsPage__keyList h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.SSHKeySettingsPage__keyItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--color-bg-secondary, #f5f5f5);
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.SSHKeySettingsPage__keyItem--active {
+  border: 1px solid var(--color-primary, #1976d2);
+}
+
+.SSHKeySettingsPage__keyInfo {
+  flex: 1;
+}
+
+.SSHKeySettingsPage__keyName {
+  font-weight: 500;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.SSHKeySettingsPage__activeBadge {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  background: var(--color-primary, #1976d2);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.SSHKeySettingsPage__keyFingerprint {
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-bottom: 4px;
+}
+
+.SSHKeySettingsPage__keyDate {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.SSHKeySettingsPage__keyActions {
+  display: flex;
+  gap: 8px;
+}
+
+.SSHKeySettingsPage__form {
+  background: var(--color-bg-secondary, #f5f5f5);
+  padding: 20px;
+  border-radius: 4px;
+}
+
+.SSHKeySettingsPage__form h4 {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.SSHKeySettingsPage__field {
+  margin-bottom: 16px;
+}
+
+.SSHKeySettingsPage__field label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.SSHKeySettingsPage__input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border, #ddd);
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.SSHKeySettingsPage__textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border, #ddd);
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: monospace;
+  box-sizing: border-box;
+  resize: vertical;
+}
+
+.SSHKeySettingsPage__button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.SSHKeySettingsPage__button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.SSHKeySettingsPage__button--primary {
+  background: var(--color-primary, #1976d2);
+  color: white;
+}
+
+.SSHKeySettingsPage__button--primary:hover:not(:disabled) {
+  background: var(--color-primary-dark, #1565c0);
+}
+
+.SSHKeySettingsPage__button--secondary {
+  background: var(--color-bg-tertiary, #e0e0e0);
+  color: var(--color-text-primary, #333);
+}
+
+.SSHKeySettingsPage__button--secondary:hover:not(:disabled) {
+  background: var(--color-bg-hover, #d5d5d5);
+}
+
+.SSHKeySettingsPage__button--danger {
+  background: var(--color-error, #d32f2f);
+  color: white;
+}
+
+.SSHKeySettingsPage__button--danger:hover:not(:disabled) {
+  background: var(--color-error-dark, #c62828);
+}

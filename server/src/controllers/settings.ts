@@ -32,9 +32,12 @@ export function getSettingsHandler(_req: Request, res: Response): void {
 }
 
 export function saveSettingsHandler(req: Request, res: Response): void {
+  const existingSettings = getSettings();
   const settings: AppSettings = {
-    excludedUserIds: req.body.excludedUserIds || [],
-    excludedTeamSlugs: req.body.excludedTeamSlugs || [],
+    ...existingSettings,
+    excludedUserIds: 'excludedUserIds' in req.body ? req.body.excludedUserIds : existingSettings.excludedUserIds,
+    excludedTeamSlugs: 'excludedTeamSlugs' in req.body ? req.body.excludedTeamSlugs : existingSettings.excludedTeamSlugs,
+    activeSSHKeyId: 'activeSSHKeyId' in req.body ? req.body.activeSSHKeyId : existingSettings.activeSSHKeyId,
   };
 
   writeJsonToFile(getSettingsPath(), settings);

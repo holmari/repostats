@@ -24,6 +24,14 @@ const SettingsPage: React.FC = () => {
         >
           Exclusions
         </NavLink>
+        <NavLink
+          className={({isActive}) =>
+            classNames('SettingsPage__tab', isActive && 'SettingsPage__tab--active')
+          }
+          to="/settings/ssh-keys"
+        >
+          SSH Keys
+        </NavLink>
       </div>
       <div className="SettingsPage__content">
         <Outlet />

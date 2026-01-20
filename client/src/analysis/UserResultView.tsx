@@ -79,6 +79,22 @@ const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
             comparisonGranularity={comparisonGranularity}
           />
           <ValueCell
+            tooltip="Lines of code added by this user."
+            title="Lines Added"
+            value={authoredTotals.linesAdded.toLocaleString()}
+            comparison={comparison?.authoredTotals.linesAdded}
+            comparisonPolarity={AUTHORED_METRIC_POLARITY.linesAdded}
+            comparisonGranularity={comparisonGranularity}
+          />
+          <ValueCell
+            tooltip="Lines of code deleted by this user."
+            title="Lines Deleted"
+            value={authoredTotals.linesDeleted.toLocaleString()}
+            comparison={comparison?.authoredTotals.linesDeleted}
+            comparisonPolarity={AUTHORED_METRIC_POLARITY.linesDeleted}
+            comparisonGranularity={comparisonGranularity}
+          />
+          <ValueCell
             tooltip="How long this user's changes have been open until merged."
             title="Average time in review"
             value={`${Math.round(authoredTotals.meanChangeOpenTimeMsec / 1000 / 60 / 60)}h`}

@@ -17,6 +17,14 @@ export function getCachePath(): string {
   return `${getRootPath()}/cache`;
 }
 
+export function getGitClonesPath(): string {
+  return `${getRootPath()}/git-clones`;
+}
+
+export function getGitClonePath(repoName: string): string {
+  return `${getGitClonesPath()}/${repoName}`;
+}
+
 export function getReposPath(): string {
   return `${getRootPath()}/repos`;
 }

@@ -27,6 +27,9 @@ import {ensureGithubPaths} from './github/paths';
 import {clearCache} from '../cache/cache';
 import {getDownloadStatus, updateDownloadStatus} from './utils';
 import {DownloadContext} from '../types/download';
+import {getSettings} from './settings';
+import {getSSHKeyPath} from '../ssh/keys';
+import {fetchGitRepo} from './git/download';
 
 function error(message: string): {readonly message: string} {
   return {message}; // always json
@@ -142,7 +145,23 @@ async function fetchWitGithubConnector(
   setPhase(request, 'commits');
   await getGithubCommitsForPullRequests(context, fetchedPullNumbers);
 
-  // Phase 6: Finish
+  // Phase 6: Git Clone (if SSH key is configured)
+  const settings = getSettings();
+  const activeKeyId = settings.activeSSHKeyId;
+  if (activeKeyId) {
+    const keyPath = getSSHKeyPath(activeKeyId);
+    if (keyPath) {
+      setPhase(request, 'gitClone');
+      try {
+        await fetchGitRepo(repoConfig, keyPath);
+      } catch (error) {
+        console.error(`Failed to clone/fetch git repo: ${error}`);
+        // Don't fail the whole download if git clone fails
+      }
+    }
+  }
+
+  // Phase 7: Finish
   setPhase(request, 'finish');
 }
 

@@ -8,6 +8,7 @@ import * as github from './controllers/github';
 import * as teams from './controllers/teams';
 import * as users from './controllers/users';
 import * as settings from './controllers/settings';
+import * as sshKeys from './controllers/sshKeys';
 import {ensurePaths} from './file/paths';
 import {SERVER_PORT} from '../../shared/config';
 
@@ -37,6 +38,11 @@ app.get('/api/users', users.getUsers);
 
 app.get('/api/settings', settings.getSettingsHandler);
 app.put('/api/settings', settings.saveSettingsHandler);
+
+app.get('/api/ssh-keys', sshKeys.listSSHKeysHandler);
+app.post('/api/ssh-keys', sshKeys.saveSSHKeyHandler);
+app.delete('/api/ssh-keys/:keyId', sshKeys.deleteSSHKeyHandler);
+app.post('/api/ssh-keys/test', sshKeys.testSSHConnectionHandler);
 
 ensurePaths();
 
