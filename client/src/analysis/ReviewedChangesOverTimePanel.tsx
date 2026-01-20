@@ -24,11 +24,20 @@ function toDailyData(user: UserResult): ReadonlyArray<ChartDataSeries> {
     });
   });
 
-  return [
+  const accumulatedRejections = accumulate(rejectionsGivenSeries);
+  const hasRejections = accumulatedRejections.length > 0 &&
+    accumulatedRejections[accumulatedRejections.length - 1].value > 0;
+
+  const result: ChartDataSeries[] = [
     {label: 'Comments Authored', color: '#4a91ff', series: accumulate(commentsAuthoredSeries)},
     {label: 'Approvals Given', color: '#ff8270', series: accumulate(approvalsGivenSeries)},
-    {label: 'Rejections Given', color: '#a3cc27', series: accumulate(rejectionsGivenSeries)},
   ];
+
+  if (hasRejections) {
+    result.push({label: 'Rejections Given', color: '#a3cc27', series: accumulatedRejections});
+  }
+
+  return result;
 }
 
 const ReviewedChangesOverTimePanel: React.FC<Props> = ({user}) => {
