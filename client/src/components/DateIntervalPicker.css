@@ -2,15 +2,52 @@
   min-width: 200px;
 }
 
-.DateIntervalPicker__popover-content {
-  min-width: 150px;
-  margin-bottom: 16px;
+.DateIntervalPicker__popover-body {
+  padding: 0;
 }
 
-.DateIntervalPicker__popover-content-footer {
+.DateIntervalPicker__presets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.DateIntervalPicker__preset {
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.DateIntervalPicker__preset:hover {
+  background-color: #efefef;
+}
+
+.DateIntervalPicker__preset--selected {
+  background-color: #0d6efd;
+  color: white;
+}
+
+.DateIntervalPicker__preset--selected:hover {
+  background-color: #0d6efd;
+}
+
+.DateIntervalPicker__custom-section {
+  border-top: 1px solid #dee2e6;
+  padding: 12px;
+}
+
+.DateIntervalPicker__custom-fields {
+  margin-bottom: 12px;
+}
+
+.DateIntervalPicker__custom-fields fieldset {
+  margin-bottom: 8px;
+}
+
+.DateIntervalPicker__custom-fields fieldset:last-child {
+  margin-bottom: 0;
+}
+
+.DateIntervalPicker__custom-footer {
   display: flex;
-}
-
-.DateIntervalPicker__reset-button {
-  margin-left: auto;
 }

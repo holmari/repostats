@@ -9,7 +9,7 @@ import {RequestStatus} from 'requests/types';
 import {AnalyzeResult, AppSettings, DateInterval, Granularity, TeamInfo} from 'types/types';
 import EmptyContentView from 'components/EmptyContentView';
 import PageTopBar from 'components/PageTopBar';
-import DateIntervalPicker, {ALL_TIME_INTERVAL} from 'components/DateIntervalPicker';
+import DateIntervalPicker, {DEFAULT_INTERVAL} from 'components/DateIntervalPicker';
 import GranularityPicker from 'components/GranularityPicker';
 import CenteredSpinner from 'components/CenteredSpinner';
 import RepositoryPicker from 'components/RepositoryPicker';
@@ -28,7 +28,7 @@ const AnalysisPage: React.FC = () => {
     getCookieAsJson('includedRepoNames')
   );
   const [dateInterval, setDateInterval] = useState<DateInterval>(
-    getCookieAsJson('dateInterval') || ALL_TIME_INTERVAL
+    getCookieAsJson('dateInterval') || DEFAULT_INTERVAL
   );
   const [granularity, setGranularity] = useState<Granularity>(
     getCookieAsJson('granularity') || 'day'
