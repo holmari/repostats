@@ -50,6 +50,11 @@ const receivedColumns: ReadonlyArray<SortableColumn<UserRepoTotals>> = [
 const RepositoriesContributionPanel: React.FC<Props> = ({user}) => {
   const data = useMemo(() => user.repoTotals.flatMap((totals) => totals), [user.repoTotals]);
 
+  // Hide panels if there's only one repository
+  if (data.length <= 1) {
+    return null;
+  }
+
   return (
     <>
       <Panel title="Authored across repositories" size="flex">
