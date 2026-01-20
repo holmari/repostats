@@ -708,6 +708,9 @@ function processGitStats(
   // Build email mapping from GitHub commit data
   const emailMapping = buildEmailMapping(context.repoConfig);
 
+  // Get excluded file paths from repo config
+  const excludedPaths = context.repoConfig.excludedFilePaths || [];
+
   // Get git log stats synchronously using spawnSync to avoid async complexity
   const {spawnSync} = require('child_process');
 
@@ -719,6 +722,14 @@ function processGitStats(
     `--since=${dateInterval.startDate}`,
     `--until=${dateInterval.endDate}`,
   ];
+
+  // Add pathspec exclusions if configured
+  if (excludedPaths.length > 0) {
+    args.push('--');
+    for (const pattern of excludedPaths) {
+      args.push(`:!${pattern}`);
+    }
+  }
 
   const result = spawnSync('git', args, {cwd: repoPath, encoding: 'utf-8', maxBuffer: 50 * 1024 * 1024});
   if (result.status !== 0) {

@@ -51,3 +51,7 @@
   min-width: 804px;
   width: 804px;
 }
+
+.Panel.overflow-visible {
+  overflow: visible;
+}

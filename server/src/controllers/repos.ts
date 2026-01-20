@@ -30,6 +30,7 @@ import {DownloadContext} from '../types/download';
 import {getSettings} from './settings';
 import {getSSHKeyPath} from '../ssh/keys';
 import {fetchGitRepo} from './git/download';
+import {invalidateTopChangedFilesCache} from './git-stats';
 
 function error(message: string): {readonly message: string} {
   return {message}; // always json
@@ -154,6 +155,7 @@ async function fetchWitGithubConnector(
       setPhase(request, 'gitClone');
       try {
         await fetchGitRepo(repoConfig, keyPath);
+        invalidateTopChangedFilesCache(repoConfig.name);
       } catch (error) {
         console.error(`Failed to clone/fetch git repo: ${error}`);
         // Don't fail the whole download if git clone fails

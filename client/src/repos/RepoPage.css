@@ -1,13 +1,11 @@
 .RepoPage__content {
-  padding: 8px;
-}
-
-.RepoPage__content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   padding: 8px;
 }
 
 .RepoPage__download-content {
-  margin-top: 8px;
 }
 
 .RepoPage__download-content-progress-indicator {

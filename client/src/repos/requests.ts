@@ -23,6 +23,11 @@ export interface SSHKeyTestResult {
   readonly message: string;
 }
 
+export interface FileChangeStats {
+  readonly path: string;
+  readonly linesChanged: number;
+}
+
 const baseUrl = `http://localhost:${SERVER_PORT}/api`;
 
 const defaultOptions = {};
@@ -194,7 +199,7 @@ interface TypedRequests {
   };
   put: {
     repos: RepoConfig;
-    settings: AppSettings;
+    settings: Partial<AppSettings>;
   };
 }
 
@@ -218,4 +223,8 @@ interface TypedResponses {
     repos: RepoConfig;
     settings: AppSettings;
   };
+}
+
+export function getTopChangedFiles(repoName: string): Promise<FileChangeStats[]> {
+  return get(`repos/${repoName}/top-changed-files`);
 }

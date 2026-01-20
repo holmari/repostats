@@ -76,3 +76,146 @@
 .ExclusionsSettingsPage__item input[type='checkbox'] {
   cursor: pointer;
 }
+
+.ExclusionsSettingsPage__textarea {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  flex: 1;
+  font-family: monospace;
+  font-size: 13px;
+  min-height: 200px;
+  padding: 8px;
+  resize: vertical;
+}
+
+.ExclusionsSettingsPage__textarea:focus {
+  border-color: #4a91ff;
+  outline: none;
+}
+
+.ExclusionsSettingsPage__save-button {
+  align-self: flex-start;
+  background-color: #4a91ff;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  font-size: 13px;
+  margin-top: 12px;
+  padding: 8px 16px;
+}
+
+.ExclusionsSettingsPage__save-button:hover {
+  background-color: #3a7de8;
+}
+
+.ExclusionsSettingsPage__description code {
+  background-color: #f0f0f0;
+  border-radius: 3px;
+  font-size: 12px;
+  padding: 2px 4px;
+}
+
+.ExclusionsSettingsPage__file-input-container {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.ExclusionsSettingsPage__file-input {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 13px;
+  padding: 8px 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ExclusionsSettingsPage__file-input:focus {
+  border-color: #4a91ff;
+  outline: none;
+}
+
+.ExclusionsSettingsPage__suggestions {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  left: 0;
+  max-height: 300px;
+  overflow-y: auto;
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 10;
+}
+
+.ExclusionsSettingsPage__suggestion {
+  align-items: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  font-size: 13px;
+  gap: 8px;
+  justify-content: space-between;
+  padding: 8px 12px;
+  text-align: left;
+  width: 100%;
+}
+
+.ExclusionsSettingsPage__suggestion:hover {
+  background-color: #f5f5f5;
+}
+
+.ExclusionsSettingsPage__suggestion-path {
+  font-family: monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ExclusionsSettingsPage__suggestion-lines {
+  color: #888;
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+.ExclusionsSettingsPage__chips {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+}
+
+.ExclusionsSettingsPage__chip {
+  align-items: center;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  display: flex;
+  gap: 8px;
+  padding: 6px 10px;
+}
+
+.ExclusionsSettingsPage__chip-text {
+  flex: 1;
+  font-family: monospace;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ExclusionsSettingsPage__chip-remove {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 4px;
+}
+
+.ExclusionsSettingsPage__chip-remove:hover {
+  color: #c00;
+}

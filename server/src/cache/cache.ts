@@ -12,7 +12,7 @@ export enum CachePath {
   analysis = 'analysis',
   download = 'download',
   users = 'users',
-  gitStats = 'gitStats',
+  gitStats = 'git-stats',
 }
 
 export function getCacheKey(keyObject: unknown | string): string {

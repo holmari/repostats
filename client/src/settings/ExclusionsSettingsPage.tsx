@@ -34,7 +34,7 @@ const ExclusionsSettingsPage: React.FC = () => {
   }, []);
 
   const saveSettings = useCallback(
-    (newSettings: AppSettings) => {
+    (newSettings: Partial<AppSettings>) => {
       put('settings', newSettings).catch(() => {
         // Revert on error - could add error handling here
       });

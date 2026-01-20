@@ -26,6 +26,7 @@ export interface RepoConfig<T extends RepoConnector = RepoConnector> {
   readonly name: string;
   readonly url: string;
   readonly connector: T;
+  readonly excludedFilePaths?: ReadonlyArray<string>;
 }
 
 export interface BaseSourceDataMetadata {

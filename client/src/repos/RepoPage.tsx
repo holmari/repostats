@@ -23,6 +23,7 @@ import {Navigate} from 'react-router';
 import {Spinner} from 'react-bootstrap';
 import {RequestStatus} from 'requests/types';
 import RepoSourceDataContent from './RepoSourceDataContent';
+import RepoFileExclusions from './RepoFileExclusions';
 import Panel from 'components/Panel';
 import EmptyContentView from 'components/EmptyContentView';
 
@@ -197,6 +198,12 @@ const RepoPage: React.FC<Props> = ({repoName}) => {
             {getConnectorDisplayName(repo.connector.type)}
           </fieldset>
           <RepoSourceDataContent metadata={getSourceDataMetadata()} />
+        </Panel>
+        <Panel title="File Exclusions" size="flex" className="overflow-visible">
+          <RepoFileExclusions
+            repo={repo}
+            onRepoChange={(updatedRepo) => dispatch({type: 'setRepo', repo: updatedRepo})}
+          />
         </Panel>
         {metadataLoaded &&
           !hasContent(getSourceDataMetadata()) &&

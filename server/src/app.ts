@@ -9,6 +9,7 @@ import * as teams from './controllers/teams';
 import * as users from './controllers/users';
 import * as settings from './controllers/settings';
 import * as sshKeys from './controllers/sshKeys';
+import * as gitStats from './controllers/git-stats';
 import {ensurePaths} from './file/paths';
 import {SERVER_PORT} from '../../shared/config';
 
@@ -43,6 +44,8 @@ app.get('/api/ssh-keys', sshKeys.listSSHKeysHandler);
 app.post('/api/ssh-keys', sshKeys.saveSSHKeyHandler);
 app.delete('/api/ssh-keys/:keyId', sshKeys.deleteSSHKeyHandler);
 app.post('/api/ssh-keys/test', sshKeys.testSSHConnectionHandler);
+
+app.get('/api/repos/:repoName/top-changed-files', gitStats.getTopChangedFilesHandler);
 
 ensurePaths();
 
