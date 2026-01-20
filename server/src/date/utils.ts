@@ -1,5 +1,5 @@
 import {DateTime, DurationUnit} from 'luxon';
-import {DateInterval, Granularity} from '../types/types';
+import {ComparisonGranularity, DateInterval, Granularity} from '../types/types';
 
 export const EMPTY_INTERVAL: DateInterval = {
   startDate: new Date(0).toISOString(),
@@ -119,4 +119,17 @@ export function getPeriodStartDate(dateStr: string, granularity: Granularity): s
     case 'year':
       return dt.startOf('year').toISODate()!;
   }
+}
+
+export function shiftIntervalBack(
+  interval: DateInterval,
+  granularity: ComparisonGranularity
+): DateInterval {
+  const start = DateTime.fromISO(interval.startDate);
+  const end = DateTime.fromISO(interval.endDate);
+  const shift = granularity === 'year' ? {years: 1} : {months: 3};
+  return {
+    startDate: start.minus(shift).toISODate()!,
+    endDate: end.minus(shift).toISODate()!,
+  };
 }

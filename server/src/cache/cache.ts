@@ -4,6 +4,10 @@ import fs from 'fs';
 import {readJsonFile, writeJsonToFile} from '../file/json';
 import {deletePath, ensurePathExists, ensurePaths, getCachePath} from '../file/paths';
 
+// Bump this version when the response structure changes to invalidate old cache entries.
+// This ensures clients don't receive stale data with missing fields after code updates.
+const CACHE_SCHEMA_VERSION = 2;
+
 export enum CachePath {
   analysis = 'analysis',
   download = 'download',
@@ -14,7 +18,8 @@ export function getCacheKey(keyObject: unknown | string): string {
     return keyObject;
   }
 
-  const serializedKey = JSON.stringify(keyObject);
+  const keyWithVersion = {_v: CACHE_SCHEMA_VERSION, ...keyObject as object};
+  const serializedKey = JSON.stringify(keyWithVersion);
   return CryptoJs.SHA1(serializedKey).toString();
 }
 

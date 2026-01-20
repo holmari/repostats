@@ -1,5 +1,5 @@
 import {DateTime, DurationUnit} from 'luxon';
-import {DateInterval} from 'types/types';
+import {ComparisonGranularity, DateInterval} from 'types/types';
 
 export function formatIsoDate(date: string | undefined) {
   if (!date || DateTime.fromISO(date).toMillis() === 0) {
@@ -68,4 +68,17 @@ export function getMaxDate(left: Date, right: Date): Date {
 
 export function getMinDate(left: Date, right: Date): Date {
   return new Date(Math.min(left.getTime(), right.getTime()));
+}
+
+export function shiftIntervalBack(
+  interval: DateInterval,
+  granularity: ComparisonGranularity
+): DateInterval {
+  const start = DateTime.fromISO(interval.startDate);
+  const end = DateTime.fromISO(interval.endDate);
+  const shift = granularity === 'year' ? {years: 1} : {months: 3};
+  return {
+    startDate: start.minus(shift).toISODate()!,
+    endDate: end.minus(shift).toISODate()!,
+  };
 }

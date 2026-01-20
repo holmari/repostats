@@ -2,12 +2,13 @@ import {Response, Request} from 'express';
 import fs from 'fs';
 
 import {CachePath, readFromCache, writeToCache} from '../cache/cache';
-import {ALL_TIME_INTERVAL, sliceDate, unionAllIntervals, unionIntervals} from '../date/utils';
+import {ALL_TIME_INTERVAL, shiftIntervalBack, sliceDate, unionAllIntervals, unionIntervals} from '../date/utils';
 import {getConfigPath, getReposPath} from '../file/paths';
 import {getConfigFile} from '../file/repo';
 import {
   AnalyzeRequest,
   AnalyzeResult,
+  ComparisonGranularity,
   DateInterval,
   Granularity,
   RepoConfig,
@@ -19,15 +20,18 @@ import {
   CountByDay,
   Mutable,
   ReviewSummariesByDay,
+  UserResultComparison,
 } from '../types/types';
 import {IntermediateAnalyzeResult, IntermediateUserResult} from './analysis/types';
 import {getGithubRepoResult} from './github/analysis';
 import {postProcessUserResults} from './analysis/utils';
 import {removeDuplicates} from '../arrays/utils';
 import {getSettings} from './settings';
+import {buildComparisonResults} from './analysis/comparison';
 
-export type NormalizedAnalyzeRequest = Required<AnalyzeRequest> & {
+export type NormalizedAnalyzeRequest = Required<Omit<AnalyzeRequest, 'comparisonGranularity'>> & {
   readonly granularity: Granularity;
+  readonly comparisonGranularity: ComparisonGranularity | undefined;
 };
 
 function getRepoResult(
@@ -237,10 +241,18 @@ function normalizeRequest(request: AnalyzeRequest): NormalizedAnalyzeRequest {
     includedRepoNames: request.includedRepoNames || getAvailableRepoNames(),
     excludedUserIds: request.excludedUserIds ?? [...settings.excludedUserIds],
     granularity: request.granularity ?? 'day',
+    comparisonGranularity: request.comparisonGranularity,
   };
 }
 
-function computeAnalysisResult(request: NormalizedAnalyzeRequest): AnalyzeResult {
+function computeAnalysisResultCore(
+  request: NormalizedAnalyzeRequest,
+  excludedUserIdSet: Set<string>
+): {
+  includedRepos: ReadonlyArray<RepoConfig>;
+  interval: DateInterval | null;
+  userResults: ReturnType<typeof postProcessUserResults>;
+} {
   const repoMetadatas = fs
     .readdirSync(getReposPath())
     .filter((repoName) => fs.existsSync(getConfigPath(repoName)))
@@ -256,8 +268,6 @@ function computeAnalysisResult(request: NormalizedAnalyzeRequest): AnalyzeResult
   const includedRepos = repoResults
     .map((result) => result.includedRepos)
     .reduce((acc, item) => [...acc, ...item], []);
-
-  const excludedUserIdSet = new Set(request.excludedUserIds.map((id) => id.toLowerCase()));
 
   const userResults = repoResults
     .map((result) => result.userResults)
@@ -279,6 +289,43 @@ function computeAnalysisResult(request: NormalizedAnalyzeRequest): AnalyzeResult
     includedRepos,
     interval,
     userResults: postProcessUserResults(userResults, request.granularity),
+  };
+}
+
+function isAllTimeInterval(interval: DateInterval): boolean {
+  return (
+    interval.startDate === ALL_TIME_INTERVAL.startDate &&
+    interval.endDate === ALL_TIME_INTERVAL.endDate
+  );
+}
+
+function computeAnalysisResult(request: NormalizedAnalyzeRequest): AnalyzeResult {
+  const excludedUserIdSet = new Set(request.excludedUserIds.map((id) => id.toLowerCase()));
+  const currentResult = computeAnalysisResultCore(request, excludedUserIdSet);
+
+  // If no comparison requested or using ALL_TIME interval, return without comparison
+  if (!request.comparisonGranularity || isAllTimeInterval(request.dateInterval)) {
+    return currentResult;
+  }
+
+  // Compute comparison results for the previous period
+  const previousInterval = shiftIntervalBack(request.dateInterval, request.comparisonGranularity);
+  const previousRequest: NormalizedAnalyzeRequest = {
+    ...request,
+    dateInterval: previousInterval,
+    comparisonGranularity: undefined, // Don't recurse
+  };
+  const previousResult = computeAnalysisResultCore(previousRequest, excludedUserIdSet);
+
+  const comparisonResults: {[userId: string]: UserResultComparison} = buildComparisonResults(
+    currentResult.userResults,
+    previousResult.userResults
+  );
+
+  return {
+    ...currentResult,
+    comparisonResults,
+    comparisonGranularity: request.comparisonGranularity,
   };
 }
 

@@ -1,0 +1,25 @@
+.ComparisonBadge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.ComparisonBadge--good {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.ComparisonBadge--bad {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.ComparisonBadge--neutral {
+  background-color: #e2e3e5;
+  color: #383d41;
+}

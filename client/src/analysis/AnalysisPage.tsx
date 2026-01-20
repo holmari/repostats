@@ -6,11 +6,12 @@ import {Outlet, useLocation} from 'react-router';
 import ErrorWrapper from 'components/ErrorWrapper';
 import {cacheOff, get, post} from 'repos/requests';
 import {RequestStatus} from 'requests/types';
-import {AnalyzeResult, AppSettings, DateInterval, Granularity, TeamInfo} from 'types/types';
+import {AnalyzeResult, AppSettings, ComparisonGranularity, DateInterval, Granularity, TeamInfo} from 'types/types';
 import EmptyContentView from 'components/EmptyContentView';
 import PageTopBar from 'components/PageTopBar';
 import DateIntervalPicker, {DEFAULT_INTERVAL} from 'components/DateIntervalPicker';
 import GranularityPicker from 'components/GranularityPicker';
+import ComparisonGranularityPicker from 'components/ComparisonGranularityPicker';
 import CenteredSpinner from 'components/CenteredSpinner';
 import RepositoryPicker from 'components/RepositoryPicker';
 import {useRootState} from 'state';
@@ -32,6 +33,9 @@ const AnalysisPage: React.FC = () => {
   );
   const [granularity, setGranularity] = useState<Granularity>(
     getCookieAsJson('granularity') || 'day'
+  );
+  const [comparisonGranularity, setComparisonGranularity] = useState<ComparisonGranularity | undefined>(
+    getCookieAsJson('comparisonGranularity') || undefined
   );
   const [error, setError] = useState(undefined);
   const [previousError, setPreviousError] = useState(undefined);
@@ -71,6 +75,12 @@ const AnalysisPage: React.FC = () => {
     writeCookieFromJson('granularity', newGranularity);
   };
 
+  const changeComparisonGranularity = (newComparisonGranularity: ComparisonGranularity | undefined) => {
+    setComparisonGranularity(newComparisonGranularity);
+    setStatus(RequestStatus.UNSTARTED);
+    writeCookieFromJson('comparisonGranularity', newComparisonGranularity);
+  };
+
   const clearError = useCallback(() => {
     setStatus(RequestStatus.UNSTARTED);
     setPreviousError(error);
@@ -102,7 +112,7 @@ const AnalysisPage: React.FC = () => {
     lastUsedSettingsJson.current = JSON.stringify(settings);
 
     Promise.all([
-      post('analyze', {dateInterval, includedRepoNames, excludedUserIds: settings.excludedUserIds, granularity}, headers),
+      post('analyze', {dateInterval, includedRepoNames, excludedUserIds: settings.excludedUserIds, granularity, comparisonGranularity}, headers),
       get('teams'),
     ])
       .then(([fetchedResult, fetchedTeams]) => {
@@ -112,12 +122,17 @@ const AnalysisPage: React.FC = () => {
         setAllTeams(fetchedTeams);
       })
       .catch(setError);
-  }, [dateInterval, granularity, includedRepoNames, previousError, settings, status]);
+  }, [comparisonGranularity, dateInterval, granularity, includedRepoNames, previousError, settings, status]);
 
   const topBarLeftContent = (
     <>
       <DateIntervalPicker interval={dateInterval} onChange={changeDateInterval} />
       <GranularityPicker granularity={granularity} onChange={changeGranularity} />
+      <ComparisonGranularityPicker
+        comparisonGranularity={comparisonGranularity}
+        dateInterval={dateInterval}
+        onChange={changeComparisonGranularity}
+      />
       <RepositoryPicker
         availableRepositories={allRepoNames}
         selectedRepositories={includedRepoNames}

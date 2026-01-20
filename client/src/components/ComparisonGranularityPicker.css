@@ -1,0 +1,32 @@
+.ComparisonGranularityPicker {
+  min-width: 140px;
+}
+
+.ComparisonGranularityPicker__popover-content {
+  padding: 0;
+}
+
+.ComparisonGranularityPicker__options {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ComparisonGranularityPicker__option {
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.ComparisonGranularityPicker__option:hover {
+  background-color: #efefef;
+}
+
+.ComparisonGranularityPicker__option--selected {
+  background-color: #0d6efd;
+  color: white;
+}
+
+.ComparisonGranularityPicker__option--selected:hover {
+  background-color: #0d6efd;
+}

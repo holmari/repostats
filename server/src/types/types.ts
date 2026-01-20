@@ -87,11 +87,43 @@ export interface DateInterval {
 
 export type Granularity = 'day' | 'week' | 'month' | 'quarter' | 'year';
 
+export type ComparisonGranularity = 'year' | 'quarter';
+
+export interface MetricComparison {
+  readonly currentValue: number;
+  readonly previousValue: number;
+  readonly percentageChange: number | null; // null when previous is 0
+}
+
+export interface AuthoredTotalsComparison {
+  readonly approvals: MetricComparison;
+  readonly rejections: MetricComparison;
+  readonly commentsWrittenTotal: MetricComparison;
+  readonly commentsWrittenToOthers: MetricComparison;
+  readonly changesCreated: MetricComparison;
+  readonly commits: MetricComparison;
+  readonly meanChangeOpenTimeMsec: MetricComparison;
+}
+
+export interface ReceivedTotalsComparison {
+  readonly approvals: MetricComparison;
+  readonly rejections: MetricComparison;
+  readonly commentsTotal: MetricComparison;
+  readonly commentsByOthers: MetricComparison;
+  readonly reviewRequests: MetricComparison;
+}
+
+export interface UserResultComparison {
+  readonly authoredTotals: AuthoredTotalsComparison;
+  readonly receivedTotals: ReceivedTotalsComparison;
+}
+
 export interface AnalyzeRequest {
   readonly dateInterval?: DateInterval;
   readonly includedRepoNames?: ReadonlyArray<string>;
   readonly excludedUserIds?: ReadonlyArray<string>;
   readonly granularity?: Granularity;
+  readonly comparisonGranularity?: ComparisonGranularity;
 }
 
 export interface ReviewComment {
@@ -239,6 +271,8 @@ export interface AnalyzeResult {
   readonly includedRepos: ReadonlyArray<RepoConfig>;
   readonly interval: DateInterval | null;
   readonly userResults: UserResultsByUserId;
+  readonly comparisonResults?: {readonly [userId: string]: UserResultComparison};
+  readonly comparisonGranularity?: ComparisonGranularity;
 }
 
 export interface AppSettings {

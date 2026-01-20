@@ -7,16 +7,21 @@ import {Link} from 'react-router';
 import {
   AnalyzeResult,
   AuthoredTotals,
+  AuthoredTotalsComparison,
+  MetricComparison,
   ReceivedTotals,
+  ReceivedTotalsComparison,
   TeamInfo,
   UserActivitySummary,
   UserResult,
+  UserResultComparison,
 } from 'types/types';
 import ValueCell from 'components/ValueCell';
 import Panel from 'components/Panel';
 import TimeSeriesChart from './chart/TimeSeriesChart';
 import {accumulate} from './chart/utils';
 import {ChartDataSeries, DateValue} from './chart/types';
+import {AUTHORED_METRIC_POLARITY, computeRatioComparison, RECEIVED_METRIC_POLARITY} from './metricPolarity';
 
 function aggregateAuthoredTotals(members: ReadonlyArray<UserResult>): AuthoredTotals {
   let approvals = 0;
@@ -76,6 +81,54 @@ function aggregateReceivedTotals(members: ReadonlyArray<UserResult>): ReceivedTo
     commentsByOthers,
     reviewRequests,
   };
+}
+
+function sumMetricComparisons(comparisons: ReadonlyArray<MetricComparison>): MetricComparison {
+  let currentValue = 0;
+  let previousValue = 0;
+  for (const c of comparisons) {
+    currentValue += c.currentValue;
+    previousValue += c.previousValue;
+  }
+  const percentageChange = previousValue === 0 ? null : ((currentValue - previousValue) / previousValue) * 100;
+  return {currentValue, previousValue, percentageChange};
+}
+
+function aggregateTeamComparison(
+  members: ReadonlyArray<UserResult>,
+  comparisonResults: {readonly [userId: string]: UserResultComparison} | undefined
+): UserResultComparison | undefined {
+  if (!comparisonResults) {
+    return undefined;
+  }
+
+  const memberComparisons = members
+    .map((m) => comparisonResults[m.id])
+    .filter((c): c is UserResultComparison => c !== undefined);
+
+  if (memberComparisons.length === 0) {
+    return undefined;
+  }
+
+  const authoredTotals: AuthoredTotalsComparison = {
+    approvals: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.approvals)),
+    rejections: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.rejections)),
+    commentsWrittenTotal: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.commentsWrittenTotal)),
+    commentsWrittenToOthers: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.commentsWrittenToOthers)),
+    changesCreated: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.changesCreated)),
+    commits: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.commits)),
+    meanChangeOpenTimeMsec: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.meanChangeOpenTimeMsec)),
+  };
+
+  const receivedTotals: ReceivedTotalsComparison = {
+    approvals: sumMetricComparisons(memberComparisons.map((c) => c.receivedTotals.approvals)),
+    rejections: sumMetricComparisons(memberComparisons.map((c) => c.receivedTotals.rejections)),
+    commentsTotal: sumMetricComparisons(memberComparisons.map((c) => c.receivedTotals.commentsTotal)),
+    commentsByOthers: sumMetricComparisons(memberComparisons.map((c) => c.receivedTotals.commentsByOthers)),
+    reviewRequests: sumMetricComparisons(memberComparisons.map((c) => c.receivedTotals.reviewRequests)),
+  };
+
+  return {authoredTotals, receivedTotals};
 }
 
 function aggregateTimeSeries(
@@ -138,11 +191,16 @@ interface Props {
   fullResult: AnalyzeResult;
 }
 
-const TeamResultView: React.FC<Props> = ({className, team, members}) => {
+const TeamResultView: React.FC<Props> = ({className, team, members, fullResult}) => {
   const authoredTotals = useMemo(() => aggregateAuthoredTotals(members), [members]);
   const receivedTotals = useMemo(() => aggregateReceivedTotals(members), [members]);
   const timeSeries = useMemo(() => aggregateTimeSeries(members), [members]);
   const timeSeriesData = useMemo(() => toTimeSeriesData(timeSeries), [timeSeries]);
+  const comparison = useMemo(
+    () => aggregateTeamComparison(members, fullResult.comparisonResults),
+    [members, fullResult.comparisonResults]
+  );
+  const comparisonGranularity = fullResult.comparisonGranularity;
 
   return (
     <div className={classNames('TeamResultView', className)}>
@@ -170,36 +228,57 @@ const TeamResultView: React.FC<Props> = ({className, team, members}) => {
             tooltip="Total approvals given by team members."
             title="Approvals"
             value={authoredTotals.approvals}
+            comparison={comparison?.authoredTotals.approvals}
+            comparisonPolarity={AUTHORED_METRIC_POLARITY.approvals}
+            comparisonGranularity={comparisonGranularity}
           />
           <ValueCell
             tooltip="Total rejections given by team members."
             title="Rejections"
             value={authoredTotals.rejections}
+            comparison={comparison?.authoredTotals.rejections}
+            comparisonPolarity={AUTHORED_METRIC_POLARITY.rejections}
+            comparisonGranularity={comparisonGranularity}
           />
           <ValueCell
             tooltip="Total comments written by team members."
             title="Comments (Total)"
             value={authoredTotals.commentsWrittenTotal}
+            comparison={comparison?.authoredTotals.commentsWrittenTotal}
+            comparisonPolarity={AUTHORED_METRIC_POLARITY.commentsWrittenTotal}
+            comparisonGranularity={comparisonGranularity}
           />
           <ValueCell
             tooltip="Total comments written to others by team members."
             title="Comments to others"
             value={authoredTotals.commentsWrittenToOthers}
+            comparison={comparison?.authoredTotals.commentsWrittenToOthers}
+            comparisonPolarity={AUTHORED_METRIC_POLARITY.commentsWrittenToOthers}
+            comparisonGranularity={comparisonGranularity}
           />
           <ValueCell
             tooltip="Total change requests created by team members."
             title="Change requests"
             value={authoredTotals.changesCreated}
+            comparison={comparison?.authoredTotals.changesCreated}
+            comparisonPolarity={AUTHORED_METRIC_POLARITY.changesCreated}
+            comparisonGranularity={comparisonGranularity}
           />
           <ValueCell
             tooltip="Total commits created by team members."
             title="Commits"
             value={authoredTotals.commits}
+            comparison={comparison?.authoredTotals.commits}
+            comparisonPolarity={AUTHORED_METRIC_POLARITY.commits}
+            comparisonGranularity={comparisonGranularity}
           />
           <ValueCell
             tooltip="Average time changes have been open until merged (team average)."
             title="Average time in review"
             value={`${Math.round(authoredTotals.meanChangeOpenTimeMsec / 1000 / 60 / 60)}h`}
+            comparison={comparison?.authoredTotals.meanChangeOpenTimeMsec}
+            comparisonPolarity={AUTHORED_METRIC_POLARITY.meanChangeOpenTimeMsec}
+            comparisonGranularity={comparisonGranularity}
           />
           <ValueCell
             tooltip="Comments authored to others per review request received (team average)."
@@ -207,6 +286,12 @@ const TeamResultView: React.FC<Props> = ({className, team, members}) => {
             value={(authoredTotals.commentsWrittenToOthers / receivedTotals.reviewRequests).toFixed(
               1
             )}
+            comparison={computeRatioComparison(
+              comparison?.authoredTotals.commentsWrittenToOthers,
+              comparison?.receivedTotals.reviewRequests
+            )}
+            comparisonPolarity={AUTHORED_METRIC_POLARITY.commentsWrittenToOthers}
+            comparisonGranularity={comparisonGranularity}
           />
         </Panel>
 
@@ -215,31 +300,55 @@ const TeamResultView: React.FC<Props> = ({className, team, members}) => {
             tooltip="Total approvals received by team members."
             title="Approvals received"
             value={receivedTotals.approvals}
+            comparison={comparison?.receivedTotals.approvals}
+            comparisonPolarity={RECEIVED_METRIC_POLARITY.approvals}
+            comparisonGranularity={comparisonGranularity}
           />
           <ValueCell
             tooltip="Total rejections received by team members."
             title="Rejections received"
             value={receivedTotals.rejections}
+            comparison={comparison?.receivedTotals.rejections}
+            comparisonPolarity={RECEIVED_METRIC_POLARITY.rejections}
+            comparisonGranularity={comparisonGranularity}
           />
           <ValueCell
             tooltip="Total comments received by team members."
             title="Comments received"
             value={receivedTotals.commentsByOthers}
+            comparison={comparison?.receivedTotals.commentsByOthers}
+            comparisonPolarity={RECEIVED_METRIC_POLARITY.commentsByOthers}
+            comparisonGranularity={comparisonGranularity}
           />
           <ValueCell
             tooltip="Total review requests received by team members."
             title="Review requests"
             value={receivedTotals.reviewRequests}
+            comparison={comparison?.receivedTotals.reviewRequests}
+            comparisonPolarity={RECEIVED_METRIC_POLARITY.reviewRequests}
+            comparisonGranularity={comparisonGranularity}
           />
           <ValueCell
             tooltip="Comments received per change request (team average)."
             title="Comments / Change"
             value={(receivedTotals.commentsTotal / authoredTotals.changesCreated).toFixed(1)}
+            comparison={computeRatioComparison(
+              comparison?.receivedTotals.commentsTotal,
+              comparison?.authoredTotals.changesCreated
+            )}
+            comparisonPolarity={RECEIVED_METRIC_POLARITY.commentsTotal}
+            comparisonGranularity={comparisonGranularity}
           />
           <ValueCell
             tooltip="Comments received per commit (team average)."
             title="Comments / Commit"
             value={(receivedTotals.commentsTotal / authoredTotals.commits).toFixed(1)}
+            comparison={computeRatioComparison(
+              comparison?.receivedTotals.commentsTotal,
+              comparison?.authoredTotals.commits
+            )}
+            comparisonPolarity={RECEIVED_METRIC_POLARITY.commentsTotal}
+            comparisonGranularity={comparisonGranularity}
           />
         </Panel>
 
