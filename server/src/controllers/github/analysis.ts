@@ -59,7 +59,7 @@ interface GithubComputeContext {
 
 function createUserResult(user: User, repoConfig: RepoConfig): IntermediateUserResult {
   return {
-    id: `${user.id}`,
+    id: user.login,
     displayName: user.login,
     possibleRealNameCounts: {},
     emailAddresses: [],
@@ -661,10 +661,10 @@ export function getGithubRepoResult(
     repoConfig,
 
     acquireUserResult: (user: User): IntermediateUserResult => {
-      if (!userResults[user.id]) {
-        userResults[user.id] = createUserResult(user, repoConfig);
+      if (!userResults[user.login]) {
+        userResults[user.login] = createUserResult(user, repoConfig);
       }
-      return userResults[user.id];
+      return userResults[user.login];
     },
 
     adjustUserResult: (newUserResult: IntermediateUserResult) => {
