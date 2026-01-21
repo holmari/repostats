@@ -17,6 +17,13 @@ export function formatIsoDateTime(datetime: string) {
   return `${formatIsoDate(datetime)} ${formatIsoTime(datetime)}`;
 }
 
+export function isAllTimeInterval(interval: DateInterval): boolean {
+  return (
+    DateTime.fromISO(interval.startDate).toMillis() === 0 &&
+    DateTime.fromISO(interval.endDate).year > 2099
+  );
+}
+
 export function formatInterval(interval: DateInterval) {
   const start = formatIsoDate(interval.startDate);
   const end = formatIsoDate(interval.endDate);

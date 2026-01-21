@@ -8,3 +8,7 @@ export function getCookieAsJson(key: string) {
 export function writeCookieFromJson(key: string, value: any) {
   Cookies.set(key, JSON.stringify(value));
 }
+
+export function removeCookie(key: string) {
+  Cookies.remove(key);
+}

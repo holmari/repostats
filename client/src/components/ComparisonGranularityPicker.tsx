@@ -5,7 +5,7 @@ import {OverlayTrigger} from 'react-bootstrap';
 import Popover from 'react-bootstrap/Popover';
 
 import {ComparisonGranularity, DateInterval} from 'types/types';
-import {formatInterval, shiftIntervalBack} from 'date/utils';
+import {formatInterval, isAllTimeInterval, shiftIntervalBack} from 'date/utils';
 import TopBarButton from './TopBarButton';
 
 type ComparisonOption = ComparisonGranularity | 'off';
@@ -42,6 +42,7 @@ const ComparisonGranularityPicker: React.FC<Props> = ({
   onChange,
 }) => {
   const [isPopoverOpen, setPopoverOpen] = useState(false);
+  const isDisabled = dateInterval ? isAllTimeInterval(dateInterval) : false;
 
   const handleSelect = (value: ComparisonOption) => {
     setPopoverOpen(false);
@@ -49,7 +50,9 @@ const ComparisonGranularityPicker: React.FC<Props> = ({
   };
 
   const currentValue: ComparisonOption = comparisonGranularity ?? 'off';
-  const tooltipText = getComparisonTooltip(dateInterval, comparisonGranularity);
+  const tooltipText = isDisabled
+    ? 'Comparison not available for "All time" interval'
+    : getComparisonTooltip(dateInterval, comparisonGranularity);
 
   const popover = (
     <Popover id="comparison-granularity-popover" placement="top-start">
@@ -73,12 +76,20 @@ const ComparisonGranularityPicker: React.FC<Props> = ({
   );
 
   return (
-    <OverlayTrigger show={isPopoverOpen} placement="bottom-start" overlay={popover} rootClose>
-      <div className="ComparisonGranularityPicker" title={tooltipText ?? undefined}>
+    <OverlayTrigger
+      show={isPopoverOpen && !isDisabled}
+      placement="bottom-start"
+      overlay={popover}
+      rootClose
+    >
+      <div
+        className={`ComparisonGranularityPicker ${isDisabled ? 'ComparisonGranularityPicker--disabled' : ''}`}
+        title={tooltipText ?? undefined}
+      >
         <TopBarButton
-          onClick={() => setPopoverOpen(!isPopoverOpen)}
+          onClick={() => !isDisabled && setPopoverOpen(!isPopoverOpen)}
           title="Compare"
-          subtitle={getComparisonLabel(comparisonGranularity)}
+          subtitle={isDisabled ? 'N/A' : getComparisonLabel(comparisonGranularity)}
         />
       </div>
     </OverlayTrigger>

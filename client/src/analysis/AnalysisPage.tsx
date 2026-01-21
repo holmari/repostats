@@ -10,12 +10,13 @@ import {AnalyzeResult, AppSettings, ComparisonGranularity, DateInterval, Granula
 import EmptyContentView from 'components/EmptyContentView';
 import PageTopBar from 'components/PageTopBar';
 import DateIntervalPicker, {DEFAULT_INTERVAL} from 'components/DateIntervalPicker';
+import {isAllTimeInterval} from 'date/utils';
 import GranularityPicker from 'components/GranularityPicker';
 import ComparisonGranularityPicker from 'components/ComparisonGranularityPicker';
 import CenteredSpinner from 'components/CenteredSpinner';
 import RepositoryPicker from 'components/RepositoryPicker';
 import {useRootState} from 'state';
-import {getCookieAsJson, writeCookieFromJson} from 'cookies/utils';
+import {getCookieAsJson, removeCookie, writeCookieFromJson} from 'cookies/utils';
 
 export interface AnalysisOutletContext {
   result: AnalyzeResult;
@@ -61,6 +62,12 @@ const AnalysisPage: React.FC = () => {
     setDateInterval(interval);
     setStatus(RequestStatus.UNSTARTED);
     writeCookieFromJson('dateInterval', interval);
+
+    // Disable comparison when "All time" is selected
+    if (isAllTimeInterval(interval) && comparisonGranularity !== undefined) {
+      setComparisonGranularity(undefined);
+      removeCookie('comparisonGranularity');
+    }
   };
 
   const changeIncludedRepoNames = (repoNames: ReadonlyArray<string>) => {
@@ -78,7 +85,11 @@ const AnalysisPage: React.FC = () => {
   const changeComparisonGranularity = (newComparisonGranularity: ComparisonGranularity | undefined) => {
     setComparisonGranularity(newComparisonGranularity);
     setStatus(RequestStatus.UNSTARTED);
-    writeCookieFromJson('comparisonGranularity', newComparisonGranularity);
+    if (newComparisonGranularity === undefined) {
+      removeCookie('comparisonGranularity');
+    } else {
+      writeCookieFromJson('comparisonGranularity', newComparisonGranularity);
+    }
   };
 
   const clearError = useCallback(() => {

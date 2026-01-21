@@ -30,3 +30,8 @@
 .ComparisonGranularityPicker__option--selected:hover {
   background-color: #0d6efd;
 }
+
+.ComparisonGranularityPicker--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
