@@ -112,9 +112,21 @@ export function invalidateTopChangedFilesCache(repoName: string): void {
   deletePath(cacheFile);
 }
 
-function getUserFileStatsCacheKey(repoName: string, userId: string, since?: string, until?: string): string {
-  const dateRange = since && until ? `-${since}-${until}` : '';
-  return `user-file-stats-${repoName}-${userId}${dateRange}`;
+function getUserFileStatsCacheKey(
+  repoName: string,
+  userId: string,
+  excludedPaths: ReadonlyArray<string>,
+  since?: string,
+  until?: string
+): object {
+  return {
+    type: 'user-file-stats',
+    repoName,
+    userId,
+    excludedPaths,
+    since,
+    until,
+  };
 }
 
 function computeUserFileStats(repoName: string, userId: string, since?: string, until?: string): UserFileStats[] {
@@ -235,7 +247,16 @@ export function getUserFileStatsHandler(req: Request, res: Response): void {
     return;
   }
 
-  const cacheKey = getUserFileStatsCacheKey(repoName, userId, since, until);
+  // Get excluded paths from repo config for cache key
+  let excludedPaths: ReadonlyArray<string> = [];
+  try {
+    const repoConfig = getConfigFile(repoName);
+    excludedPaths = repoConfig.excludedFilePaths || [];
+  } catch {
+    // Ignore - will use empty exclusions
+  }
+
+  const cacheKey = getUserFileStatsCacheKey(repoName, userId, excludedPaths, since, until);
 
   // Check cache first
   const cached = readFromCache<UserFileStats[]>(cacheKey, CachePath.gitStats);
