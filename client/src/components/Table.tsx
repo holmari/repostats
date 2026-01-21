@@ -26,29 +26,41 @@ function Table<T extends object>({columns, data}: Props<T>) {
   return (
     <table className="Table" {...tableInstance.getTableProps()}>
       <thead>
-        {tableInstance.headerGroups.map((headerGroup) => (
-          <tr {...headerGroup.getHeaderGroupProps()}>
-            {headerGroup.headers.map((column) => {
-              const sortableColumn: SortableColumnProps<T> = column as SortableColumnProps<T>;
-              return (
-                <th {...column.getHeaderProps(sortableColumn.getSortByToggleProps())}>
-                  {column.render('Header')}
-                  <span className="Table__sort-arrow">
-                    {sortableColumn.isSorted ? (sortableColumn.isSortedDesc ? '⬇' : '⬆') : ''}
-                  </span>
-                </th>
-              );
-            })}
-          </tr>
-        ))}
+        {tableInstance.headerGroups.map((headerGroup) => {
+          const {key: headerGroupKey, ...headerGroupProps} = headerGroup.getHeaderGroupProps();
+          return (
+            <tr key={headerGroupKey} {...headerGroupProps}>
+              {headerGroup.headers.map((column) => {
+                const sortableColumn: SortableColumnProps<T> = column as SortableColumnProps<T>;
+                const {key: columnKey, ...columnProps} = column.getHeaderProps(
+                  sortableColumn.getSortByToggleProps()
+                );
+                return (
+                  <th key={columnKey} {...columnProps}>
+                    {column.render('Header')}
+                    <span className="Table__sort-arrow">
+                      {sortableColumn.isSorted ? (sortableColumn.isSortedDesc ? '⬇' : '⬆') : ''}
+                    </span>
+                  </th>
+                );
+              })}
+            </tr>
+          );
+        })}
       </thead>
       <tbody {...tableInstance.getTableBodyProps()}>
         {tableInstance.rows.map((row) => {
           tableInstance.prepareRow(row);
+          const {key: rowKey, ...rowProps} = row.getRowProps();
           return (
-            <tr {...row.getRowProps()}>
+            <tr key={rowKey} {...rowProps}>
               {row.cells.map((cell) => {
-                return <td {...cell.getCellProps()}>{cell.render('Cell')}</td>;
+                const {key: cellKey, ...cellProps} = cell.getCellProps();
+                return (
+                  <td key={cellKey} {...cellProps}>
+                    {cell.render('Cell')}
+                  </td>
+                );
               })}
             </tr>
           );
