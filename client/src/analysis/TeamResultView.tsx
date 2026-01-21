@@ -1,6 +1,7 @@
 import './TeamResultView.css';
 
 import classNames from 'classnames';
+import * as d3 from 'd3';
 import React, {useMemo} from 'react';
 import {Link} from 'react-router';
 
@@ -22,6 +23,8 @@ import TimeSeriesChart from './chart/TimeSeriesChart';
 import {accumulate} from './chart/utils';
 import {ChartDataSeries, DateValue} from './chart/types';
 import {AUTHORED_METRIC_POLARITY, computeRatioComparison, RECEIVED_METRIC_POLARITY} from './metricPolarity';
+import TeamOverviewTable from './TeamOverviewTable';
+import TeamMemberGraphPanel from './TeamMemberGraphPanel';
 
 function aggregateAuthoredTotals(members: ReadonlyArray<UserResult>): AuthoredTotals {
   let approvals = 0;
@@ -162,14 +165,41 @@ function aggregateTimeSeries(
             approvals: existing.reviewsReceived.approvals + activity.reviewsReceived.approvals,
             rejections: existing.reviewsReceived.rejections + activity.reviewsReceived.rejections,
           },
+          linesAdded: existing.linesAdded + (activity.linesAdded || 0),
+          linesDeleted: existing.linesDeleted + (activity.linesDeleted || 0),
         });
       } else {
-        byDate.set(activity.date, {...activity});
+        byDate.set(activity.date, {
+          ...activity,
+          linesAdded: activity.linesAdded || 0,
+          linesDeleted: activity.linesDeleted || 0,
+        });
       }
     }
   }
 
   return Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function toLinesChangedPerMemberData(
+  members: ReadonlyArray<UserResult>
+): ReadonlyArray<ChartDataSeries> {
+  const colors = d3.schemeTableau10;
+
+  return members.map((member, index) => {
+    const series: DateValue[] = member.timeSeries
+      .filter((activity) => (activity.linesAdded || 0) + (activity.linesDeleted || 0) > 0)
+      .map((activity) => ({
+        date: new Date(activity.date),
+        value: (activity.linesAdded || 0) + (activity.linesDeleted || 0),
+      }));
+
+    return {
+      label: member.displayName,
+      color: colors[index % colors.length],
+      series: accumulate(series),
+    };
+  });
 }
 
 function toTimeSeriesData(
@@ -204,6 +234,7 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
   const receivedTotals = useMemo(() => aggregateReceivedTotals(members), [members]);
   const timeSeries = useMemo(() => aggregateTimeSeries(members), [members]);
   const timeSeriesData = useMemo(() => toTimeSeriesData(timeSeries), [timeSeries]);
+  const linesChangedPerMemberData = useMemo(() => toLinesChangedPerMemberData(members), [members]);
   const comparison = useMemo(
     () => aggregateTeamComparison(members, fullResult.comparisonResults),
     [members, fullResult.comparisonResults]
@@ -402,6 +433,24 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
           <span>No activity data available for this team.</span>
         )}
       </Panel>
+
+      <Panel title="Lines changed per member over time" size="flex">
+        {linesChangedPerMemberData.some((d) => d.series.length > 0) ? (
+          <TimeSeriesChart data={linesChangedPerMemberData} />
+        ) : (
+          <span>No line change data available for this team.</span>
+        )}
+      </Panel>
+
+      <Panel title="Team Members" size="flex">
+        {members.length > 0 ? (
+          <TeamOverviewTable members={members} />
+        ) : (
+          <span>No members found in analysis.</span>
+        )}
+      </Panel>
+
+      <TeamMemberGraphPanel members={members} fullResult={fullResult} />
     </div>
   );
 };

@@ -215,6 +215,8 @@ function mergeUserResults(
       left.reviewsReceivedByDay,
       right.reviewsReceivedByDay
     ),
+    linesAddedByDay: mergeKeyedCounts(left.linesAddedByDay, right.linesAddedByDay),
+    linesDeletedByDay: mergeKeyedCounts(left.linesDeletedByDay, right.linesDeletedByDay),
     interval,
   };
 }

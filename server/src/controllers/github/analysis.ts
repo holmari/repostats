@@ -80,6 +80,8 @@ function createUserResult(user: User, repoConfig: RepoConfig): IntermediateUserR
     commitsAuthoredByDay: {},
     reviewsAuthoredByDay: {},
     reviewsReceivedByDay: {},
+    linesAddedByDay: {},
+    linesDeletedByDay: {},
     interval: EMPTY_INTERVAL,
   };
 }
@@ -745,8 +747,17 @@ function processGitStats(
   // Parse git log output
   const entries = parseGitLogOutput(result.stdout);
 
-  // Aggregate stats by user login
-  const statsByLogin: {[login: string]: {linesAdded: number; linesDeleted: number}} = {};
+  // Aggregate stats by user login (totals and per day)
+  // Using mutable type for aggregation since CountByDay is readonly
+  type MutableCountByDay = {[date: string]: number};
+  const statsByLogin: {
+    [login: string]: {
+      linesAdded: number;
+      linesDeleted: number;
+      linesAddedByDay: MutableCountByDay;
+      linesDeletedByDay: MutableCountByDay;
+    };
+  } = {};
 
   for (const entry of entries) {
     const login = emailMapping.get(entry.email);
@@ -755,11 +766,23 @@ function processGitStats(
     }
 
     if (!statsByLogin[login]) {
-      statsByLogin[login] = {linesAdded: 0, linesDeleted: 0};
+      statsByLogin[login] = {
+        linesAdded: 0,
+        linesDeleted: 0,
+        linesAddedByDay: {},
+        linesDeletedByDay: {},
+      };
     }
 
     statsByLogin[login].linesAdded += entry.insertions;
     statsByLogin[login].linesDeleted += entry.deletions;
+
+    // Aggregate per day
+    const dateKey = sliceDate(entry.date);
+    statsByLogin[login].linesAddedByDay[dateKey] =
+      (statsByLogin[login].linesAddedByDay[dateKey] || 0) + entry.insertions;
+    statsByLogin[login].linesDeletedByDay[dateKey] =
+      (statsByLogin[login].linesDeletedByDay[dateKey] || 0) + entry.deletions;
   }
 
   // Update user results with line stats by finding users by their displayName
@@ -781,9 +804,21 @@ function processGitStats(
       },
     }));
 
+    // Merge per-day line stats (using mutable type for modification, then assign to readonly)
+    const mergedLinesAddedByDay: MutableCountByDay = {...userResult.linesAddedByDay};
+    const mergedLinesDeletedByDay: MutableCountByDay = {...userResult.linesDeletedByDay};
+    for (const [date, count] of Object.entries(stats.linesAddedByDay)) {
+      mergedLinesAddedByDay[date] = (mergedLinesAddedByDay[date] || 0) + count;
+    }
+    for (const [date, count] of Object.entries(stats.linesDeletedByDay)) {
+      mergedLinesDeletedByDay[date] = (mergedLinesDeletedByDay[date] || 0) + count;
+    }
+
     userResults[userResult.id] = {
       ...userResult,
       repoTotals: updatedRepoTotals,
+      linesAddedByDay: mergedLinesAddedByDay,
+      linesDeletedByDay: mergedLinesDeletedByDay,
     };
   }
 }

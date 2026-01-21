@@ -85,6 +85,8 @@ function toTimeSeries(
   const commitsAuthoredDates = Object.keys(userResult.commitsAuthoredByDay);
   const reviewsAuthoredDates = Object.keys(userResult.reviewsAuthoredByDay);
   const reviewsReceivedDates = Object.keys(userResult.reviewsReceivedByDay);
+  const linesAddedDates = Object.keys(userResult.linesAddedByDay);
+  const linesDeletedDates = Object.keys(userResult.linesDeletedByDay);
 
   const allDates: ReadonlyArray<string> = [
     ...removeDuplicates([
@@ -94,6 +96,8 @@ function toTimeSeries(
       ...commitsAuthoredDates,
       ...reviewsAuthoredDates,
       ...reviewsReceivedDates,
+      ...linesAddedDates,
+      ...linesDeletedDates,
     ]),
   ].sort((a, b) => -b.localeCompare(a));
 
@@ -112,6 +116,8 @@ function toTimeSeries(
         commitsAuthored: 0,
         reviewsAuthored: {approvals: 0, rejections: 0},
         reviewsReceived: {approvals: 0, rejections: 0},
+        linesAdded: 0,
+        linesDeleted: 0,
       };
     }
 
@@ -120,6 +126,8 @@ function toTimeSeries(
     period.commentsAuthored += userResult.commentsAuthoredByDay[date] || 0;
     period.commentsReceived += userResult.commentsReceivedByDay[date] || 0;
     period.commitsAuthored += userResult.commitsAuthoredByDay[date] || 0;
+    period.linesAdded += userResult.linesAddedByDay[date] || 0;
+    period.linesDeleted += userResult.linesDeletedByDay[date] || 0;
 
     const reviewsAuthored = userResult.reviewsAuthoredByDay[date];
     if (reviewsAuthored) {

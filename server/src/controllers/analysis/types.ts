@@ -31,6 +31,10 @@ export type IntermediateUserResult = Omit<
   readonly reviewsReceivedByDay: ReviewSummariesByDay;
   // The change requests (i.e. pull requests in GitHub) the user authored.
   readonly changesAuthored: ReadonlyArray<Change>;
+  // Lines of code added per day (keyed by an ISO date timestamp).
+  readonly linesAddedByDay: CountByDay;
+  // Lines of code deleted per day (keyed by an ISO date timestamp).
+  readonly linesDeletedByDay: CountByDay;
 };
 
 export type IntermediateAnalyzeResult = Omit<AnalyzeResult, 'interval' | 'requestedInterval' | 'userResults'> & {

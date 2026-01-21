@@ -1,6 +1,6 @@
 import './TimeSeriesChart.css';
 
-import {useCallback} from 'react';
+import React, {useCallback, useState} from 'react';
 import * as d3 from 'd3';
 
 import {removeDuplicates} from 'arrays/utils';
@@ -40,76 +40,163 @@ function getClosestValueToDate(referenceDate: Date, dataSeries: ChartDataSeries)
     : series[index].value;
 }
 
+interface LegendItemElements {
+  readonly rect: d3.Selection<SVGRectElement, unknown, null, undefined>;
+  readonly label: d3.Selection<SVGTextElement, unknown, null, undefined>;
+  readonly value: d3.Selection<SVGTextElement, unknown, null, undefined>;
+  readonly clickArea: d3.Selection<SVGRectElement, unknown, null, undefined>;
+}
+
 function createLegendItem(
   parent: d3.Selection<SVGGElement, unknown, null, undefined>,
   series: ChartDataSeries,
   x: number,
   y: number,
+  isHidden: boolean,
+  onToggle: (() => void) | null,
   legendItemSize = 16,
   fontSize = 12
-) {
-  parent
+): LegendItemElements {
+  const rect = parent
     .append('rect')
     .attr('width', legendItemSize)
     .attr('height', legendItemSize)
     .attr('x', x)
     .attr('y', y)
-    .style('fill', series.color);
+    .style('fill', series.color)
+    .style('opacity', isHidden ? 0.3 : 1);
 
-  parent
+  const label = parent
     .append('text')
     .attr('class', 'TimeSeriesChart__legend-item')
     .attr('x', x + legendItemSize + 12)
     .attr('y', y + legendItemSize - fontSize / 2)
     .style('font-size', `${fontSize}px`)
     .style('alignment-baseline', 'middle')
+    .style('text-decoration', isHidden ? 'line-through' : 'none')
+    .style('opacity', isHidden ? 0.5 : 1)
     .text(series.label);
 
-  return parent
+  const value = parent
     .append('text')
     .attr('class', 'TimeSeriesChart__legend-item')
     .attr('x', x + 160)
     .attr('y', y + legendItemSize - fontSize / 2)
     .style('font-size', `${fontSize}px`)
     .style('alignment-baseline', 'middle')
+    .style('opacity', isHidden ? 0.5 : 1)
     .text(''); // updated at runtime
+
+  // Invisible click area for easier clicking
+  const clickArea = parent
+    .append('rect')
+    .attr('width', 200)
+    .attr('height', legendItemSize + 4)
+    .attr('x', x)
+    .attr('y', y - 2)
+    .style('fill', 'transparent')
+    .style('cursor', onToggle ? 'pointer' : 'default');
+
+  if (onToggle) {
+    clickArea.on('click', onToggle);
+  }
+
+  return {rect, label, value, clickArea};
 }
 
 function createLegendItems(
   parent: d3.Selection<SVGGElement, unknown, null, undefined>,
   context: SvgTimeSeriesChartContext,
+  hiddenSeriesLabels: ReadonlySet<string>,
+  onToggleSeries: ((label: string) => void) | null,
   x = 10,
   y = context.chartShape.margins.top + 16
-): ReadonlyArray<d3.Selection<SVGTextElement, unknown, null, undefined>> {
+): ReadonlyArray<LegendItemElements> {
   return context.series.map((seriesItem, index) => {
-    return createLegendItem(parent, seriesItem, x, y + 24 * index);
+    const isHidden = hiddenSeriesLabels.has(seriesItem.label);
+    const onToggle = onToggleSeries ? () => onToggleSeries(seriesItem.label) : null;
+    return createLegendItem(parent, seriesItem, x, y + 24 * index, isHidden, onToggle);
   });
 }
 
-function createLegend(
-  parent: d3.Selection<SVGGElement, unknown, null, undefined>,
-  context: SvgTimeSeriesChartContext,
-  x = 0,
-  y = 0,
-  paddingX = 10,
-  paddingY = context.chartShape.margins.top + 16
-): [
-  d3.Selection<SVGGElement, unknown, null, undefined>,
-  ReadonlyArray<d3.Selection<SVGTextElement, unknown, null, undefined>>
-] {
-  const legendContainer = parent
-    .append('g')
-    .attr('class', 'chartLegend')
-    .attr('transform', `translate(${x},${y})`);
-
-  return [legendContainer, createLegendItems(legendContainer, context, paddingX, paddingY)];
+interface ChartLegendProps {
+  series: ReadonlyArray<ChartDataSeries>;
+  hiddenSeriesLabels: ReadonlySet<string>;
+  onToggleSeries: (label: string) => void;
 }
+
+const ChartLegend: React.FC<ChartLegendProps> = ({
+  series,
+  hiddenSeriesLabels,
+  onToggleSeries,
+}) => {
+  return (
+    <div
+      className="TimeSeriesChart__legend"
+      style={{
+        width: 200,
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        cursor: 'pointer',
+      }}
+    >
+      {series.map((seriesItem) => {
+        const isHidden = hiddenSeriesLabels.has(seriesItem.label);
+        return (
+          <div
+            key={seriesItem.label}
+            className="TimeSeriesChart__legend-row"
+            onClick={() => onToggleSeries(seriesItem.label)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              height: 24,
+              padding: '0 8px',
+              cursor: 'pointer',
+              userSelect: 'none',
+            }}
+          >
+            <div
+              style={{
+                width: 14,
+                height: 14,
+                minWidth: 14,
+                backgroundColor: seriesItem.color,
+                opacity: isHidden ? 0.3 : 1,
+                marginRight: 8,
+              }}
+            />
+            <div
+              style={{
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                textDecoration: isHidden ? 'line-through' : 'none',
+                opacity: isHidden ? 0.5 : 1,
+              }}
+            >
+              {seriesItem.label}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
 
 function createVerticalGuide(
   context: SvgTimeSeriesChartContext,
-  legendSize: Size = {width: 210, height: 120},
+  hiddenSeriesLabels: ReadonlySet<string>,
   legendMargin: number = 10
 ): VerticalGuide {
+  // Calculate dynamic legend height based on number of series
+  const headerHeight = 30;
+  const itemHeight = 24;
+  const padding = 16;
+  const legendHeight = headerHeight + context.series.length * itemHeight + padding;
+  const legendSize: Size = {width: 210, height: legendHeight};
+
   const guideLine = context.svg
     .append('line')
     .attr('class', 'TimeSeriesChart__vertical-guide')
@@ -143,7 +230,8 @@ function createVerticalGuide(
     focusDotsGroup.append('circle').attr('r', 5).style('fill', seriesItem.color)
   );
 
-  const legendItems = createLegendItems(dynamicLegendGroup, context);
+  // Tooltip legend doesn't need click handlers, and shows hidden items with reduced opacity
+  const legendItems = createLegendItems(dynamicLegendGroup, context, hiddenSeriesLabels, null);
 
   function setVisibility(isVisible: boolean) {
     const visibility = isVisible ? 'visible' : 'hidden';
@@ -173,14 +261,19 @@ function createVerticalGuide(
       legendHeader.text(formatIsoDate(date.toISOString()));
 
       focusDots.forEach((focusDotItem, index) => {
-        const value = getClosestValueToDate(date, context.series[index]);
+        const seriesItem = context.series[index];
+        const isHidden = hiddenSeriesLabels.has(seriesItem.label);
+        const value = getClosestValueToDate(date, seriesItem);
         if (value === null) {
           return;
         }
 
-        focusDotItem.attr('cx', x).attr('cy', context.yScale(value));
+        focusDotItem
+          .attr('cx', x)
+          .attr('cy', context.yScale(value))
+          .style('opacity', isHidden ? 0.3 : 1);
 
-        legendItems[index].text(value);
+        legendItems[index].value.text(value);
       });
     },
   };
@@ -189,8 +282,12 @@ function createVerticalGuide(
 function renderChart(
   svg: d3.Selection<SVGGElement, unknown, null, undefined>,
   shape: ChartShape,
-  series: ReadonlyArray<ChartDataSeries>
+  series: ReadonlyArray<ChartDataSeries>,
+  hiddenSeriesLabels: ReadonlySet<string>
 ) {
+  // Filter to visible series for calculations
+  const visibleSeries = series.filter((s) => !hiddenSeriesLabels.has(s.label));
+
   const dates = removeDuplicates(
     series
       .flatMap((item) => item.series)
@@ -201,11 +298,12 @@ function renderChart(
   const isValid = xDomain.length === 2;
 
   const xScale = d3.scaleTime([0, shape.size.width]).domain(xDomain);
+  // Y-scale based on visible series only
   const yScale = d3
     .scaleLinear([shape.size.height, 0])
     .domain([
       0,
-      d3.max(series.map((item) => d3.max(item.series.map((value) => value.value)) || 0)) || 0,
+      d3.max(visibleSeries.map((item) => d3.max(item.series.map((value) => value.value)) || 0)) || 0,
     ]);
 
   const xAxis = d3.axisBottom(xScale).tickFormat((dateOrNumber) => {
@@ -236,9 +334,8 @@ function renderChart(
       yScale,
     };
 
-    const [legend] = createLegend(svg, context, 16, 0, 0, 0);
-
-    series.forEach((seriesItem) => {
+    // Only render lines for visible series
+    visibleSeries.forEach((seriesItem) => {
       const seriesMapper = d3
         .line<DateValue>()
         .curve(d3.curveStepAfter)
@@ -253,21 +350,20 @@ function renderChart(
         .attr('d', seriesMapper(seriesItem.series)!);
     });
 
-    const verticalGuide = createVerticalGuide(context);
+    const verticalGuide = createVerticalGuide(context, hiddenSeriesLabels);
 
+    // Overlay only covers the chart area, not the legend on the right
     svg
       .append('rect')
-      .attr('width', shape.size.width + shape.margins.left + shape.margins.right)
-      .attr('height', shape.size.height + shape.margins.top + shape.margins.bottom)
+      .attr('width', shape.size.width)
+      .attr('height', shape.size.height)
       .attr('fill', 'transparent')
       .on('mouseover', (event) => {
         verticalGuide.show();
         verticalGuide.updatePosition(d3.pointer(event));
-        legend.style('visibility', 'hidden');
       })
       .on('mouseout', () => {
         verticalGuide.hide();
-        legend.style('visibility', 'visible');
       })
       .on('mousemove', (event) => {
         verticalGuide.updatePosition(d3.pointer(event));
@@ -286,14 +382,37 @@ function renderChart(
 }
 
 const TimeSeriesChart: React.FC<Props> = ({data, margins = DEFAULT_MARGINS, size = DEFAULT_SIZE}) => {
+  const [hiddenSeriesLabels, setHiddenSeriesLabels] = useState<Set<string>>(new Set());
+
+  const toggleSeries = useCallback((label: string) => {
+    setHiddenSeriesLabels((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) {
+        next.delete(label);
+      } else {
+        next.add(label);
+      }
+      return next;
+    });
+  }, []);
+
   const render = useCallback(
     (chart: d3.Selection<SVGGElement, unknown, null, undefined>, shape: ChartShape) => {
-      renderChart(chart, shape, data);
+      renderChart(chart, shape, data, hiddenSeriesLabels);
     },
-    [data]
+    [data, hiddenSeriesLabels]
   );
 
-  return <D3Chart size={size} margins={margins} renderChart={render} />;
+  return (
+    <div className="TimeSeriesChart__container" style={{display: 'flex'}}>
+      <D3Chart size={size} margins={margins} renderChart={render} />
+      <ChartLegend
+        series={data}
+        hiddenSeriesLabels={hiddenSeriesLabels}
+        onToggleSeries={toggleSeries}
+      />
+    </div>
+  );
 };
 TimeSeriesChart.displayName = 'TimeSeriesChart';
 interface Props {

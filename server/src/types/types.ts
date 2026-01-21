@@ -215,6 +215,8 @@ export interface UserActivitySummary {
   readonly commitsAuthored: number;
   readonly reviewsAuthored: ReviewsSummary;
   readonly reviewsReceived: ReviewsSummary;
+  readonly linesAdded: number;
+  readonly linesDeleted: number;
 }
 export interface UserResult {
   // Uniquely identifiable user id in the given backend.
