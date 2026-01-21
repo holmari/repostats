@@ -37,7 +37,7 @@ export type IntermediateUserResult = Omit<
   readonly linesDeletedByDay: CountByDay;
 };
 
-export type IntermediateAnalyzeResult = Omit<AnalyzeResult, 'interval' | 'requestedInterval' | 'userResults'> & {
+export type IntermediateAnalyzeResult = Omit<AnalyzeResult, 'interval' | 'requestedInterval' | 'userResults' | 'granularity'> & {
   readonly userResults: IntermediateUserResultsByUserId;
 };
 

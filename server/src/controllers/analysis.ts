@@ -255,6 +255,7 @@ function computeAnalysisResultCore(
   interval: DateInterval | null;
   requestedInterval: DateInterval;
   userResults: ReturnType<typeof postProcessUserResults>;
+  granularity: Granularity;
 } {
   const repoMetadatas = fs
     .readdirSync(getReposPath())
@@ -293,6 +294,7 @@ function computeAnalysisResultCore(
     interval,
     requestedInterval: request.dateInterval,
     userResults: postProcessUserResults(userResults, request.granularity),
+    granularity: request.granularity,
   };
 }
 

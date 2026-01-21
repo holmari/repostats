@@ -286,6 +286,8 @@ export interface AnalyzeResult {
   // from the analysis request, used by git stats queries.
   readonly requestedInterval: DateInterval;
   readonly userResults: UserResultsByUserId;
+  // The granularity used for aggregating time series data.
+  readonly granularity: Granularity;
   readonly comparisonResults?: {readonly [userId: string]: UserResultComparison};
   readonly comparisonGranularity?: ComparisonGranularity;
 }

@@ -1,0 +1,54 @@
+.UserActivityTablePanel__container {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.UserActivityTablePanel__table {
+  border-collapse: collapse;
+  font-family: 'Gill Sans', 'Gill Sans MT', Calibri, sans-serif;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.UserActivityTablePanel__table th,
+.UserActivityTablePanel__table td {
+  border: 1px solid #e0e0e0;
+  padding: 6px 10px;
+  text-align: right;
+}
+
+.UserActivityTablePanel__metric-header {
+  text-align: left !important;
+  font-weight: 600;
+  background-color: #f5f5f5;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.UserActivityTablePanel__period-header {
+  font-weight: 600;
+  background-color: #f5f5f5;
+  min-width: 70px;
+}
+
+.UserActivityTablePanel__metric-label {
+  text-align: left !important;
+  font-weight: 500;
+  background-color: #fafafa;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.UserActivityTablePanel__value {
+  color: #303138;
+}
+
+.UserActivityTablePanel__table tbody tr:hover {
+  background-color: #f0f7ff;
+}
+
+.UserActivityTablePanel__table tbody tr:hover .UserActivityTablePanel__metric-label {
+  background-color: #e8f0fe;
+}

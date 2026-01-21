@@ -304,6 +304,7 @@ export function createAnalyzeResult(
     interval,
     requestedInterval,
     userResults,
+    granularity,
   };
 }
 
