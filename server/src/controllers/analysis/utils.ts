@@ -23,6 +23,53 @@ import {
   UserResultsByDisplayName,
 } from './types';
 
+/**
+ * Computes the value at a given percentile from a sorted array.
+ * Uses linear interpolation for values between indices.
+ */
+function computePercentile(sortedValues: ReadonlyArray<number>, percentile: number): number {
+  if (sortedValues.length === 0) {
+    return NaN;
+  }
+  if (sortedValues.length === 1) {
+    return sortedValues[0];
+  }
+
+  const index = (percentile / 100) * (sortedValues.length - 1);
+  const lower = Math.floor(index);
+  const upper = Math.ceil(index);
+
+  if (lower === upper) {
+    return sortedValues[lower];
+  }
+
+  // Linear interpolation
+  const weight = index - lower;
+  return sortedValues[lower] * (1 - weight) + sortedValues[upper] * weight;
+}
+
+/**
+ * Computes percentile statistics for change open times.
+ */
+function computeChangeOpenTimePercentiles(changeTimes: ReadonlyArray<number>): {
+  median: number;
+  p25: number;
+  p90: number;
+  p99: number;
+} {
+  if (changeTimes.length === 0) {
+    return {median: NaN, p25: NaN, p90: NaN, p99: NaN};
+  }
+
+  const sorted = [...changeTimes].sort((a, b) => a - b);
+  return {
+    p25: computePercentile(sorted, 25),
+    median: computePercentile(sorted, 50),
+    p90: computePercentile(sorted, 90),
+    p99: computePercentile(sorted, 99),
+  };
+}
+
 export function createDefaultUserRepoTotals(repoConfig: RepoConfig): UserRepoTotals {
   return {
     repoName: repoConfig.name,
@@ -33,7 +80,10 @@ export function createDefaultUserRepoTotals(repoConfig: RepoConfig): UserRepoTot
       commentsWrittenToOthers: 0,
       changesCreated: 0,
       commits: 0,
-      meanChangeOpenTimeMsec: NaN,
+      medianChangeOpenTimeMsec: NaN,
+      p25ChangeOpenTimeMsec: NaN,
+      p90ChangeOpenTimeMsec: NaN,
+      p99ChangeOpenTimeMsec: NaN,
       linesAdded: 0,
       linesDeleted: 0,
     },
@@ -60,17 +110,18 @@ function postProcessUserRepoTotals(
   const changesInRepo = userResult.changesAuthored.filter(
     (change) => change.repoName === repoTotals.repoName
   );
+  const changeTimes = changesInRepo.map((change) => change.timeOpenMsec);
+  const percentiles = computeChangeOpenTimePercentiles(changeTimes);
+
   return {
     ...repoTotals,
     authoredTotals: {
       ...repoTotals.authoredTotals,
       changesCreated: changesInRepo.length,
-      meanChangeOpenTimeMsec:
-        userResult.changesAuthored.length > 0
-          ? userResult.changesAuthored
-              .map((change) => change.timeOpenMsec)
-              .reduce((acc, timeOpen) => acc + timeOpen, 0) / userResult.changesAuthored.length
-          : NaN,
+      medianChangeOpenTimeMsec: percentiles.median,
+      p25ChangeOpenTimeMsec: percentiles.p25,
+      p90ChangeOpenTimeMsec: percentiles.p90,
+      p99ChangeOpenTimeMsec: percentiles.p99,
     },
   };
 }
@@ -193,7 +244,12 @@ function getCommentsAuthoredPerChangeByUserId(
   }, {});
 }
 
-function aggregateAuthoredTotals(repoTotals: ReadonlyArray<UserRepoTotals>): AuthoredTotals {
+function aggregateAuthoredTotals(
+  repoTotals: ReadonlyArray<UserRepoTotals>,
+  allChangeTimes: ReadonlyArray<number>
+): AuthoredTotals {
+  const percentiles = computeChangeOpenTimePercentiles(allChangeTimes);
+
   return repoTotals
     .map((totals) => totals.authoredTotals)
     .reduce<AuthoredTotals>(
@@ -205,9 +261,11 @@ function aggregateAuthoredTotals(repoTotals: ReadonlyArray<UserRepoTotals>): Aut
           commentsWrittenToOthers: totals.commentsWrittenToOthers + item.commentsWrittenToOthers,
           rejections: totals.rejections + item.rejections,
           commits: totals.commits + item.commits,
-          meanChangeOpenTimeMsec: isNaN(totals.meanChangeOpenTimeMsec)
-            ? item.meanChangeOpenTimeMsec
-            : (totals.meanChangeOpenTimeMsec + item.meanChangeOpenTimeMsec) / 2,
+          // Percentiles are computed from all changes, not aggregated per-repo
+          medianChangeOpenTimeMsec: percentiles.median,
+          p25ChangeOpenTimeMsec: percentiles.p25,
+          p90ChangeOpenTimeMsec: percentiles.p90,
+          p99ChangeOpenTimeMsec: percentiles.p99,
           linesAdded: totals.linesAdded + item.linesAdded,
           linesDeleted: totals.linesDeleted + item.linesDeleted,
         };
@@ -219,7 +277,10 @@ function aggregateAuthoredTotals(repoTotals: ReadonlyArray<UserRepoTotals>): Aut
         commentsWrittenToOthers: 0,
         rejections: 0,
         commits: 0,
-        meanChangeOpenTimeMsec: NaN,
+        medianChangeOpenTimeMsec: percentiles.median,
+        p25ChangeOpenTimeMsec: percentiles.p25,
+        p90ChangeOpenTimeMsec: percentiles.p90,
+        p99ChangeOpenTimeMsec: percentiles.p99,
         linesAdded: 0,
         linesDeleted: 0,
       }
@@ -251,6 +312,8 @@ function postProcessUserResult(
     postProcessUserRepoTotals(totals, userResult)
   );
 
+  const allChangeTimes = userResult.changesAuthored.map((change) => change.timeOpenMsec);
+
   return {
     id: userResult.displayName, // intentional: displayName is assumed to be unique at this point.
     displayName: userResult.displayName,
@@ -270,7 +333,7 @@ function postProcessUserResult(
     repoTotals,
     interval: getUserResultDateInterval(timeSeries) || EMPTY_INTERVAL,
     activeDaysCount: timeSeries.length,
-    aggregatedAuthoredTotals: aggregateAuthoredTotals(repoTotals),
+    aggregatedAuthoredTotals: aggregateAuthoredTotals(repoTotals, allChangeTimes),
     aggregatedReceivedTotals: aggregateReceivedTotals(repoTotals),
   };
 }

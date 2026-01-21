@@ -53,3 +53,13 @@
   padding-top: 0.8em;
   font-size: 24px;
 }
+
+.ValueCell__corner {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  font-size: 10px;
+  color: #888;
+  text-align: left;
+  line-height: 1.3;
+}

@@ -105,9 +105,9 @@ export function getUserOverviewColumns(): ReadonlyArray<SortableColumn<UserResul
       maxWidth: 100,
     },
     {
-      Header: 'Avg. time in Review (h)',
+      Header: 'Median time in Review (h)',
       accessor: (row) =>
-        Math.round(row.aggregatedAuthoredTotals.meanChangeOpenTimeMsec / 1000 / 60 / 60),
+        Math.round(row.aggregatedAuthoredTotals.medianChangeOpenTimeMsec / 1000 / 60 / 60),
       maxWidth: 100,
     },
   ];

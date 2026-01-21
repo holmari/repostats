@@ -34,6 +34,7 @@ const ValueCell: React.FC<Props> = ({
   comparison,
   comparisonGranularity,
   comparisonPolarity,
+  cornerContent,
   fontSize,
   size = 'normal',
   title,
@@ -52,6 +53,7 @@ const ValueCell: React.FC<Props> = ({
         className={classNames('ValueCell', className, `font-size-${fontSize}`, size)}
         data-toggle="tooltip"
       >
+        {cornerContent && <div className="ValueCell__corner">{cornerContent}</div>}
         <div className="ValueCell__value">
           {displayValue}
           {showComparison && (
@@ -74,6 +76,7 @@ interface Props {
   comparison?: MetricComparison;
   comparisonGranularity?: ComparisonGranularity;
   comparisonPolarity?: MetricPolarity;
+  cornerContent?: React.ReactNode;
   fontSize?: 'small' | 'normal';
   size?: 'normal' | 'wide' | 'x-wide';
   title: string;

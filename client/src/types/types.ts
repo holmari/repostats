@@ -104,7 +104,7 @@ export interface AuthoredTotalsComparison {
   readonly commentsWrittenToOthers: MetricComparison;
   readonly changesCreated: MetricComparison;
   readonly commits: MetricComparison;
-  readonly meanChangeOpenTimeMsec: MetricComparison;
+  readonly medianChangeOpenTimeMsec: MetricComparison;
   readonly linesAdded: MetricComparison;
   readonly linesDeleted: MetricComparison;
 }
@@ -161,8 +161,11 @@ export interface AuthoredTotals {
   // In Gerrit, this is the number of change requests the user has pushed.
   // Note the unfortunate ambiguity with change requests vs. GitHub's "Changes requested".
   readonly changesCreated: number;
-  // The mean (average) time that the change was open (i.e. from creation to merge/close).
-  readonly meanChangeOpenTimeMsec: number;
+  // Percentile values for time that changes were open (from creation to merge/close).
+  readonly medianChangeOpenTimeMsec: number;
+  readonly p25ChangeOpenTimeMsec: number;
+  readonly p90ChangeOpenTimeMsec: number;
+  readonly p99ChangeOpenTimeMsec: number;
   // The number of commits this user created.
   readonly commits: number;
   // Lines of code added by this user.

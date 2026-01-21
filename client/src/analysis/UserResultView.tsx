@@ -20,6 +20,13 @@ import ChangesPanel from './ChangesPanel';
 import UserFileStatsPanel from './UserFileStatsPanel';
 import UserActivityTablePanel from './UserActivityTablePanel';
 
+function formatTimeInHours(msec: number): string {
+  if (isNaN(msec) || !isFinite(msec)) {
+    return '-';
+  }
+  return `${Math.round(msec / 1000 / 60 / 60)}h`;
+}
+
 const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
   const authoredTotals = user.aggregatedAuthoredTotals;
   const receivedTotals = user.aggregatedReceivedTotals;
@@ -97,12 +104,19 @@ const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
             comparisonGranularity={comparisonGranularity}
           />
           <ValueCell
-            tooltip="How long this user's changes have been open until merged."
-            title="Average time in review"
-            value={`${Math.round(authoredTotals.meanChangeOpenTimeMsec / 1000 / 60 / 60)}h`}
-            comparison={comparison?.authoredTotals.meanChangeOpenTimeMsec}
-            comparisonPolarity={AUTHORED_METRIC_POLARITY.meanChangeOpenTimeMsec}
+            tooltip="How long this user's changes have been open until merged (median)."
+            title="Median time in review"
+            value={formatTimeInHours(authoredTotals.medianChangeOpenTimeMsec)}
+            comparison={comparison?.authoredTotals.medianChangeOpenTimeMsec}
+            comparisonPolarity={AUTHORED_METRIC_POLARITY.medianChangeOpenTimeMsec}
             comparisonGranularity={comparisonGranularity}
+            cornerContent={
+              <>
+                <div>p25: {formatTimeInHours(authoredTotals.p25ChangeOpenTimeMsec)}</div>
+                <div>p90: {formatTimeInHours(authoredTotals.p90ChangeOpenTimeMsec)}</div>
+                <div>p99: {formatTimeInHours(authoredTotals.p99ChangeOpenTimeMsec)}</div>
+              </>
+            }
           />
           <ValueCell
             tooltip="The ratio of comments the user authored to others per every review request they received."

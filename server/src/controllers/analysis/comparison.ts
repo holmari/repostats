@@ -41,9 +41,9 @@ export function compareAuthoredTotals(
     ),
     changesCreated: createMetricComparison(current.changesCreated, previous.changesCreated),
     commits: createMetricComparison(current.commits, previous.commits),
-    meanChangeOpenTimeMsec: createMetricComparison(
-      current.meanChangeOpenTimeMsec,
-      previous.meanChangeOpenTimeMsec
+    medianChangeOpenTimeMsec: createMetricComparison(
+      current.medianChangeOpenTimeMsec,
+      previous.medianChangeOpenTimeMsec
     ),
     linesAdded: createMetricComparison(current.linesAdded, previous.linesAdded),
     linesDeleted: createMetricComparison(current.linesDeleted, previous.linesDeleted),
@@ -71,7 +71,10 @@ function createEmptyAuthoredTotals(): AuthoredTotals {
     commentsWrittenToOthers: 0,
     changesCreated: 0,
     commits: 0,
-    meanChangeOpenTimeMsec: 0,
+    medianChangeOpenTimeMsec: 0,
+    p25ChangeOpenTimeMsec: 0,
+    p90ChangeOpenTimeMsec: 0,
+    p99ChangeOpenTimeMsec: 0,
     linesAdded: 0,
     linesDeleted: 0,
   };

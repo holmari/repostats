@@ -177,7 +177,11 @@ function incrementAuthoredTotals(
       commentsWrittenToOthers:
         authoredTotals.commentsWrittenToOthers + (adjustments.commentsWrittenToOthers || 0),
       commits: authoredTotals.commits + (adjustments.commits || 0),
-      meanChangeOpenTimeMsec: NaN, // this is computed in the post-processing step
+      // Percentiles are computed in the post-processing step
+      medianChangeOpenTimeMsec: NaN,
+      p25ChangeOpenTimeMsec: NaN,
+      p90ChangeOpenTimeMsec: NaN,
+      p99ChangeOpenTimeMsec: NaN,
       linesAdded: authoredTotals.linesAdded + (adjustments.linesAdded || 0),
       linesDeleted: authoredTotals.linesDeleted + (adjustments.linesDeleted || 0),
     },

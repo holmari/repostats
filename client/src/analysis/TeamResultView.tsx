@@ -26,6 +26,30 @@ import {AUTHORED_METRIC_POLARITY, computeRatioComparison, RECEIVED_METRIC_POLARI
 import TeamOverviewTable from './TeamOverviewTable';
 import TeamMemberGraphPanel from './TeamMemberGraphPanel';
 
+function computePercentile(sortedValues: ReadonlyArray<number>, percentile: number): number {
+  if (sortedValues.length === 0) {
+    return NaN;
+  }
+  if (sortedValues.length === 1) {
+    return sortedValues[0];
+  }
+  const index = (percentile / 100) * (sortedValues.length - 1);
+  const lower = Math.floor(index);
+  const upper = Math.ceil(index);
+  if (lower === upper) {
+    return sortedValues[lower];
+  }
+  const weight = index - lower;
+  return sortedValues[lower] * (1 - weight) + sortedValues[upper] * weight;
+}
+
+function formatTimeInHours(msec: number): string {
+  if (isNaN(msec) || !isFinite(msec)) {
+    return '-';
+  }
+  return `${Math.round(msec / 1000 / 60 / 60)}h`;
+}
+
 function aggregateAuthoredTotals(members: ReadonlyArray<UserResult>): AuthoredTotals {
   let approvals = 0;
   let rejections = 0;
@@ -33,10 +57,11 @@ function aggregateAuthoredTotals(members: ReadonlyArray<UserResult>): AuthoredTo
   let commentsWrittenToOthers = 0;
   let changesCreated = 0;
   let commits = 0;
-  let totalOpenTime = 0;
-  let changeCount = 0;
   let linesAdded = 0;
   let linesDeleted = 0;
+
+  // Collect all change times for percentile computation
+  const allChangeTimes: number[] = [];
 
   for (const member of members) {
     const t = member.aggregatedAuthoredTotals;
@@ -48,11 +73,15 @@ function aggregateAuthoredTotals(members: ReadonlyArray<UserResult>): AuthoredTo
     commits += t.commits;
     linesAdded += t.linesAdded;
     linesDeleted += t.linesDeleted;
-    if (t.changesCreated > 0) {
-      totalOpenTime += t.meanChangeOpenTimeMsec * t.changesCreated;
-      changeCount += t.changesCreated;
+
+    // Collect individual change times for proper percentile computation
+    for (const change of member.changesAuthored) {
+      allChangeTimes.push(change.timeOpenMsec);
     }
   }
+
+  // Compute percentiles from all changes
+  const sorted = allChangeTimes.sort((a, b) => a - b);
 
   return {
     approvals,
@@ -61,7 +90,10 @@ function aggregateAuthoredTotals(members: ReadonlyArray<UserResult>): AuthoredTo
     commentsWrittenToOthers,
     changesCreated,
     commits,
-    meanChangeOpenTimeMsec: changeCount > 0 ? totalOpenTime / changeCount : 0,
+    medianChangeOpenTimeMsec: computePercentile(sorted, 50),
+    p25ChangeOpenTimeMsec: computePercentile(sorted, 25),
+    p90ChangeOpenTimeMsec: computePercentile(sorted, 90),
+    p99ChangeOpenTimeMsec: computePercentile(sorted, 99),
     linesAdded,
     linesDeleted,
   };
@@ -126,7 +158,7 @@ function aggregateTeamComparison(
     commentsWrittenToOthers: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.commentsWrittenToOthers)),
     changesCreated: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.changesCreated)),
     commits: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.commits)),
-    meanChangeOpenTimeMsec: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.meanChangeOpenTimeMsec)),
+    medianChangeOpenTimeMsec: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.medianChangeOpenTimeMsec)),
     linesAdded: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.linesAdded)),
     linesDeleted: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.linesDeleted)),
   };
@@ -328,12 +360,19 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
             comparisonGranularity={comparisonGranularity}
           />
           <ValueCell
-            tooltip="Average time changes have been open until merged (team average)."
-            title="Average time in review"
-            value={`${Math.round(authoredTotals.meanChangeOpenTimeMsec / 1000 / 60 / 60)}h`}
-            comparison={comparison?.authoredTotals.meanChangeOpenTimeMsec}
-            comparisonPolarity={AUTHORED_METRIC_POLARITY.meanChangeOpenTimeMsec}
+            tooltip="Median time changes have been open until merged (team median)."
+            title="Median time in review"
+            value={formatTimeInHours(authoredTotals.medianChangeOpenTimeMsec)}
+            comparison={comparison?.authoredTotals.medianChangeOpenTimeMsec}
+            comparisonPolarity={AUTHORED_METRIC_POLARITY.medianChangeOpenTimeMsec}
             comparisonGranularity={comparisonGranularity}
+            cornerContent={
+              <>
+                <div>p25: {formatTimeInHours(authoredTotals.p25ChangeOpenTimeMsec)}</div>
+                <div>p90: {formatTimeInHours(authoredTotals.p90ChangeOpenTimeMsec)}</div>
+                <div>p99: {formatTimeInHours(authoredTotals.p99ChangeOpenTimeMsec)}</div>
+              </>
+            }
           />
           <ValueCell
             tooltip="Comments authored to others per review request received (team average)."
