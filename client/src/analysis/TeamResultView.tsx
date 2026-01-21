@@ -234,6 +234,69 @@ function toLinesChangedPerMemberData(
   });
 }
 
+function toCommentsAuthoredPerMemberData(
+  members: ReadonlyArray<UserResult>
+): ReadonlyArray<ChartDataSeries> {
+  const colors = d3.schemeTableau10;
+
+  return members.map((member, index) => {
+    const series: DateValue[] = member.timeSeries
+      .filter((activity) => activity.commentsAuthored > 0)
+      .map((activity) => ({
+        date: new Date(activity.date),
+        value: activity.commentsAuthored,
+      }));
+
+    return {
+      label: member.displayName,
+      color: colors[index % colors.length],
+      series: accumulate(series),
+    };
+  });
+}
+
+function toCommentsReceivedPerMemberData(
+  members: ReadonlyArray<UserResult>
+): ReadonlyArray<ChartDataSeries> {
+  const colors = d3.schemeTableau10;
+
+  return members.map((member, index) => {
+    const series: DateValue[] = member.timeSeries
+      .filter((activity) => activity.commentsReceived > 0)
+      .map((activity) => ({
+        date: new Date(activity.date),
+        value: activity.commentsReceived,
+      }));
+
+    return {
+      label: member.displayName,
+      color: colors[index % colors.length],
+      series: accumulate(series),
+    };
+  });
+}
+
+function toCommitsAuthoredPerMemberData(
+  members: ReadonlyArray<UserResult>
+): ReadonlyArray<ChartDataSeries> {
+  const colors = d3.schemeTableau10;
+
+  return members.map((member, index) => {
+    const series: DateValue[] = member.timeSeries
+      .filter((activity) => activity.commitsAuthored > 0)
+      .map((activity) => ({
+        date: new Date(activity.date),
+        value: activity.commitsAuthored,
+      }));
+
+    return {
+      label: member.displayName,
+      color: colors[index % colors.length],
+      series: accumulate(series),
+    };
+  });
+}
+
 function toTimeSeriesData(
   timeSeries: ReadonlyArray<UserActivitySummary>
 ): ReadonlyArray<ChartDataSeries> {
@@ -267,6 +330,18 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
   const timeSeries = useMemo(() => aggregateTimeSeries(members), [members]);
   const timeSeriesData = useMemo(() => toTimeSeriesData(timeSeries), [timeSeries]);
   const linesChangedPerMemberData = useMemo(() => toLinesChangedPerMemberData(members), [members]);
+  const commentsAuthoredPerMemberData = useMemo(
+    () => toCommentsAuthoredPerMemberData(members),
+    [members]
+  );
+  const commentsReceivedPerMemberData = useMemo(
+    () => toCommentsReceivedPerMemberData(members),
+    [members]
+  );
+  const commitsAuthoredPerMemberData = useMemo(
+    () => toCommitsAuthoredPerMemberData(members),
+    [members]
+  );
   const comparison = useMemo(
     () => aggregateTeamComparison(members, fullResult.comparisonResults),
     [members, fullResult.comparisonResults]
@@ -478,6 +553,35 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
           <TimeSeriesChart data={linesChangedPerMemberData} />
         ) : (
           <span>No line change data available for this team.</span>
+        )}
+      </Panel>
+
+      <Panel title="Comments per member over time" size="flex">
+        <div className="TeamResultView__charts-row">
+          <div className="TeamResultView__chart-half">
+            <h4 className="TeamResultView__chart-subtitle">Comments Authored</h4>
+            {commentsAuthoredPerMemberData.some((d) => d.series.length > 0) ? (
+              <TimeSeriesChart data={commentsAuthoredPerMemberData} size={{width: 400, height: 300}} />
+            ) : (
+              <span>No comments authored data available.</span>
+            )}
+          </div>
+          <div className="TeamResultView__chart-half">
+            <h4 className="TeamResultView__chart-subtitle">Comments Received</h4>
+            {commentsReceivedPerMemberData.some((d) => d.series.length > 0) ? (
+              <TimeSeriesChart data={commentsReceivedPerMemberData} size={{width: 400, height: 300}} />
+            ) : (
+              <span>No comments received data available.</span>
+            )}
+          </div>
+        </div>
+      </Panel>
+
+      <Panel title="Commits authored per member over time" size="flex">
+        {commitsAuthoredPerMemberData.some((d) => d.series.length > 0) ? (
+          <TimeSeriesChart data={commitsAuthoredPerMemberData} />
+        ) : (
+          <span>No commits data available for this team.</span>
         )}
       </Panel>
 

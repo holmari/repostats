@@ -123,18 +123,21 @@ interface ChartLegendProps {
   series: ReadonlyArray<ChartDataSeries>;
   hiddenSeriesLabels: ReadonlySet<string>;
   onToggleSeries: (label: string) => void;
+  maxHeight?: number;
 }
 
 const ChartLegend: React.FC<ChartLegendProps> = ({
   series,
   hiddenSeriesLabels,
   onToggleSeries,
+  maxHeight,
 }) => {
   return (
     <div
       className="TimeSeriesChart__legend"
       style={{
         width: 200,
+        maxHeight: maxHeight,
         overflowY: 'auto',
         overflowX: 'hidden',
         cursor: 'pointer',
@@ -306,11 +309,23 @@ function renderChart(
       d3.max(visibleSeries.map((item) => d3.max(item.series.map((value) => value.value)) || 0)) || 0,
     ]);
 
-  const xAxis = d3.axisBottom(xScale).tickFormat((dateOrNumber) => {
-    const date: Date = dateOrNumber as Date;
-    const formatter = d3.timeYear(date) < date ? d3.timeFormat('%B') : d3.timeFormat('%Y');
-    return formatter(date);
-  });
+  // Adjust tick count and format based on chart width
+  const tickCount = Math.max(2, Math.floor(shape.size.width / 80));
+  const useShortFormat = shape.size.width < 600;
+
+  const xAxis = d3
+    .axisBottom(xScale)
+    .ticks(tickCount)
+    .tickFormat((dateOrNumber) => {
+      const date: Date = dateOrNumber as Date;
+      const isYearBoundary = d3.timeYear(date) >= date;
+      if (isYearBoundary) {
+        return d3.timeFormat('%Y')(date);
+      }
+      // Use short month format for smaller charts
+      const monthFormat = useShortFormat ? '%b' : '%B';
+      return d3.timeFormat(monthFormat)(date);
+    });
   const yAxis = d3.axisLeft(yScale);
 
   svg
@@ -403,6 +418,9 @@ const TimeSeriesChart: React.FC<Props> = ({data, margins = DEFAULT_MARGINS, size
     [data, hiddenSeriesLabels]
   );
 
+  // Legend max height = chart height + margins
+  const legendMaxHeight = size.height + margins.top + margins.bottom;
+
   return (
     <div className="TimeSeriesChart__container" style={{display: 'flex'}}>
       <D3Chart size={size} margins={margins} renderChart={render} />
@@ -410,6 +428,7 @@ const TimeSeriesChart: React.FC<Props> = ({data, margins = DEFAULT_MARGINS, size
         series={data}
         hiddenSeriesLabels={hiddenSeriesLabels}
         onToggleSeries={toggleSeries}
+        maxHeight={legendMaxHeight}
       />
     </div>
   );

@@ -41,3 +41,20 @@
   color: #888;
   font-style: italic;
 }
+
+.TeamResultView__charts-row {
+  display: flex;
+  gap: 16px;
+}
+
+.TeamResultView__chart-half {
+  flex-shrink: 0;
+}
+
+.TeamResultView__chart-subtitle {
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  margin: 0 0 8px 0;
+  text-align: center;
+}
