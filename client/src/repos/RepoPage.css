@@ -1,8 +1,30 @@
+.RepoPage {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
 .RepoPage__content {
   display: flex;
   flex-direction: column;
   gap: 16px;
   padding: 8px;
+  flex: 1;
+  min-height: 0;
+}
+
+.RepoPage__file-exclusions {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.RepoPage__file-exclusions .RepoFileExclusions {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .RepoPage__download-content {

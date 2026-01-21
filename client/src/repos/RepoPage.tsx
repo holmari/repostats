@@ -199,7 +199,7 @@ const RepoPage: React.FC<Props> = ({repoName}) => {
           </fieldset>
           <RepoSourceDataContent metadata={getSourceDataMetadata()} />
         </Panel>
-        <Panel title="File Exclusions" size="flex" className="overflow-visible">
+        <Panel title="File Exclusions" size="flex" className="overflow-visible RepoPage__file-exclusions">
           <RepoFileExclusions
             repo={repo}
             onRepoChange={(updatedRepo) => dispatch({type: 'setRepo', repo: updatedRepo})}

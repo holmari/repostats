@@ -121,7 +121,7 @@ const RepoFileExclusions: React.FC<Props> = ({repo, onRepoChange}) => {
 
       {excludedFilePaths.length > 0 ? (
         <div className="RepoFileExclusions__chips">
-          {excludedFilePaths.map((path) => (
+          {[...excludedFilePaths].sort((a, b) => a.localeCompare(b)).map((path) => (
             <div key={path} className="RepoFileExclusions__chip">
               <span className="RepoFileExclusions__chip-text">{path}</span>
               <button
