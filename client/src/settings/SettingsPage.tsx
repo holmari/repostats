@@ -22,7 +22,7 @@ const SettingsPage: React.FC = () => {
           }
           to="/settings/exclusions"
         >
-          Exclusions
+          Team & User Exclusions
         </NavLink>
         <NavLink
           className={({isActive}) =>

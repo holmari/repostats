@@ -5,10 +5,48 @@
   color: grey;
 }
 
-.UserHeaderPanel__contact-info {
+.UserHeaderPanel__actions {
   position: absolute;
   right: 14px;
   top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.UserHeaderPanel__menu-button {
+  background: none;
+  border: none;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #666;
+  font-size: 16px;
+  border-radius: 4px;
+  padding: 0;
+  opacity: 0.6;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+.UserHeaderPanel__menu-button:hover,
+.UserHeaderPanel__menu-button--visible {
+  opacity: 1;
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.UserHeaderPanel__menu-button::after {
+  display: none;
+}
+
+.UserHeaderPanel__dropdown-menu {
+  min-width: 140px;
+}
+
+.UserHeaderPanel__dropdown-item {
+  font-size: 14px;
 }
 
 .DateIntervalPicker__popover-content ul {

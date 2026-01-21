@@ -27,9 +27,6 @@
   overflow-y: auto;
 }
 
-.RepoPage__download-content {
-}
-
 .RepoPage__download-content-progress-indicator {
   display: flex;
   flex-direction: column;
