@@ -1,0 +1,57 @@
+.FilePathCell {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.FilePathCell__action-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  color: #666;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+  border-radius: 4px;
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+.FilePathCell:hover .FilePathCell__action-button,
+.FilePathCell__action-button.FilePathCell__action-button--visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.FilePathCell__action-button:hover {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.FilePathCell__action-button::after {
+  display: none;
+}
+
+.FilePathCell__dropdown-menu {
+  min-width: 180px;
+  padding: 4px 0;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e0e0e0;
+}
+
+.FilePathCell__dropdown-item {
+  padding: 8px 12px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.FilePathCell__dropdown-item:hover {
+  background-color: #f5f5f5;
+}

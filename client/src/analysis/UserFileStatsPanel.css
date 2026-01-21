@@ -1,0 +1,64 @@
+.UserFileStatsPanel__cell--added {
+  color: #155724;
+  background-color: #d4edda;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.UserFileStatsPanel__cell--deleted {
+  color: #721c24;
+  background-color: #f8d7da;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.UserFileStatsPanel__path {
+  display: block;
+  font-family: monospace;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* Truncate from the left so filename is visible */
+  direction: rtl;
+  text-align: left;
+  padding-right: 10px;
+}
+
+.UserFileStatsPanel__table-container {
+  display: flex;
+  flex-direction: column;
+  width: fit-content;
+}
+
+.UserFileStatsPanel__totals-row {
+  display: flex;
+  padding: 8px 0;
+  border-top: 2px solid #333;
+  margin-top: 8px;
+  font-weight: bold;
+  position: sticky;
+  bottom: 0;
+  background: white;
+}
+
+.UserFileStatsPanel__totals-label {
+  font-weight: bold;
+}
+
+.UserFileStatsPanel__see-all-button {
+  display: block;
+  padding: 8px 0;
+  margin: 4px auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #0066cc;
+}
+
+.UserFileStatsPanel__see-all-button:hover {
+  text-decoration: underline;
+}

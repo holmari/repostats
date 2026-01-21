@@ -43,6 +43,7 @@ import {removeDuplicates} from '../../arrays/utils';
 import {getPullRequestNumberFromUrl} from './utils';
 import {getGitClonePath} from '../../file/paths';
 import {buildEmailMapping} from '../../git/emailMapping';
+import {getDefaultBranch} from '../../git/utils';
 
 type PullsByNumber = {readonly [prNumber: string]: PullRequest};
 type TeamMembersBySlug = {readonly [teamSlug: string]: ReadonlyArray<User>};
@@ -708,6 +709,9 @@ function processGitStats(
   // Build email mapping from GitHub commit data
   const emailMapping = buildEmailMapping(context.repoConfig);
 
+  // Get the default branch name
+  const defaultBranch = getDefaultBranch(repoPath);
+
   // Get excluded file paths from repo config
   const excludedPaths = context.repoConfig.excludedFilePaths || [];
 
@@ -718,7 +722,8 @@ function processGitStats(
     'log',
     '--format=%H|%ae|%aI',
     '--shortstat',
-    '--all',
+    '--no-merges',
+    defaultBranch,
     `--since=${dateInterval.startDate}`,
     `--until=${dateInterval.endDate}`,
   ];

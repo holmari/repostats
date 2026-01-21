@@ -6,7 +6,7 @@ import {deletePath, ensurePathExists, ensurePaths, getCachePath} from '../file/p
 
 // Bump this version when the response structure changes to invalidate old cache entries.
 // This ensures clients don't receive stale data with missing fields after code updates.
-const CACHE_SCHEMA_VERSION = 7;
+const CACHE_SCHEMA_VERSION = 19;
 
 export enum CachePath {
   analysis = 'analysis',
@@ -17,7 +17,7 @@ export enum CachePath {
 
 export function getCacheKey(keyObject: unknown | string): string {
   if (typeof keyObject === 'string') {
-    return keyObject;
+    return `${keyObject}-v${CACHE_SCHEMA_VERSION}`;
   }
 
   const keyWithVersion = {_v: CACHE_SCHEMA_VERSION, ...keyObject as object};

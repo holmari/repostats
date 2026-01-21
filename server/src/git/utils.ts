@@ -1,3 +1,39 @@
+import {spawnSync} from 'child_process';
+
+// Get the default branch name for a git repository
+export function getDefaultBranch(repoPath: string): string {
+  // Try to get the default branch from origin/HEAD
+  const result = spawnSync(
+    'git',
+    ['symbolic-ref', 'refs/remotes/origin/HEAD'],
+    {cwd: repoPath, encoding: 'utf-8'}
+  );
+
+  if (result.status === 0 && result.stdout.trim()) {
+    // Output is like "refs/remotes/origin/main" - extract just the branch name
+    const ref = result.stdout.trim();
+    const match = ref.match(/refs\/remotes\/origin\/(.+)/);
+    if (match) {
+      return match[1];
+    }
+  }
+
+  // Fallback: try common default branch names
+  for (const branch of ['main', 'master', 'trunk']) {
+    const checkResult = spawnSync(
+      'git',
+      ['rev-parse', '--verify', branch],
+      {cwd: repoPath, encoding: 'utf-8'}
+    );
+    if (checkResult.status === 0) {
+      return branch;
+    }
+  }
+
+  // Last resort: use HEAD
+  return 'HEAD';
+}
+
 // Convert https://github.com/owner/repo to git@github.com:owner/repo.git
 export function httpsToSshUrl(httpsUrl: string): string {
   // Handle various GitHub URL formats

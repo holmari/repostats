@@ -1,4 +1,12 @@
-import {AnalyzeRequest, AnalyzeResult, AppSettings, RepoConfig, TeamInfo, UserInfo} from 'types/types';
+import {
+  AnalyzeRequest,
+  AnalyzeResult,
+  AppSettings,
+  RepoConfig,
+  TeamInfo,
+  UserFileStats,
+  UserInfo,
+} from 'types/types';
 import {SERVER_PORT} from 'shared/config';
 
 export interface SSHKeyInfo {
@@ -227,4 +235,18 @@ interface TypedResponses {
 
 export function getTopChangedFiles(repoName: string): Promise<FileChangeStats[]> {
   return get(`repos/${repoName}/top-changed-files`);
+}
+
+export function getUserFileStats(
+  repoName: string,
+  userId: string,
+  since?: string,
+  until?: string
+): Promise<UserFileStats[]> {
+  const params = new URLSearchParams();
+  if (since) params.append('since', since);
+  if (until) params.append('until', until);
+  const queryString = params.toString();
+  const url = `repos/${repoName}/user-file-stats/${userId}${queryString ? `?${queryString}` : ''}`;
+  return get(url);
 }

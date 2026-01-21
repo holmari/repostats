@@ -2,17 +2,17 @@
 
 ## Cache Invalidation
 
-When making changes that affect the API response structure (adding/removing/renaming fields), bump the `CACHE_SCHEMA_VERSION` constant in:
+**ALWAYS bump the `CACHE_SCHEMA_VERSION`** in `server/src/cache/cache.ts` when:
 
-**File:** `server/src/cache/cache.ts`
+1. **Adding/removing/renaming fields** in API response structures
+2. **Adding new cached endpoints** that use the cache infrastructure
+3. **Fixing bugs in analysis logic** - cached results from buggy code need invalidation
 
 ```typescript
-const CACHE_SCHEMA_VERSION = 5;  // Increment this
+const CACHE_SCHEMA_VERSION = 15;  // Increment this
 ```
 
 This ensures old cached responses are automatically invalidated without requiring manual cache deletion.
-
-**Important:** Also bump the cache schema version when fixing bugs in analysis logic, even if the response structure hasn't changed. Cached results from the buggy code need to be invalidated so users see correct data.
 
 ## Project Structure
 

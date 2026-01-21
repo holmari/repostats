@@ -7,8 +7,7 @@
 .Table th {
   border-bottom: 2px solid #ddd;
   color: #444444;
-  padding-top: 8px;
-  padding-bottom: 8px;
+  padding: 8px;
   user-select: none;
 }
 

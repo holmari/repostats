@@ -33,7 +33,7 @@ export type IntermediateUserResult = Omit<
   readonly changesAuthored: ReadonlyArray<Change>;
 };
 
-export type IntermediateAnalyzeResult = Omit<AnalyzeResult, 'interval' | 'userResults'> & {
+export type IntermediateAnalyzeResult = Omit<AnalyzeResult, 'interval' | 'requestedInterval' | 'userResults'> & {
   readonly userResults: IntermediateUserResultsByUserId;
 };
 

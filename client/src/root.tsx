@@ -5,6 +5,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import { Routes, Route, Navigate, NavLink } from "react-router";
 
 import { StateProvider } from "./state";
+import { ToastProvider } from "components/ToastContext";
 import AppStartupActions from "./AppStartupActions";
 import ReposPage from "repos/ReposPage";
 import SettingsPage from "settings/SettingsPage";
@@ -20,6 +21,7 @@ export default function Root() {
   return (
     <div className="App">
       <StateProvider>
+        <ToastProvider>
         <AppStartupActions />
         <nav>
           <div className="App__nav-content">
@@ -55,6 +57,7 @@ export default function Root() {
             </Route>
           </Routes>
         </main>
+        </ToastProvider>
       </StateProvider>
     </div>
   );

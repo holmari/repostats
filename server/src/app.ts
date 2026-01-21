@@ -46,6 +46,7 @@ app.delete('/api/ssh-keys/:keyId', sshKeys.deleteSSHKeyHandler);
 app.post('/api/ssh-keys/test', sshKeys.testSSHConnectionHandler);
 
 app.get('/api/repos/:repoName/top-changed-files', gitStats.getTopChangedFilesHandler);
+app.get('/api/repos/:repoName/user-file-stats/:userId', gitStats.getUserFileStatsHandler);
 
 ensurePaths();
 

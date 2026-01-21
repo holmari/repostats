@@ -277,7 +277,12 @@ export interface TeamInfo {
 
 export interface AnalyzeResult {
   readonly includedRepos: ReadonlyArray<RepoConfig>;
+  // Computed from the union of all user activity intervals. Represents when users
+  // actually had activity. Can be null if no activity was found.
   readonly interval: DateInterval | null;
+  // The date range selected by the user in the UI. This is the filter criteria
+  // from the analysis request, used by git stats queries.
+  readonly requestedInterval: DateInterval;
   readonly userResults: UserResultsByUserId;
   readonly comparisonResults?: {readonly [userId: string]: UserResultComparison};
   readonly comparisonGranularity?: ComparisonGranularity;

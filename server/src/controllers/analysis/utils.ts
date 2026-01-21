@@ -283,6 +283,7 @@ export function postProcessUserResults(
 
 export function createAnalyzeResult(
   result: IntermediateAnalyzeResult,
+  requestedInterval: DateInterval,
   granularity: Granularity = 'day'
 ): AnalyzeResult {
   const userResults = postProcessUserResults(result.userResults, granularity);
@@ -293,6 +294,7 @@ export function createAnalyzeResult(
   return {
     includedRepos: result.includedRepos,
     interval,
+    requestedInterval,
     userResults,
   };
 }

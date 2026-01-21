@@ -251,6 +251,7 @@ function computeAnalysisResultCore(
 ): {
   includedRepos: ReadonlyArray<RepoConfig>;
   interval: DateInterval | null;
+  requestedInterval: DateInterval;
   userResults: ReturnType<typeof postProcessUserResults>;
 } {
   const repoMetadatas = fs
@@ -288,6 +289,7 @@ function computeAnalysisResultCore(
   return {
     includedRepos,
     interval,
+    requestedInterval: request.dateInterval,
     userResults: postProcessUserResults(userResults, request.granularity),
   };
 }
@@ -329,13 +331,32 @@ function computeAnalysisResult(request: NormalizedAnalyzeRequest): AnalyzeResult
   };
 }
 
+function buildCacheKey(request: NormalizedAnalyzeRequest): object {
+  // Include repo file exclusions in cache key so changing exclusions invalidates cache
+  const repoExclusions: {[repoName: string]: ReadonlyArray<string>} = {};
+  for (const repoName of request.includedRepoNames) {
+    if (fs.existsSync(getConfigPath(repoName))) {
+      const config = getConfigFile(repoName);
+      if (config.excludedFilePaths && config.excludedFilePaths.length > 0) {
+        repoExclusions[repoName] = config.excludedFilePaths;
+      }
+    }
+  }
+
+  return {
+    ...request,
+    _repoExclusions: repoExclusions,
+  };
+}
+
 export function analyze(req: Request, res: Response): void {
   const request = normalizeRequest(req.body);
+  const cacheKey = buildCacheKey(request);
   const cacheControl = (req.header('Cache-Control') || '').split(',');
   const canStoreInCache = !cacheControl.includes('no-store');
   const canReadFromCache = !cacheControl.includes('max-age=0');
 
-  const cachedResponse = canReadFromCache ? readFromCache(request, CachePath.analysis) : null;
+  const cachedResponse = canReadFromCache ? readFromCache(cacheKey, CachePath.analysis) : null;
 
   if (cachedResponse) {
     res.status(200).header('X-Cached', 'true').send(cachedResponse);
@@ -345,7 +366,7 @@ export function analyze(req: Request, res: Response): void {
   const result = computeAnalysisResult(request);
 
   if (canStoreInCache) {
-    writeToCache(request, CachePath.analysis, result);
+    writeToCache(cacheKey, CachePath.analysis, result);
   }
 
   res.status(200).send(result);
