@@ -34,6 +34,9 @@ export function getFullLinkData(
   fullResult: AnalyzeResult,
   allowedUserIds: ReadonlyArray<string> | null
 ): ReadonlyArray<GraphLink> {
+  // Get the set of user IDs that actually exist in the result
+  const existingUserIds = new Set(Object.keys(fullResult.userResults));
+
   return Object.keys(fullResult.userResults)
     .filter((userId) => isIncluded(userId, allowedUserIds))
     .map((userId) => fullResult.userResults[userId])
@@ -41,7 +44,9 @@ export function getFullLinkData(
       const targetUserIds = removeDuplicates([
         ...Object.keys(userResult.commentsWrittenByUserId),
         ...Object.keys(userResult.authoredReviewsByUserId),
-      ]).filter((userId) => isIncluded(userId, allowedUserIds));
+      ]).filter(
+        (userId) => isIncluded(userId, allowedUserIds) && existingUserIds.has(userId)
+      );
 
       return targetUserIds.map((target) => ({
         source: userResult.id,

@@ -14,10 +14,15 @@ interface Props {
 const TeamMemberGraphPanel: React.FC<Props> = ({members, fullResult}) => {
   const [nodes, links] = useMemo(() => {
     const memberIds = members.map((m) => m.id);
-    return [
-      getFullNodeData(fullResult, memberIds),
-      getFullLinkData(fullResult, memberIds),
-    ];
+    const nodeData = getFullNodeData(fullResult, memberIds);
+    const nodeIds = new Set(nodeData.map((n) => n.id));
+
+    // Filter links to only include those where both source and target nodes exist
+    const linkData = getFullLinkData(fullResult, memberIds).filter(
+      (link) => nodeIds.has(link.source) && nodeIds.has(link.target)
+    );
+
+    return [nodeData, linkData];
   }, [fullResult, members]);
 
   return (
