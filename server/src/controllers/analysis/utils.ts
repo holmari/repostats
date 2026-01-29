@@ -54,18 +54,22 @@ function computePercentile(sortedValues: ReadonlyArray<number>, percentile: numb
 function computeChangeOpenTimePercentiles(changeTimes: ReadonlyArray<number>): {
   median: number;
   p25: number;
+  p75: number;
   p90: number;
+  p95: number;
   p99: number;
 } {
   if (changeTimes.length === 0) {
-    return {median: NaN, p25: NaN, p90: NaN, p99: NaN};
+    return {median: NaN, p25: NaN, p75: NaN, p90: NaN, p95: NaN, p99: NaN};
   }
 
   const sorted = [...changeTimes].sort((a, b) => a - b);
   return {
     p25: computePercentile(sorted, 25),
     median: computePercentile(sorted, 50),
+    p75: computePercentile(sorted, 75),
     p90: computePercentile(sorted, 90),
+    p95: computePercentile(sorted, 95),
     p99: computePercentile(sorted, 99),
   };
 }
@@ -82,10 +86,13 @@ export function createDefaultUserRepoTotals(repoConfig: RepoConfig): UserRepoTot
       commits: 0,
       medianChangeOpenTimeMsec: NaN,
       p25ChangeOpenTimeMsec: NaN,
+      p75ChangeOpenTimeMsec: NaN,
       p90ChangeOpenTimeMsec: NaN,
+      p95ChangeOpenTimeMsec: NaN,
       p99ChangeOpenTimeMsec: NaN,
       linesAdded: 0,
       linesDeleted: 0,
+      medianCommitSize: NaN,
     },
     receivedTotals: {
       commentsTotal: 0,
@@ -120,7 +127,9 @@ function postProcessUserRepoTotals(
       changesCreated: changesInRepo.length,
       medianChangeOpenTimeMsec: percentiles.median,
       p25ChangeOpenTimeMsec: percentiles.p25,
+      p75ChangeOpenTimeMsec: percentiles.p75,
       p90ChangeOpenTimeMsec: percentiles.p90,
+      p95ChangeOpenTimeMsec: percentiles.p95,
       p99ChangeOpenTimeMsec: percentiles.p99,
     },
   };
@@ -249,6 +258,8 @@ function aggregateAuthoredTotals(
   allChangeTimes: ReadonlyArray<number>
 ): AuthoredTotals {
   const percentiles = computeChangeOpenTimePercentiles(allChangeTimes);
+  // Use medianCommitSize from first repo (it's computed per-user, not per-repo)
+  const medianCommitSize = repoTotals.length > 0 ? repoTotals[0].authoredTotals.medianCommitSize : NaN;
 
   return repoTotals
     .map((totals) => totals.authoredTotals)
@@ -264,10 +275,13 @@ function aggregateAuthoredTotals(
           // Percentiles are computed from all changes, not aggregated per-repo
           medianChangeOpenTimeMsec: percentiles.median,
           p25ChangeOpenTimeMsec: percentiles.p25,
+          p75ChangeOpenTimeMsec: percentiles.p75,
           p90ChangeOpenTimeMsec: percentiles.p90,
+          p95ChangeOpenTimeMsec: percentiles.p95,
           p99ChangeOpenTimeMsec: percentiles.p99,
           linesAdded: totals.linesAdded + item.linesAdded,
           linesDeleted: totals.linesDeleted + item.linesDeleted,
+          medianCommitSize,
         };
       },
       {
@@ -279,10 +293,13 @@ function aggregateAuthoredTotals(
         commits: 0,
         medianChangeOpenTimeMsec: percentiles.median,
         p25ChangeOpenTimeMsec: percentiles.p25,
+        p75ChangeOpenTimeMsec: percentiles.p75,
         p90ChangeOpenTimeMsec: percentiles.p90,
+        p95ChangeOpenTimeMsec: percentiles.p95,
         p99ChangeOpenTimeMsec: percentiles.p99,
         linesAdded: 0,
         linesDeleted: 0,
+        medianCommitSize,
       }
     );
 }

@@ -47,6 +47,7 @@ export function compareAuthoredTotals(
     ),
     linesAdded: createMetricComparison(current.linesAdded, previous.linesAdded),
     linesDeleted: createMetricComparison(current.linesDeleted, previous.linesDeleted),
+    medianCommitSize: createMetricComparison(current.medianCommitSize, previous.medianCommitSize),
   };
 }
 
@@ -73,10 +74,13 @@ function createEmptyAuthoredTotals(): AuthoredTotals {
     commits: 0,
     medianChangeOpenTimeMsec: 0,
     p25ChangeOpenTimeMsec: 0,
+    p75ChangeOpenTimeMsec: 0,
     p90ChangeOpenTimeMsec: 0,
+    p95ChangeOpenTimeMsec: 0,
     p99ChangeOpenTimeMsec: 0,
     linesAdded: 0,
     linesDeleted: 0,
+    medianCommitSize: 0,
   };
 }
 

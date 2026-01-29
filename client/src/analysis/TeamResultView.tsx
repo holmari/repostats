@@ -50,6 +50,13 @@ function formatTimeInHours(msec: number): string {
   return `${Math.round(msec / 1000 / 60 / 60)}h`;
 }
 
+function formatCommitSize(lines: number): string {
+  if (isNaN(lines) || !isFinite(lines)) {
+    return '-';
+  }
+  return Math.round(lines).toLocaleString();
+}
+
 function aggregateAuthoredTotals(members: ReadonlyArray<UserResult>): AuthoredTotals {
   let approvals = 0;
   let rejections = 0;
@@ -62,6 +69,8 @@ function aggregateAuthoredTotals(members: ReadonlyArray<UserResult>): AuthoredTo
 
   // Collect all change times for percentile computation
   const allChangeTimes: number[] = [];
+  // Collect commit sizes from all members
+  const allCommitSizes: number[] = [];
 
   for (const member of members) {
     const t = member.aggregatedAuthoredTotals;
@@ -78,10 +87,16 @@ function aggregateAuthoredTotals(members: ReadonlyArray<UserResult>): AuthoredTo
     for (const change of member.changesAuthored) {
       allChangeTimes.push(change.timeOpenMsec);
     }
+
+    // Collect median commit sizes from members (use member's median as a representative value)
+    if (!isNaN(t.medianCommitSize) && isFinite(t.medianCommitSize)) {
+      allCommitSizes.push(t.medianCommitSize);
+    }
   }
 
   // Compute percentiles from all changes
   const sorted = allChangeTimes.sort((a, b) => a - b);
+  const sortedCommitSizes = allCommitSizes.sort((a, b) => a - b);
 
   return {
     approvals,
@@ -92,10 +107,13 @@ function aggregateAuthoredTotals(members: ReadonlyArray<UserResult>): AuthoredTo
     commits,
     medianChangeOpenTimeMsec: computePercentile(sorted, 50),
     p25ChangeOpenTimeMsec: computePercentile(sorted, 25),
+    p75ChangeOpenTimeMsec: computePercentile(sorted, 75),
     p90ChangeOpenTimeMsec: computePercentile(sorted, 90),
+    p95ChangeOpenTimeMsec: computePercentile(sorted, 95),
     p99ChangeOpenTimeMsec: computePercentile(sorted, 99),
     linesAdded,
     linesDeleted,
+    medianCommitSize: computePercentile(sortedCommitSizes, 50),
   };
 }
 
@@ -161,6 +179,7 @@ function aggregateTeamComparison(
     medianChangeOpenTimeMsec: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.medianChangeOpenTimeMsec)),
     linesAdded: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.linesAdded)),
     linesDeleted: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.linesDeleted)),
+    medianCommitSize: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.medianCommitSize)),
   };
 
   const receivedTotals: ReceivedTotalsComparison = {
@@ -448,6 +467,14 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
                 <div>p99: {formatTimeInHours(authoredTotals.p99ChangeOpenTimeMsec)}</div>
               </>
             }
+          />
+          <ValueCell
+            tooltip="Median number of lines changed (added + deleted) per commit (team median)."
+            title="Median commit size"
+            value={formatCommitSize(authoredTotals.medianCommitSize)}
+            comparison={comparison?.authoredTotals.medianCommitSize}
+            comparisonPolarity={AUTHORED_METRIC_POLARITY.medianCommitSize}
+            comparisonGranularity={comparisonGranularity}
           />
           <ValueCell
             tooltip="Comments authored to others per review request received (team average)."

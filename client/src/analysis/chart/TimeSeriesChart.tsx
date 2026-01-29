@@ -27,7 +27,7 @@ interface SvgTimeSeriesChartContext {
 
 const dateBisector = d3.bisector<DateValue, Date>((datum) => datum.date).left;
 
-function getClosestValueToDate(referenceDate: Date, dataSeries: ChartDataSeries): number | null {
+function getClosestDataPointToDate(referenceDate: Date, dataSeries: ChartDataSeries): DateValue | null {
   const series = dataSeries.series;
   const refEpoch = referenceDate.getTime();
   const index = dateBisector(series, referenceDate, 1);
@@ -36,8 +36,8 @@ function getClosestValueToDate(referenceDate: Date, dataSeries: ChartDataSeries)
   }
 
   return series[index].date.getTime() - refEpoch > series[index - 1].date.getTime() - refEpoch
-    ? series[index - 1].value
-    : series[index].value;
+    ? series[index - 1]
+    : series[index];
 }
 
 interface LegendItemElements {
@@ -198,7 +198,7 @@ function createVerticalGuide(
   const itemHeight = 24;
   const padding = 16;
   const legendHeight = headerHeight + context.series.length * itemHeight + padding;
-  const legendSize: Size = {width: 210, height: legendHeight};
+  const legendSize: Size = {width: 260, height: legendHeight};
 
   const guideLine = context.svg
     .append('line')
@@ -266,17 +266,20 @@ function createVerticalGuide(
       focusDots.forEach((focusDotItem, index) => {
         const seriesItem = context.series[index];
         const isHidden = hiddenSeriesLabels.has(seriesItem.label);
-        const value = getClosestValueToDate(date, seriesItem);
-        if (value === null) {
+        const dataPoint = getClosestDataPointToDate(date, seriesItem);
+        if (dataPoint === null) {
           return;
         }
 
         focusDotItem
           .attr('cx', x)
-          .attr('cy', context.yScale(value))
+          .attr('cy', context.yScale(dataPoint.value))
           .style('opacity', isHidden ? 0.3 : 1);
 
-        legendItems[index].value.text(value);
+        const displayText = dataPoint.count !== undefined
+          ? `${dataPoint.value} (n=${dataPoint.count})`
+          : `${dataPoint.value}`;
+        legendItems[index].value.text(displayText);
       });
     },
   };
@@ -286,7 +289,8 @@ function renderChart(
   svg: d3.Selection<SVGGElement, unknown, null, undefined>,
   shape: ChartShape,
   series: ReadonlyArray<ChartDataSeries>,
-  hiddenSeriesLabels: ReadonlySet<string>
+  hiddenSeriesLabels: ReadonlySet<string>,
+  yAxisLabel: string = 'Actions'
 ) {
   // Filter to visible series for calculations
   const visibleSeries = series.filter((s) => !hiddenSeriesLabels.has(s.label));
@@ -337,7 +341,7 @@ function renderChart(
     .attr('x', 0)
     .attr('y', shape.margins.left - 6)
     .style('text-anchor', 'middle')
-    .text('Actions');
+    .text(yAxisLabel);
 
   if (isValid) {
     const context: SvgTimeSeriesChartContext = {
@@ -396,7 +400,7 @@ function renderChart(
   return isValid;
 }
 
-const TimeSeriesChart: React.FC<Props> = ({data, margins = DEFAULT_MARGINS, size = DEFAULT_SIZE}) => {
+const TimeSeriesChart: React.FC<Props> = ({data, margins = DEFAULT_MARGINS, size = DEFAULT_SIZE, yAxisLabel = 'Actions'}) => {
   const [hiddenSeriesLabels, setHiddenSeriesLabels] = useState<Set<string>>(new Set());
 
   const toggleSeries = useCallback((label: string) => {
@@ -413,9 +417,9 @@ const TimeSeriesChart: React.FC<Props> = ({data, margins = DEFAULT_MARGINS, size
 
   const render = useCallback(
     (chart: d3.Selection<SVGGElement, unknown, null, undefined>, shape: ChartShape) => {
-      renderChart(chart, shape, data, hiddenSeriesLabels);
+      renderChart(chart, shape, data, hiddenSeriesLabels, yAxisLabel);
     },
-    [data, hiddenSeriesLabels]
+    [data, hiddenSeriesLabels, yAxisLabel]
   );
 
   // Legend max height = chart height + margins
@@ -438,6 +442,7 @@ interface Props {
   data: ReadonlyArray<ChartDataSeries>;
   margins?: Margins;
   size?: Size;
+  yAxisLabel?: string;
 }
 
 export default TimeSeriesChart;

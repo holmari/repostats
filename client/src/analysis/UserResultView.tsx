@@ -27,6 +27,13 @@ function formatTimeInHours(msec: number): string {
   return `${Math.round(msec / 1000 / 60 / 60)}h`;
 }
 
+function formatCommitSize(lines: number): string {
+  if (isNaN(lines) || !isFinite(lines)) {
+    return '-';
+  }
+  return Math.round(lines).toLocaleString();
+}
+
 const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
   const authoredTotals = user.aggregatedAuthoredTotals;
   const receivedTotals = user.aggregatedReceivedTotals;
@@ -101,6 +108,14 @@ const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
             value={authoredTotals.linesDeleted.toLocaleString()}
             comparison={comparison?.authoredTotals.linesDeleted}
             comparisonPolarity={AUTHORED_METRIC_POLARITY.linesDeleted}
+            comparisonGranularity={comparisonGranularity}
+          />
+          <ValueCell
+            tooltip="Median number of lines changed (added + deleted) per commit."
+            title="Median commit size"
+            value={formatCommitSize(authoredTotals.medianCommitSize)}
+            comparison={comparison?.authoredTotals.medianCommitSize}
+            comparisonPolarity={AUTHORED_METRIC_POLARITY.medianCommitSize}
             comparisonGranularity={comparisonGranularity}
           />
           <ValueCell

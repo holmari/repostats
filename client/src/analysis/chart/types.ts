@@ -17,6 +17,7 @@ export interface ChartShape {
 export interface DateValue {
   readonly date: Date;
   readonly value: number;
+  readonly count?: number;
 }
 
 export interface ChartDataSeries {

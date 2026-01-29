@@ -7,3 +7,34 @@
 .AllUsersOverviewPage__export-button {
   float: right;
 }
+
+.AllUsersOverviewPage__percentile-selector {
+  display: inline-flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 4px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.AllUsersOverviewPage__percentile-btn {
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.AllUsersOverviewPage__percentile-btn:hover {
+  color: #374151;
+}
+
+.AllUsersOverviewPage__percentile-btn--active {
+  background: white;
+  color: #111827;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}

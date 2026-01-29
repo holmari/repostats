@@ -30,6 +30,7 @@ export const AUTHORED_METRIC_POLARITY: Record<string, MetricPolarity> = {
   medianChangeOpenTimeMsec: 'negative', // less time in review is better
   linesAdded: 'positive',
   linesDeleted: 'positive', // deletion is neutral/positive - cleaning up code
+  medianCommitSize: 'negative', // smaller commits are generally better for review
 };
 
 export const RECEIVED_METRIC_POLARITY: Record<string, MetricPolarity> = {

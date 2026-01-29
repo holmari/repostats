@@ -107,6 +107,7 @@ export interface AuthoredTotalsComparison {
   readonly medianChangeOpenTimeMsec: MetricComparison;
   readonly linesAdded: MetricComparison;
   readonly linesDeleted: MetricComparison;
+  readonly medianCommitSize: MetricComparison;
 }
 
 export interface ReceivedTotalsComparison {
@@ -164,7 +165,9 @@ export interface AuthoredTotals {
   // Percentile values for time that changes were open (from creation to merge/close).
   readonly medianChangeOpenTimeMsec: number;
   readonly p25ChangeOpenTimeMsec: number;
+  readonly p75ChangeOpenTimeMsec: number;
   readonly p90ChangeOpenTimeMsec: number;
+  readonly p95ChangeOpenTimeMsec: number;
   readonly p99ChangeOpenTimeMsec: number;
   // The number of commits this user created.
   readonly commits: number;
@@ -172,6 +175,8 @@ export interface AuthoredTotals {
   readonly linesAdded: number;
   // Lines of code deleted by this user.
   readonly linesDeleted: number;
+  // Median commit size (lines added + deleted per commit).
+  readonly medianCommitSize: number;
 }
 
 export interface ReceivedTotals {

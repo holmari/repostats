@@ -106,8 +106,18 @@ export function getUserOverviewColumns(): ReadonlyArray<SortableColumn<UserResul
     },
     {
       Header: 'Median time in Review (h)',
-      accessor: (row) =>
-        Math.round(row.aggregatedAuthoredTotals.medianChangeOpenTimeMsec / 1000 / 60 / 60),
+      accessor: (row) => {
+        const msec = row.aggregatedAuthoredTotals.medianChangeOpenTimeMsec;
+        return isNaN(msec) || !isFinite(msec) ? '-' : Math.round(msec / 1000 / 60 / 60);
+      },
+      maxWidth: 100,
+    },
+    {
+      Header: 'Median Commit Size',
+      accessor: (row) => {
+        const size = row.aggregatedAuthoredTotals.medianCommitSize;
+        return isNaN(size) || !isFinite(size) ? '-' : Math.round(size);
+      },
       maxWidth: 100,
     },
   ];

@@ -1,5 +1,6 @@
 import path from 'path';
 import fs from 'fs';
+import {spawnSync} from 'child_process';
 
 import {iterEachFile} from '../../file/utils';
 import {
@@ -47,6 +48,18 @@ import {getDefaultBranch} from '../../git/utils';
 
 type PullsByNumber = {readonly [prNumber: string]: PullRequest};
 type TeamMembersBySlug = {readonly [teamSlug: string]: ReadonlyArray<User>};
+
+function computeMedian(values: ReadonlyArray<number>): number {
+  if (values.length === 0) {
+    return NaN;
+  }
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 0) {
+    return (sorted[mid - 1] + sorted[mid]) / 2;
+  }
+  return sorted[mid];
+}
 
 const DEFAULT_REVIEW_SUMMARIES: ReviewsSummary = {approvals: 0, rejections: 0};
 interface GithubComputeContext {
@@ -180,10 +193,13 @@ function incrementAuthoredTotals(
       // Percentiles are computed in the post-processing step
       medianChangeOpenTimeMsec: NaN,
       p25ChangeOpenTimeMsec: NaN,
+      p75ChangeOpenTimeMsec: NaN,
       p90ChangeOpenTimeMsec: NaN,
+      p95ChangeOpenTimeMsec: NaN,
       p99ChangeOpenTimeMsec: NaN,
       linesAdded: authoredTotals.linesAdded + (adjustments.linesAdded || 0),
       linesDeleted: authoredTotals.linesDeleted + (adjustments.linesDeleted || 0),
+      medianCommitSize: NaN, // Computed in processGitStats
     },
   };
 }
@@ -721,9 +737,6 @@ function processGitStats(
   // Get excluded file paths from repo config
   const excludedPaths = context.repoConfig.excludedFilePaths || [];
 
-  // Get git log stats synchronously using spawnSync to avoid async complexity
-  const {spawnSync} = require('child_process');
-
   const args = [
     'log',
     '--format=%H|%ae|%aI',
@@ -760,6 +773,7 @@ function processGitStats(
       linesDeleted: number;
       linesAddedByDay: MutableCountByDay;
       linesDeletedByDay: MutableCountByDay;
+      commitSizes: number[];
     };
   } = {};
 
@@ -775,11 +789,13 @@ function processGitStats(
         linesDeleted: 0,
         linesAddedByDay: {},
         linesDeletedByDay: {},
+        commitSizes: [],
       };
     }
 
     statsByLogin[login].linesAdded += entry.insertions;
     statsByLogin[login].linesDeleted += entry.deletions;
+    statsByLogin[login].commitSizes.push(entry.insertions + entry.deletions);
 
     // Aggregate per day
     const dateKey = sliceDate(entry.date);
@@ -798,6 +814,9 @@ function processGitStats(
       continue;
     }
 
+    // Compute median commit size
+    const medianCommitSize = computeMedian(stats.commitSizes);
+
     // Update the repoTotals with line stats
     const updatedRepoTotals = userResult.repoTotals.map((totals) => ({
       ...totals,
@@ -805,6 +824,7 @@ function processGitStats(
         ...totals.authoredTotals,
         linesAdded: totals.authoredTotals.linesAdded + stats.linesAdded,
         linesDeleted: totals.authoredTotals.linesDeleted + stats.linesDeleted,
+        medianCommitSize,
       },
     }));
 
