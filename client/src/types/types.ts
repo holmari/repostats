@@ -147,6 +147,8 @@ export interface Change {
   readonly createdAt: string;
   readonly title: string;
   readonly timeOpenMsec: number;
+  // Time from PR creation to the first review submission. null if no reviews.
+  readonly timeToFirstReviewMsec: number | null;
 }
 
 export interface AuthoredTotals {

@@ -10,6 +10,21 @@ import {DEFAULT_MARGINS, DEFAULT_SIZE} from './utils';
 import D3Chart from './D3Chart';
 import {ChartDataSeries, ChartShape, DateValue, Margins, Size} from './types';
 
+export type ValueFormatter = (value: number) => string;
+
+export function formatHoursMinutes(hours: number): string {
+  const totalMinutes = Math.round(hours * 60);
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  if (h === 0) {
+    return `${m}min`;
+  }
+  if (m === 0) {
+    return `${h}h`;
+  }
+  return `${h}h ${m}min`;
+}
+
 interface VerticalGuide {
   readonly show: () => void;
   readonly hide: () => void;
@@ -80,7 +95,7 @@ function createLegendItem(
   const value = parent
     .append('text')
     .attr('class', 'TimeSeriesChart__legend-item')
-    .attr('x', x + 160)
+    .attr('x', x + 200)
     .attr('y', y + legendItemSize - fontSize / 2)
     .style('font-size', `${fontSize}px`)
     .style('alignment-baseline', 'middle')
@@ -191,6 +206,7 @@ const ChartLegend: React.FC<ChartLegendProps> = ({
 function createVerticalGuide(
   context: SvgTimeSeriesChartContext,
   hiddenSeriesLabels: ReadonlySet<string>,
+  valueFormatter: ValueFormatter | undefined,
   legendMargin: number = 10
 ): VerticalGuide {
   // Calculate dynamic legend height based on number of series
@@ -198,7 +214,7 @@ function createVerticalGuide(
   const itemHeight = 24;
   const padding = 16;
   const legendHeight = headerHeight + context.series.length * itemHeight + padding;
-  const legendSize: Size = {width: 260, height: legendHeight};
+  const legendSize: Size = {width: 340, height: legendHeight};
 
   const guideLine = context.svg
     .append('line')
@@ -276,9 +292,10 @@ function createVerticalGuide(
           .attr('cy', context.yScale(dataPoint.value))
           .style('opacity', isHidden ? 0.3 : 1);
 
+        const formattedValue = valueFormatter ? valueFormatter(dataPoint.value) : `${dataPoint.value}`;
         const displayText = dataPoint.count !== undefined
-          ? `${dataPoint.value} (n=${dataPoint.count})`
-          : `${dataPoint.value}`;
+          ? `${formattedValue} (n=${dataPoint.count})`
+          : formattedValue;
         legendItems[index].value.text(displayText);
       });
     },
@@ -290,7 +307,8 @@ function renderChart(
   shape: ChartShape,
   series: ReadonlyArray<ChartDataSeries>,
   hiddenSeriesLabels: ReadonlySet<string>,
-  yAxisLabel: string = 'Actions'
+  yAxisLabel: string = 'Actions',
+  valueFormatter?: ValueFormatter
 ) {
   // Filter to visible series for calculations
   const visibleSeries = series.filter((s) => !hiddenSeriesLabels.has(s.label));
@@ -369,7 +387,7 @@ function renderChart(
         .attr('d', seriesMapper(seriesItem.series)!);
     });
 
-    const verticalGuide = createVerticalGuide(context, hiddenSeriesLabels);
+    const verticalGuide = createVerticalGuide(context, hiddenSeriesLabels, valueFormatter);
 
     // Overlay only covers the chart area, not the legend on the right
     svg
@@ -400,7 +418,7 @@ function renderChart(
   return isValid;
 }
 
-const TimeSeriesChart: React.FC<Props> = ({data, margins = DEFAULT_MARGINS, size = DEFAULT_SIZE, yAxisLabel = 'Actions'}) => {
+const TimeSeriesChart: React.FC<Props> = ({data, margins = DEFAULT_MARGINS, size = DEFAULT_SIZE, yAxisLabel = 'Actions', valueFormatter}) => {
   const [hiddenSeriesLabels, setHiddenSeriesLabels] = useState<Set<string>>(new Set());
 
   const toggleSeries = useCallback((label: string) => {
@@ -417,9 +435,9 @@ const TimeSeriesChart: React.FC<Props> = ({data, margins = DEFAULT_MARGINS, size
 
   const render = useCallback(
     (chart: d3.Selection<SVGGElement, unknown, null, undefined>, shape: ChartShape) => {
-      renderChart(chart, shape, data, hiddenSeriesLabels, yAxisLabel);
+      renderChart(chart, shape, data, hiddenSeriesLabels, yAxisLabel, valueFormatter);
     },
-    [data, hiddenSeriesLabels, yAxisLabel]
+    [data, hiddenSeriesLabels, yAxisLabel, valueFormatter]
   );
 
   // Legend max height = chart height + margins
@@ -443,6 +461,7 @@ interface Props {
   margins?: Margins;
   size?: Size;
   yAxisLabel?: string;
+  valueFormatter?: ValueFormatter;
 }
 
 export default TimeSeriesChart;

@@ -48,6 +48,7 @@ import {getDefaultBranch} from '../../git/utils';
 
 type PullsByNumber = {readonly [prNumber: string]: PullRequest};
 type TeamMembersBySlug = {readonly [teamSlug: string]: ReadonlyArray<User>};
+type FirstReviewTimeByPullNumber = {readonly [prNumber: string]: string};
 
 function computeMedian(values: ReadonlyArray<number>): number {
   if (values.length === 0) {
@@ -66,6 +67,7 @@ interface GithubComputeContext {
   readonly repoConfig: RepoConfig<GithubConnector>;
 
   readonly getPull: (pullNumber: string | number) => PullRequest | null;
+  readonly getFirstReviewTime: (pullNumber: string | number) => string | null;
   readonly matchesDateFilter: (interval: DateInterval | string | null) => boolean;
   readonly acquireUserResult: (user: User) => IntermediateUserResult;
   readonly adjustUserResult: (newUserResult: IntermediateUserResult) => void;
@@ -150,9 +152,19 @@ function getPullRequestInterval(pull: PullRequest | null): DateInterval | null {
   return createInterval(pull.created_at, pull.updated_at);
 }
 
-function toChange(repoName: string, pullRequest: PullRequest): Change {
+function toChange(
+  repoName: string,
+  pullRequest: PullRequest,
+  firstReviewTime: string | null
+): Change {
   const interval: DateInterval | null = getPullRequestInterval(pullRequest);
   const timeOpenMsec = getIntervalDuration(interval, 'milliseconds');
+
+  let timeToFirstReviewMsec: number | null = null;
+  if (firstReviewTime) {
+    const reviewInterval = createInterval(pullRequest.created_at, firstReviewTime);
+    timeToFirstReviewMsec = getIntervalDuration(reviewInterval, 'milliseconds');
+  }
 
   return {
     repoName,
@@ -160,6 +172,7 @@ function toChange(repoName: string, pullRequest: PullRequest): Change {
     createdAt: pullRequest.created_at,
     title: pullRequest.title,
     timeOpenMsec,
+    timeToFirstReviewMsec,
   };
 }
 
@@ -244,6 +257,26 @@ function getPullsByNumber(repoConfig: RepoConfig): PullsByNumber {
   }
 
   return pulls;
+}
+
+function getFirstReviewTimeByPullNumber(repoConfig: RepoConfig): FirstReviewTimeByPullNumber {
+  const firstReviewTimes: {[prNumber: string]: string} = {};
+
+  const reviews = iterEachFile<Review>(getGithubReviewsPath(repoConfig));
+  for (const [review] of reviews) {
+    if (!review.submitted_at || !review.user) {
+      continue;
+    }
+
+    const pullNumber = getPullRequestNumberFromUrl(review.pull_request_url);
+    const existingTime = firstReviewTimes[pullNumber];
+
+    if (!existingTime || review.submitted_at < existingTime) {
+      firstReviewTimes[pullNumber] = review.submitted_at;
+    }
+  }
+
+  return firstReviewTimes;
 }
 
 function getReviewersFromPullRequest(
@@ -455,9 +488,13 @@ function processPullRequests(context: GithubComputeContext, pullsByNumber: Pulls
 
       const pullUser = pull.user;
       const userResult = context.acquireUserResult(pullUser);
+      const firstReviewTime = context.getFirstReviewTime(pull.number);
       context.adjustUserResult({
         ...userResult,
-        changesAuthored: [...userResult?.changesAuthored, toChange(context.repoConfig.name, pull)],
+        changesAuthored: [
+          ...userResult?.changesAuthored,
+          toChange(context.repoConfig.name, pull, firstReviewTime),
+        ],
         changesAuthoredByDay: incrementChangesAuthoredByDay(userResult, pull),
       });
 
@@ -678,6 +715,8 @@ export function getGithubRepoResult(
   request: NormalizedAnalyzeRequest
 ): IntermediateAnalyzeResult {
   const pullsByNumber: PullsByNumber = getPullsByNumber(repoConfig);
+  const firstReviewTimeByPullNumber: FirstReviewTimeByPullNumber =
+    getFirstReviewTimeByPullNumber(repoConfig);
 
   const userResults: {[userId: string]: IntermediateUserResult} = {};
   const context: GithubComputeContext = {
@@ -696,6 +735,10 @@ export function getGithubRepoResult(
 
     getPull: (pullNumber: string | number) => {
       return pullsByNumber[pullNumber] || null;
+    },
+
+    getFirstReviewTime: (pullNumber: string | number) => {
+      return firstReviewTimeByPullNumber[pullNumber] || null;
     },
 
     matchesDateFilter: (interval: DateInterval | string | null) => {

@@ -11,8 +11,8 @@ import Panel from 'components/Panel';
 import Table, {SortableColumn} from 'components/Table';
 import {AnalysisOutletContext} from './AnalysisPage';
 import {getUserOverviewColumns} from './columns/userColumns';
-import TimeSeriesChart from './chart/TimeSeriesChart';
-import {ChartDataSeries} from './chart/types';
+import TimeSeriesChart, {formatHoursMinutes} from './chart/TimeSeriesChart';
+import {ChartDataSeries, DateValue} from './chart/types';
 
 function getPeriodStartDate(dateStr: string, granularity: Granularity): string {
   const dt = DateTime.fromISO(dateStr);
@@ -149,12 +149,15 @@ type PercentileOption = 25 | 50 | 75 | 90 | 95;
 
 const PERCENTILE_OPTIONS: ReadonlyArray<PercentileOption> = [25, 50, 75, 90, 95];
 
+type TimeExtractor = (change: Change) => number | null;
+
 function computeTeamPercentileTimeSeries(
   teams: ReadonlyArray<TeamInfo>,
   userResults: ReadonlyArray<UserResult>,
   granularity: Granularity,
   requestedInterval: DateInterval,
-  percentile: PercentileOption
+  percentile: PercentileOption,
+  extractTime: TimeExtractor
 ): ReadonlyArray<ChartDataSeries> {
   const colors = d3.schemeTableau10;
 
@@ -179,17 +182,21 @@ function computeTeamPercentileTimeSeries(
         return null;
       }
 
-      // Group changes by period
+      // Group changes by period, extracting the relevant time value
       const changesByPeriod = new Map<string, number[]>();
       for (const change of changes) {
+        const timeValue = extractTime(change);
+        if (timeValue === null) {
+          continue;
+        }
         const period = getPeriodStartDate(change.createdAt, granularity);
         const existing = changesByPeriod.get(period) || [];
-        existing.push(change.timeOpenMsec);
+        existing.push(timeValue);
         changesByPeriod.set(period, existing);
       }
 
       // Compute percentile for each period
-      const series = Array.from(changesByPeriod.entries())
+      const series: ReadonlyArray<DateValue> = Array.from(changesByPeriod.entries())
         .map(([period, times]) => {
           const sorted = times.sort((a, b) => a - b);
           const pValue = computePercentile(sorted, percentile);
@@ -198,20 +205,28 @@ function computeTeamPercentileTimeSeries(
 
           return {
             date: new Date(period),
-            value: Math.round(pValueHours),
+            value: pValueHours,
             count: times.length,
           };
         })
         .sort((a, b) => a.date.getTime() - b.date.getTime());
 
-      return {
+      if (series.length === 0) {
+        return null;
+      }
+
+      const result: ChartDataSeries = {
         label: team.name,
         color: colors[index % colors.length],
         series,
       };
+      return result;
     })
-    .filter((series): series is ChartDataSeries => series !== null && series.series.length > 0);
+    .filter((series): series is ChartDataSeries => series !== null);
 }
+
+const extractTimeOpen: TimeExtractor = (change) => change.timeOpenMsec;
+const extractTimeToFirstReview: TimeExtractor = (change) => change.timeToFirstReviewMsec;
 
 const csvExportOptions: Options = {
   fieldSeparator: ',',
@@ -249,17 +264,46 @@ export function exportToCsv(users: ReadonlyArray<UserResult>) {
   csvExporter.generateCsv(exportableData);
 }
 
+interface PercentileSelectorProps {
+  readonly options: ReadonlyArray<PercentileOption>;
+  readonly selected: PercentileOption;
+  readonly onChange: (p: PercentileOption) => void;
+}
+
+const PercentileSelector: React.FC<PercentileSelectorProps> = ({options, selected, onChange}) => (
+  <div className="AllUsersOverviewPage__percentile-selector">
+    {options.map((p) => (
+      <button
+        key={p}
+        className={`AllUsersOverviewPage__percentile-btn ${selected === p ? 'AllUsersOverviewPage__percentile-btn--active' : ''}`}
+        onClick={() => onChange(p)}
+      >
+        p{p}
+      </button>
+    ))}
+  </div>
+);
+
 const AllUsersOverviewPage: React.FC = () => {
   const {result, teams} = useOutletContext<AnalysisOutletContext>();
-  const [selectedPercentile, setSelectedPercentile] = useState<PercentileOption>(50);
+  const [turnaroundPercentile, setTurnaroundPercentile] = useState<PercentileOption>(50);
+  const [firstReviewPercentile, setFirstReviewPercentile] = useState<PercentileOption>(50);
   const data = useMemo(() => Object.values(result.userResults), [result]);
   const teamTurnaroundData = useMemo(
     () => computeTeamTurnaroundData(teams, data),
     [teams, data]
   );
-  const teamPercentileTimeSeries = useMemo(
-    () => computeTeamPercentileTimeSeries(teams, data, result.granularity, result.requestedInterval, selectedPercentile),
-    [teams, data, result.granularity, result.requestedInterval, selectedPercentile]
+  const turnaroundTimeSeries = useMemo(
+    () => computeTeamPercentileTimeSeries(
+      teams, data, result.granularity, result.requestedInterval, turnaroundPercentile, extractTimeOpen
+    ),
+    [teams, data, result.granularity, result.requestedInterval, turnaroundPercentile]
+  );
+  const firstReviewTimeSeries = useMemo(
+    () => computeTeamPercentileTimeSeries(
+      teams, data, result.granularity, result.requestedInterval, firstReviewPercentile, extractTimeToFirstReview
+    ),
+    [teams, data, result.granularity, result.requestedInterval, firstReviewPercentile]
   );
 
   return (
@@ -278,20 +322,24 @@ const AllUsersOverviewPage: React.FC = () => {
           <Table columns={teamTurnaroundColumns} data={teamTurnaroundData} />
         </Panel>
       )}
-      {teamPercentileTimeSeries.length > 0 && (
+      {turnaroundTimeSeries.length > 0 && (
         <Panel title="Turnaround Time by Team Over Time" size="flex">
-          <div className="AllUsersOverviewPage__percentile-selector">
-            {PERCENTILE_OPTIONS.map((p) => (
-              <button
-                key={p}
-                className={`AllUsersOverviewPage__percentile-btn ${selectedPercentile === p ? 'AllUsersOverviewPage__percentile-btn--active' : ''}`}
-                onClick={() => setSelectedPercentile(p)}
-              >
-                p{p}
-              </button>
-            ))}
-          </div>
-          <TimeSeriesChart data={teamPercentileTimeSeries} yAxisLabel="Hours" />
+          <PercentileSelector
+            options={PERCENTILE_OPTIONS}
+            selected={turnaroundPercentile}
+            onChange={setTurnaroundPercentile}
+          />
+          <TimeSeriesChart data={turnaroundTimeSeries} yAxisLabel="Hours" valueFormatter={formatHoursMinutes} />
+        </Panel>
+      )}
+      {firstReviewTimeSeries.length > 0 && (
+        <Panel title="Time to First Review by Team Over Time" size="flex">
+          <PercentileSelector
+            options={PERCENTILE_OPTIONS}
+            selected={firstReviewPercentile}
+            onChange={setFirstReviewPercentile}
+          />
+          <TimeSeriesChart data={firstReviewTimeSeries} yAxisLabel="Hours" valueFormatter={formatHoursMinutes} />
         </Panel>
       )}
     </div>
