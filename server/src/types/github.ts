@@ -342,6 +342,9 @@ export interface PullRequest {
   };
   readonly author_association: string;
   readonly draft?: boolean;
+  readonly additions?: number;
+  readonly deletions?: number;
+  readonly changed_files?: number;
 }
 
 export interface Comment {

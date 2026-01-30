@@ -42,6 +42,7 @@ export interface DownloadRequest {
 export type DownloadPhase =
   | 'start'
   | 'pulls'
+  | 'pullDetails'
   | 'comments'
   | 'teams'
   | 'reviews'
@@ -149,6 +150,8 @@ export interface Change {
   readonly timeOpenMsec: number;
   // Time from PR creation to the first review submission. null if no reviews.
   readonly timeToFirstReviewMsec: number | null;
+  // Total lines changed (additions + deletions). null if not available.
+  readonly linesChanged: number | null;
 }
 
 export interface AuthoredTotals {

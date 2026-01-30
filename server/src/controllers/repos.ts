@@ -16,6 +16,7 @@ import {getRepoGithubSlug} from './github/utils';
 import pLimit from 'p-limit';
 import {
   calculateConcurrency,
+  enrichPullRequestsWithLineStats,
   getGithubCommitsForPullRequests,
   getGithubPullRequests,
   getGitHubRateLimitedHttpClient,
@@ -141,6 +142,11 @@ async function fetchWitGithubConnector(
   // Phase 4: Reviews
   setPhase(request, 'reviews');
   await getGithubReviewsForPullRequests(context, fetchedPullNumbers);
+
+  // Phase 5: Enrich PRs with line stats (additions/deletions)
+  // This fetches individual PR details for PRs that don't have line stats yet
+  setPhase(request, 'pullDetails');
+  await enrichPullRequestsWithLineStats(context);
 
   // Phase 5: Commits
   setPhase(request, 'commits');

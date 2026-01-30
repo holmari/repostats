@@ -227,6 +227,13 @@ function computeTeamPercentileTimeSeries(
 
 const extractTimeOpen: TimeExtractor = (change) => change.timeOpenMsec;
 const extractTimeToFirstReview: TimeExtractor = (change) => change.timeToFirstReviewMsec;
+const extractTimeOpenPer100Lines: TimeExtractor = (change) => {
+  if (change.linesChanged === null || change.linesChanged === 0) {
+    return null;
+  }
+  // Return time scaled to 100 lines (will be converted to hours by the chart function)
+  return (change.timeOpenMsec * 100) / change.linesChanged;
+};
 
 const csvExportOptions: Options = {
   fieldSeparator: ',',
@@ -288,6 +295,7 @@ const AllUsersOverviewPage: React.FC = () => {
   const {result, teams} = useOutletContext<AnalysisOutletContext>();
   const [turnaroundPercentile, setTurnaroundPercentile] = useState<PercentileOption>(50);
   const [firstReviewPercentile, setFirstReviewPercentile] = useState<PercentileOption>(50);
+  const [per100LinesPercentile, setPer100LinesPercentile] = useState<PercentileOption>(50);
   const data = useMemo(() => Object.values(result.userResults), [result]);
   const teamTurnaroundData = useMemo(
     () => computeTeamTurnaroundData(teams, data),
@@ -304,6 +312,12 @@ const AllUsersOverviewPage: React.FC = () => {
       teams, data, result.granularity, result.requestedInterval, firstReviewPercentile, extractTimeToFirstReview
     ),
     [teams, data, result.granularity, result.requestedInterval, firstReviewPercentile]
+  );
+  const per100LinesTimeSeries = useMemo(
+    () => computeTeamPercentileTimeSeries(
+      teams, data, result.granularity, result.requestedInterval, per100LinesPercentile, extractTimeOpenPer100Lines
+    ),
+    [teams, data, result.granularity, result.requestedInterval, per100LinesPercentile]
   );
 
   return (
@@ -340,6 +354,16 @@ const AllUsersOverviewPage: React.FC = () => {
             onChange={setFirstReviewPercentile}
           />
           <TimeSeriesChart data={firstReviewTimeSeries} yAxisLabel="Hours" valueFormatter={formatHoursMinutes} />
+        </Panel>
+      )}
+      {per100LinesTimeSeries.length > 0 && (
+        <Panel title="Turnaround Time per 100 Lines by Team Over Time" size="flex">
+          <PercentileSelector
+            options={PERCENTILE_OPTIONS}
+            selected={per100LinesPercentile}
+            onChange={setPer100LinesPercentile}
+          />
+          <TimeSeriesChart data={per100LinesTimeSeries} yAxisLabel="Hours / 100 lines" valueFormatter={formatHoursMinutes} />
         </Panel>
       )}
     </div>

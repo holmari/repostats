@@ -45,6 +45,7 @@ export type DownloadPhase =
   | 'commits'
   | 'finish'
   | 'gitClone'
+  | 'pullDetails'
   | 'pulls'
   | 'reviews'
   | 'teams';
@@ -149,6 +150,8 @@ export interface Change {
   readonly timeOpenMsec: number;
   // Time from PR creation to the first review submission. null if no reviews.
   readonly timeToFirstReviewMsec: number | null;
+  // Total lines changed (additions + deletions). null if not available.
+  readonly linesChanged: number | null;
 }
 
 export interface AuthoredTotals {

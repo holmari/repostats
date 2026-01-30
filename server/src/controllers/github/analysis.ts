@@ -166,6 +166,11 @@ function toChange(
     timeToFirstReviewMsec = getIntervalDuration(reviewInterval, 'milliseconds');
   }
 
+  const linesChanged =
+    pullRequest.additions !== undefined && pullRequest.deletions !== undefined
+      ? pullRequest.additions + pullRequest.deletions
+      : null;
+
   return {
     repoName,
     reviewUrl: pullRequest.html_url,
@@ -173,6 +178,7 @@ function toChange(
     title: pullRequest.title,
     timeOpenMsec,
     timeToFirstReviewMsec,
+    linesChanged,
   };
 }
 

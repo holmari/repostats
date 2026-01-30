@@ -508,6 +508,68 @@ export async function getGithubPullRequests(
   return downloadGithubPullRequestsForUrl(context, url);
 }
 
+async function fetchDetailedPullRequest(
+  context: DownloadContext,
+  pullNumber: number
+): Promise<PullRequest | null> {
+  const url = `${repoUrl(context.repoConfig)}/pulls/${pullNumber}`;
+  try {
+    const response = await get(context, url, {headers: getDefaultHeaders(context.repoConfig)});
+    return response.data as PullRequest;
+  } catch (e) {
+    console.log(`Failed to fetch detailed PR #${pullNumber}: ${(e as Error).message}`);
+    return null;
+  }
+}
+
+export async function enrichPullRequestsWithLineStats(
+  context: DownloadContext
+): Promise<void> {
+  const pullNumbers = getDownloadedPullRequestNumbers(context.repoConfig);
+
+  // Find PRs that are missing line stats
+  const prsNeedingEnrichment: number[] = [];
+  for (const pullNumber of pullNumbers) {
+    const filePath = getGithubPullPath(context.repoConfig, pullNumber);
+    try {
+      const pr = readJsonFile<PullRequest>(filePath);
+      if (pr.additions === undefined || pr.deletions === undefined) {
+        prsNeedingEnrichment.push(pullNumber);
+      }
+    } catch {
+      // Skip if file can't be read
+    }
+  }
+
+  if (prsNeedingEnrichment.length === 0) {
+    console.log('All PRs already have line stats');
+    return;
+  }
+
+  console.log(`Enriching ${prsNeedingEnrichment.length} PRs with line stats`);
+  initPhaseProgress(context.request, 0, prsNeedingEnrichment.length);
+
+  await Promise.all(
+    prsNeedingEnrichment.map((pullNumber) =>
+      context.limit(async () => {
+        const detailedPr = await fetchDetailedPullRequest(context, pullNumber);
+        if (detailedPr) {
+          const filePath = getGithubPullPath(context.repoConfig, pullNumber);
+          const existingPr = readJsonFile<PullRequest>(filePath);
+          const enrichedPr: PullRequest = {
+            ...existingPr,
+            additions: detailedPr.additions,
+            deletions: detailedPr.deletions,
+            changed_files: detailedPr.changed_files,
+          };
+          writeJsonToFile(filePath, enrichedPr);
+        }
+        incrementPhaseProgress(context.request);
+      })
+    )
+  );
+}
+
 export async function getGithubRepoComments(context: DownloadContext): Promise<void> {
   const url = `${repoUrl(
     context.repoConfig
