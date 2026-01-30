@@ -149,7 +149,11 @@ type PercentileOption = 25 | 50 | 75 | 90 | 95;
 
 const PERCENTILE_OPTIONS: ReadonlyArray<PercentileOption> = [25, 50, 75, 90, 95];
 
-type TimeExtractor = (change: Change) => number | null;
+type ValueExtractor = (change: Change) => number | null;
+
+interface TimeSeriesOptions {
+  readonly convertMsToHours?: boolean;
+}
 
 function computeTeamPercentileTimeSeries(
   teams: ReadonlyArray<TeamInfo>,
@@ -157,8 +161,10 @@ function computeTeamPercentileTimeSeries(
   granularity: Granularity,
   requestedInterval: DateInterval,
   percentile: PercentileOption,
-  extractTime: TimeExtractor
+  extractValue: ValueExtractor,
+  options: TimeSeriesOptions = {}
 ): ReadonlyArray<ChartDataSeries> {
+  const {convertMsToHours = true} = options;
   const colors = d3.schemeTableau10;
 
   // Helper to get all changes for a team's members within the requested interval
@@ -182,31 +188,31 @@ function computeTeamPercentileTimeSeries(
         return null;
       }
 
-      // Group changes by period, extracting the relevant time value
+      // Group changes by period, extracting the relevant value
       const changesByPeriod = new Map<string, number[]>();
       for (const change of changes) {
-        const timeValue = extractTime(change);
-        if (timeValue === null) {
+        const value = extractValue(change);
+        if (value === null) {
           continue;
         }
         const period = getPeriodStartDate(change.createdAt, granularity);
         const existing = changesByPeriod.get(period) || [];
-        existing.push(timeValue);
+        existing.push(value);
         changesByPeriod.set(period, existing);
       }
 
       // Compute percentile for each period
       const series: ReadonlyArray<DateValue> = Array.from(changesByPeriod.entries())
-        .map(([period, times]) => {
-          const sorted = times.sort((a, b) => a - b);
+        .map(([period, values]) => {
+          const sorted = values.sort((a, b) => a - b);
           const pValue = computePercentile(sorted, percentile);
-          // Convert to hours for display
-          const pValueHours = isNaN(pValue) ? 0 : pValue / 1000 / 60 / 60;
+          // Convert to hours if needed, otherwise use raw value
+          const displayValue = isNaN(pValue) ? 0 : convertMsToHours ? pValue / 1000 / 60 / 60 : pValue;
 
           return {
             date: new Date(period),
-            value: pValueHours,
-            count: times.length,
+            value: displayValue,
+            count: values.length,
           };
         })
         .sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -225,15 +231,22 @@ function computeTeamPercentileTimeSeries(
     .filter((series): series is ChartDataSeries => series !== null);
 }
 
-const extractTimeOpen: TimeExtractor = (change) => change.timeOpenMsec;
-const extractTimeToFirstReview: TimeExtractor = (change) => change.timeToFirstReviewMsec;
-const extractTimeOpenPer100Lines: TimeExtractor = (change) => {
+const extractTimeOpen: ValueExtractor = (change) => change.timeOpenMsec;
+const extractTimeToFirstReview: ValueExtractor = (change) => change.timeToFirstReviewMsec;
+const extractLinesPerHour: ValueExtractor = (change) => {
   if (change.linesChanged === null || change.linesChanged === 0) {
     return null;
   }
-  // Return time scaled to 100 lines (will be converted to hours by the chart function)
-  return (change.timeOpenMsec * 100) / change.linesChanged;
+  const hours = change.timeOpenMsec / 1000 / 60 / 60;
+  if (hours === 0) {
+    return null;
+  }
+  return change.linesChanged / hours;
 };
+
+function formatLinesPerHour(value: number): string {
+  return value.toFixed(2);
+}
 
 const csvExportOptions: Options = {
   fieldSeparator: ',',
@@ -295,7 +308,7 @@ const AllUsersOverviewPage: React.FC = () => {
   const {result, teams} = useOutletContext<AnalysisOutletContext>();
   const [turnaroundPercentile, setTurnaroundPercentile] = useState<PercentileOption>(50);
   const [firstReviewPercentile, setFirstReviewPercentile] = useState<PercentileOption>(50);
-  const [per100LinesPercentile, setPer100LinesPercentile] = useState<PercentileOption>(50);
+  const [linesPerHourPercentile, setLinesPerHourPercentile] = useState<PercentileOption>(50);
   const data = useMemo(() => Object.values(result.userResults), [result]);
   const teamTurnaroundData = useMemo(
     () => computeTeamTurnaroundData(teams, data),
@@ -313,11 +326,12 @@ const AllUsersOverviewPage: React.FC = () => {
     ),
     [teams, data, result.granularity, result.requestedInterval, firstReviewPercentile]
   );
-  const per100LinesTimeSeries = useMemo(
+  const linesPerHourTimeSeries = useMemo(
     () => computeTeamPercentileTimeSeries(
-      teams, data, result.granularity, result.requestedInterval, per100LinesPercentile, extractTimeOpenPer100Lines
+      teams, data, result.granularity, result.requestedInterval, linesPerHourPercentile, extractLinesPerHour,
+      {convertMsToHours: false}
     ),
-    [teams, data, result.granularity, result.requestedInterval, per100LinesPercentile]
+    [teams, data, result.granularity, result.requestedInterval, linesPerHourPercentile]
   );
 
   return (
@@ -356,14 +370,14 @@ const AllUsersOverviewPage: React.FC = () => {
           <TimeSeriesChart data={firstReviewTimeSeries} yAxisLabel="Hours" valueFormatter={formatHoursMinutes} />
         </Panel>
       )}
-      {per100LinesTimeSeries.length > 0 && (
-        <Panel title="Turnaround Time per 100 Lines by Team Over Time" size="flex">
+      {linesPerHourTimeSeries.length > 0 && (
+        <Panel title="Review Throughput by Team Over Time" size="flex">
           <PercentileSelector
             options={PERCENTILE_OPTIONS}
-            selected={per100LinesPercentile}
-            onChange={setPer100LinesPercentile}
+            selected={linesPerHourPercentile}
+            onChange={setLinesPerHourPercentile}
           />
-          <TimeSeriesChart data={per100LinesTimeSeries} yAxisLabel="Hours / 100 lines" valueFormatter={formatHoursMinutes} />
+          <TimeSeriesChart data={linesPerHourTimeSeries} yAxisLabel="Lines / hour" valueFormatter={formatLinesPerHour} />
         </Panel>
       )}
     </div>
