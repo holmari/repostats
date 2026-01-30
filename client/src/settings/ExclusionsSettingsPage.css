@@ -219,3 +219,82 @@
 .ExclusionsSettingsPage__chip-remove:hover {
   color: #c00;
 }
+
+.ExclusionsSettingsPage__section {
+  margin-bottom: 20px;
+}
+
+.ExclusionsSettingsPage__section-title {
+  color: #333;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.ExclusionsSettingsPage__add-label {
+  display: flex;
+  gap: 8px;
+}
+
+.ExclusionsSettingsPage__input {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  flex: 1;
+  font-size: 13px;
+  padding: 8px 12px;
+}
+
+.ExclusionsSettingsPage__input:focus {
+  border-color: #4a91ff;
+  outline: none;
+}
+
+.ExclusionsSettingsPage__add-btn {
+  background-color: #4a91ff;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 8px 16px;
+}
+
+.ExclusionsSettingsPage__add-btn:hover:not(:disabled) {
+  background-color: #3a7de8;
+}
+
+.ExclusionsSettingsPage__add-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.ExclusionsSettingsPage__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ExclusionsSettingsPage__tag {
+  align-items: center;
+  background-color: #e8f0fe;
+  border-radius: 16px;
+  color: #1a73e8;
+  display: inline-flex;
+  font-size: 13px;
+  gap: 6px;
+  padding: 4px 10px;
+}
+
+.ExclusionsSettingsPage__tag-remove {
+  background: none;
+  border: none;
+  color: #1a73e8;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0;
+}
+
+.ExclusionsSettingsPage__tag-remove:hover {
+  color: #c00;
+}

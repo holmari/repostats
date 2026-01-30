@@ -128,6 +128,7 @@ export interface AnalyzeRequest {
   readonly dateInterval?: DateInterval;
   readonly includedRepoNames?: ReadonlyArray<string>;
   readonly excludedUserIds?: ReadonlyArray<string>;
+  readonly excludedLabelNames?: ReadonlyArray<string>;
   readonly granularity?: Granularity;
   readonly comparisonGranularity?: ComparisonGranularity;
 }
@@ -308,5 +309,6 @@ export interface AnalyzeResult {
 export interface AppSettings {
   readonly excludedUserIds: ReadonlyArray<string>;
   readonly excludedTeamSlugs: ReadonlyArray<string>;
+  readonly excludedLabelNames: ReadonlyArray<string>;
   readonly activeSSHKeyId?: string;
 }

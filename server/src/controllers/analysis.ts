@@ -242,6 +242,7 @@ function normalizeRequest(request: AnalyzeRequest): NormalizedAnalyzeRequest {
       : ALL_TIME_INTERVAL,
     includedRepoNames: request.includedRepoNames || getAvailableRepoNames(),
     excludedUserIds: request.excludedUserIds ?? [...settings.excludedUserIds],
+    excludedLabelNames: request.excludedLabelNames ?? [...(settings.excludedLabelNames || [])],
     granularity: request.granularity ?? 'day',
     comparisonGranularity: request.comparisonGranularity,
   };

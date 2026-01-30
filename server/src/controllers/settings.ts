@@ -8,6 +8,7 @@ import {readJsonFile, writeJsonToFile} from '../file/json';
 const DEFAULT_SETTINGS: AppSettings = {
   excludedUserIds: [],
   excludedTeamSlugs: [],
+  excludedLabelNames: [],
 };
 
 function getSettingsPath(): string {
@@ -37,6 +38,7 @@ export function saveSettingsHandler(req: Request, res: Response): void {
     ...existingSettings,
     excludedUserIds: 'excludedUserIds' in req.body ? req.body.excludedUserIds : existingSettings.excludedUserIds,
     excludedTeamSlugs: 'excludedTeamSlugs' in req.body ? req.body.excludedTeamSlugs : existingSettings.excludedTeamSlugs,
+    excludedLabelNames: 'excludedLabelNames' in req.body ? req.body.excludedLabelNames : existingSettings.excludedLabelNames,
     activeSSHKeyId: 'activeSSHKeyId' in req.body ? req.body.activeSSHKeyId : existingSettings.activeSSHKeyId,
   };
 

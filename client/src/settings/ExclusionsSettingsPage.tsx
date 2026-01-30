@@ -8,7 +8,9 @@ import {AppSettings, TeamInfo, UserInfo} from 'types/types';
 import CenteredSpinner from 'components/CenteredSpinner';
 import {toggleValue} from 'arrays/utils';
 
-type Tab = 'teams' | 'users';
+type Tab = 'teams' | 'users' | 'labels';
+
+const SUGGESTED_LABELS = ['Draft', 'Experiment', 'Work in Progress', 'WIP', 'Do Not Merge'];
 
 const ExclusionsSettingsPage: React.FC = () => {
   const [teams, setTeams] = useState<ReadonlyArray<TeamInfo>>([]);
@@ -18,14 +20,17 @@ const ExclusionsSettingsPage: React.FC = () => {
 
   const [excludedTeamSlugs, setExcludedTeamSlugs] = useState<ReadonlyArray<string>>([]);
   const [excludedUserIds, setExcludedUserIds] = useState<ReadonlyArray<string>>([]);
+  const [excludedLabelNames, setExcludedLabelNames] = useState<ReadonlyArray<string>>([]);
+  const [newLabelInput, setNewLabelInput] = useState('');
 
   useEffect(() => {
     Promise.all([get('teams'), get('users'), get('settings')])
       .then(([fetchedTeams, fetchedUsers, fetchedSettings]) => {
         setTeams(fetchedTeams);
         setUsers(fetchedUsers);
-        setExcludedTeamSlugs(fetchedSettings.excludedTeamSlugs);
-        setExcludedUserIds(fetchedSettings.excludedUserIds);
+        setExcludedTeamSlugs(fetchedSettings.excludedTeamSlugs || []);
+        setExcludedUserIds(fetchedSettings.excludedUserIds || []);
+        setExcludedLabelNames(fetchedSettings.excludedLabelNames || []);
         setIsLoading(false);
       })
       .catch(() => {
@@ -60,6 +65,34 @@ const ExclusionsSettingsPage: React.FC = () => {
     [excludedTeamSlugs, excludedUserIds, saveSettings]
   );
 
+  const handleToggleLabel = useCallback(
+    (labelName: string) => {
+      const newExcluded = toggleValue(excludedLabelNames, labelName);
+      setExcludedLabelNames(newExcluded);
+      saveSettings({excludedLabelNames: newExcluded});
+    },
+    [excludedLabelNames, saveSettings]
+  );
+
+  const handleAddCustomLabel = useCallback(() => {
+    const trimmed = newLabelInput.trim();
+    if (trimmed && !excludedLabelNames.includes(trimmed)) {
+      const newExcluded = [...excludedLabelNames, trimmed];
+      setExcludedLabelNames(newExcluded);
+      saveSettings({excludedLabelNames: newExcluded});
+      setNewLabelInput('');
+    }
+  }, [newLabelInput, excludedLabelNames, saveSettings]);
+
+  const handleRemoveLabel = useCallback(
+    (labelName: string) => {
+      const newExcluded = excludedLabelNames.filter((l) => l !== labelName);
+      setExcludedLabelNames(newExcluded);
+      saveSettings({excludedLabelNames: newExcluded});
+    },
+    [excludedLabelNames, saveSettings]
+  );
+
   if (isLoading) {
     return <CenteredSpinner />;
   }
@@ -86,6 +119,16 @@ const ExclusionsSettingsPage: React.FC = () => {
           type="button"
         >
           Users ({excludedUserIds.length} excluded)
+        </button>
+        <button
+          className={classNames(
+            'ExclusionsSettingsPage__tab',
+            activeTab === 'labels' && 'ExclusionsSettingsPage__tab--active'
+          )}
+          onClick={() => setActiveTab('labels')}
+          type="button"
+        >
+          PR Labels ({excludedLabelNames.length} excluded)
         </button>
       </div>
 
@@ -133,6 +176,73 @@ const ExclusionsSettingsPage: React.FC = () => {
                     <span>{user.displayName}</span>
                   </label>
                 ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {activeTab === 'labels' && (
+          <>
+            <p className="ExclusionsSettingsPage__description">
+              Pull requests with excluded labels will not be included in the analysis.
+            </p>
+
+            <div className="ExclusionsSettingsPage__section">
+              <h4 className="ExclusionsSettingsPage__section-title">Suggested Labels</h4>
+              <div className="ExclusionsSettingsPage__list">
+                {SUGGESTED_LABELS.map((label) => (
+                  <label key={label} className="ExclusionsSettingsPage__item">
+                    <input
+                      type="checkbox"
+                      checked={excludedLabelNames.includes(label)}
+                      onChange={() => handleToggleLabel(label)}
+                    />
+                    <span>{label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="ExclusionsSettingsPage__section">
+              <h4 className="ExclusionsSettingsPage__section-title">Add Custom Label</h4>
+              <div className="ExclusionsSettingsPage__add-label">
+                <input
+                  type="text"
+                  className="ExclusionsSettingsPage__input"
+                  placeholder="Enter label name..."
+                  value={newLabelInput}
+                  onChange={(e) => setNewLabelInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddCustomLabel()}
+                />
+                <button
+                  type="button"
+                  className="ExclusionsSettingsPage__add-btn"
+                  onClick={handleAddCustomLabel}
+                  disabled={!newLabelInput.trim()}
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+
+            {excludedLabelNames.length > 0 && (
+              <div className="ExclusionsSettingsPage__section">
+                <h4 className="ExclusionsSettingsPage__section-title">Currently Excluded</h4>
+                <div className="ExclusionsSettingsPage__tags">
+                  {excludedLabelNames.map((label) => (
+                    <span key={label} className="ExclusionsSettingsPage__tag">
+                      {label}
+                      <button
+                        type="button"
+                        className="ExclusionsSettingsPage__tag-remove"
+                        onClick={() => handleRemoveLabel(label)}
+                        aria-label={`Remove ${label}`}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
               </div>
             )}
           </>

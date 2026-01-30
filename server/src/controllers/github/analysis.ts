@@ -69,6 +69,7 @@ interface GithubComputeContext {
   readonly getPull: (pullNumber: string | number) => PullRequest | null;
   readonly getFirstReviewTime: (pullNumber: string | number) => string | null;
   readonly matchesDateFilter: (interval: DateInterval | string | null) => boolean;
+  readonly hasExcludedLabel: (pull: PullRequest) => boolean;
   readonly acquireUserResult: (user: User) => IntermediateUserResult;
   readonly adjustUserResult: (newUserResult: IntermediateUserResult) => void;
 }
@@ -487,6 +488,7 @@ function processPullRequests(context: GithubComputeContext, pullsByNumber: Pulls
     .map((pullNumber) => context.getPull(pullNumber))
     .filter(Boolean)
     .filter((pull) => context.matchesDateFilter(getPullRequestInterval(pull)))
+    .filter((pull) => !context.hasExcludedLabel(pull!))
     .forEach((pull) => {
       if (!pull?.user) {
         return;
@@ -751,6 +753,14 @@ export function getGithubRepoResult(
       return typeof interval === 'string'
         ? intersects(request.dateInterval, singleDateInterval(interval))
         : intersects(request.dateInterval, interval);
+    },
+
+    hasExcludedLabel: (pull: PullRequest) => {
+      if (!request.excludedLabelNames || request.excludedLabelNames.length === 0) {
+        return false;
+      }
+      const excludedSet = new Set(request.excludedLabelNames.map((name) => name.toLowerCase()));
+      return pull.labels.some((label) => label.name && excludedSet.has(label.name.toLowerCase()));
     },
   };
 
