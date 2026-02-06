@@ -96,6 +96,11 @@
   display: flex;
   gap: 8px;
   padding: 6px 10px;
+  transition: background-color 0.15s ease;
+}
+
+.RepoFileExclusions__chip:hover {
+  background-color: #e4e4e4;
 }
 
 .RepoFileExclusions__chip-text {
