@@ -24,55 +24,10 @@ const FilePathCell: React.FC<Props> = ({path, repoName, width}) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const {showToast} = useToast();
   const parentDir = getParentDirectory(path);
+  const grandparentDir = parentDir != null ? getParentDirectory(parentDir) : null;
 
-  const handleAddToExclusions = useCallback(async () => {
+  const addExclusion = useCallback(async (pattern: string) => {
     setMenuOpen(false);
-
-    try {
-      // Fetch current repo config
-      const repos = await get('repos');
-      const repo = repos.find((r) => r.name === repoName);
-
-      if (!repo) {
-        showToast(`Could not find repository: ${repoName}`);
-        return;
-      }
-
-      const excludedFilePaths = repo.excludedFilePaths || [];
-
-      // Check if already excluded
-      if (excludedFilePaths.includes(path)) {
-        showToast(`${path} is already excluded`);
-        return;
-      }
-
-      // Update repo with new exclusion
-      const updatedRepo = {
-        ...repo,
-        excludedFilePaths: [...excludedFilePaths, path],
-      };
-
-      await put('repos', updatedRepo);
-
-      const filename = path.split('/').pop() || path;
-      showToast(`Added "${filename}" to exclusions. Refresh to update.`, {
-        action: {
-          icon: 'refresh',
-          onClick: () => window.location.reload(),
-        },
-      });
-    } catch (error) {
-      showToast('Failed to add file to exclusions');
-    }
-  }, [path, repoName, showToast]);
-
-  const handleExcludeParentDirectory = useCallback(async () => {
-    if (parentDir == null) {
-      return;
-    }
-
-    setMenuOpen(false);
-    const pattern = `${parentDir}/**`;
 
     try {
       const repos = await get('repos');
@@ -104,9 +59,9 @@ const FilePathCell: React.FC<Props> = ({path, repoName, width}) => {
         },
       });
     } catch (error) {
-      showToast('Failed to add directory to exclusions');
+      showToast('Failed to add exclusion');
     }
-  }, [parentDir, repoName, showToast]);
+  }, [repoName, showToast]);
 
   return (
     <div className="FilePathCell">
@@ -122,12 +77,17 @@ const FilePathCell: React.FC<Props> = ({path, repoName, width}) => {
           ⋮
         </Dropdown.Toggle>
         <Dropdown.Menu className="FilePathCell__dropdown-menu">
-          <Dropdown.Item className="FilePathCell__dropdown-item" onClick={handleAddToExclusions}>
+          <Dropdown.Item className="FilePathCell__dropdown-item" onClick={() => addExclusion(path)}>
             Exclude File
           </Dropdown.Item>
           {parentDir != null && (
-            <Dropdown.Item className="FilePathCell__dropdown-item" onClick={handleExcludeParentDirectory}>
-              Exclude .../{parentDir.split('/').pop()}/
+            <Dropdown.Item className="FilePathCell__dropdown-item" onClick={() => addExclusion(`${parentDir}/**`)}>
+              Exclude .../{grandparentDir ? `${grandparentDir.split('/').pop()}/` : ''}{parentDir.split('/').pop()}/
+            </Dropdown.Item>
+          )}
+          {grandparentDir != null && (
+            <Dropdown.Item className="FilePathCell__dropdown-item" onClick={() => addExclusion(`${grandparentDir}/**`)}>
+              Exclude .../{grandparentDir.split('/').pop()}/
             </Dropdown.Item>
           )}
         </Dropdown.Menu>
