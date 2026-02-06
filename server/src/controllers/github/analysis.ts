@@ -1,6 +1,4 @@
 import path from 'path';
-import fs from 'fs';
-import {spawnSync} from 'child_process';
 
 import {iterEachFile} from '../../file/utils';
 import {
@@ -28,7 +26,8 @@ import {
   getGithubTeamMembersPath,
 } from './paths';
 
-import {PullRequest, Comment, User, Review, Commit} from '../../types/github';
+import {PullRequest, PullRequestFile, Comment, User, Review, Commit} from '../../types/github';
+import picomatch from 'picomatch';
 import {
   createInterval,
   EMPTY_INTERVAL,
@@ -42,13 +41,38 @@ import {createDefaultUserRepoTotals, createIntermediateAnalyzeResult} from '../a
 import {IntermediateAnalyzeResult, IntermediateUserResult} from '../analysis/types';
 import {removeDuplicates} from '../../arrays/utils';
 import {getPullRequestNumberFromUrl} from './utils';
-import {getGitClonePath} from '../../file/paths';
-import {buildEmailMapping} from '../../git/emailMapping';
-import {getDefaultBranch} from '../../git/utils';
 
 type PullsByNumber = {readonly [prNumber: string]: PullRequest};
 type TeamMembersBySlug = {readonly [teamSlug: string]: ReadonlyArray<User>};
 type FirstReviewTimeByPullNumber = {readonly [prNumber: string]: string};
+
+interface FilteredFileStats {
+  readonly filteredAdditions: number;
+  readonly filteredDeletions: number;
+}
+
+function filterFileStats(
+  files: ReadonlyArray<PullRequestFile>,
+  excludedPaths: ReadonlyArray<string>
+): FilteredFileStats {
+  // Create matchers for excluded patterns
+  const matchers = excludedPaths.map((pattern) => picomatch(pattern));
+
+  let filteredAdditions = 0;
+  let filteredDeletions = 0;
+
+  for (const file of files) {
+    // Check if file matches any excluded pattern
+    const isExcluded = matchers.some((matcher) => matcher(file.filename));
+
+    if (!isExcluded) {
+      filteredAdditions += file.additions;
+      filteredDeletions += file.deletions;
+    }
+  }
+
+  return {filteredAdditions, filteredDeletions};
+}
 
 function computeMedian(values: ReadonlyArray<number>): number {
   if (values.length === 0) {
@@ -431,6 +455,20 @@ function incrementChangesAuthoredByDay(
   return incrementCountByDay(userResult.changesAuthoredByDay, pull.created_at);
 }
 
+function incrementLinesByDay(
+  countByDay: CountByDay,
+  date: string | null,
+  amount: number
+): CountByDay {
+  if (!date || amount === 0) {
+    return countByDay;
+  }
+
+  const key = sliceDate(date);
+  const currentCount = countByDay[key] || 0;
+  return {...countByDay, [key]: currentCount + amount};
+}
+
 function getCommitAuthorDate(commit: Commit): string | null {
   if (!commit.commit) {
     return null;
@@ -483,10 +521,15 @@ function incrementReviewsReceivedByDay(
 
 function processPullRequests(context: GithubComputeContext, pullsByNumber: PullsByNumber) {
   const teamMembers = getTeamMembers(context.repoConfig);
+  const excludedPaths = context.repoConfig.excludedFilePaths || [];
+
+  // Track PR sizes per user for median calculation
+  const prSizesByUserId: {[userId: string]: number[]} = {};
 
   Object.keys(pullsByNumber)
     .map((pullNumber) => context.getPull(pullNumber))
     .filter(Boolean)
+    .filter((pull) => pull!.merged_at !== null) // Only count merged PRs
     .filter((pull) => context.matchesDateFilter(getPullRequestInterval(pull)))
     .filter((pull) => !context.hasExcludedLabel(pull!))
     .forEach((pull) => {
@@ -497,6 +540,34 @@ function processPullRequests(context: GithubComputeContext, pullsByNumber: Pulls
       const pullUser = pull.user;
       const userResult = context.acquireUserResult(pullUser);
       const firstReviewTime = context.getFirstReviewTime(pull.number);
+
+      // Get line stats from PR - use file-level data if available to support exclusions
+      let additions: number;
+      let deletions: number;
+
+      if (pull.files && excludedPaths.length > 0) {
+        // Filter files based on excluded patterns
+        const {filteredAdditions, filteredDeletions} = filterFileStats(pull.files, excludedPaths);
+        additions = filteredAdditions;
+        deletions = filteredDeletions;
+      } else {
+        // Use PR totals (no file data available or no exclusions configured)
+        additions = pull.additions ?? 0;
+        deletions = pull.deletions ?? 0;
+      }
+
+      // Track PR size for median calculation
+      if (!prSizesByUserId[pullUser.login]) {
+        prSizesByUserId[pullUser.login] = [];
+      }
+      prSizesByUserId[pullUser.login].push(additions + deletions);
+
+      // Update user result with line stats
+      const authoredTotals = incrementAuthoredTotals(userResult, {
+        linesAdded: additions,
+        linesDeleted: deletions,
+      });
+
       context.adjustUserResult({
         ...userResult,
         changesAuthored: [
@@ -504,6 +575,13 @@ function processPullRequests(context: GithubComputeContext, pullsByNumber: Pulls
           toChange(context.repoConfig.name, pull, firstReviewTime),
         ],
         changesAuthoredByDay: incrementChangesAuthoredByDay(userResult, pull),
+        repoTotals: [authoredTotals],
+        linesAddedByDay: incrementLinesByDay(userResult.linesAddedByDay, pull.created_at, additions),
+        linesDeletedByDay: incrementLinesByDay(
+          userResult.linesDeletedByDay,
+          pull.created_at,
+          deletions
+        ),
       });
 
       const requestedReviewers = getReviewersFromPullRequest(pull, teamMembers);
@@ -533,6 +611,40 @@ function processPullRequests(context: GithubComputeContext, pullsByNumber: Pulls
         });
       }
     });
+
+  return prSizesByUserId;
+}
+
+function applyMedianPRSizes(
+  prSizesByUserId: {[userId: string]: number[]},
+  userResults: {[userId: string]: IntermediateUserResult}
+): void {
+  for (const [userId, prSizes] of Object.entries(prSizesByUserId)) {
+    if (prSizes.length === 0 || !userResults[userId]) {
+      continue;
+    }
+
+    const medianPRSize = computeMedian(prSizes);
+    const userResult = userResults[userId];
+
+    if (userResult.repoTotals.length === 0) {
+      continue;
+    }
+
+    // Update the repoTotals with median PR size (stored as medianCommitSize for compatibility)
+    const updatedRepoTotals = userResult.repoTotals.map((totals) => ({
+      ...totals,
+      authoredTotals: {
+        ...totals.authoredTotals,
+        medianCommitSize: medianPRSize,
+      },
+    }));
+
+    userResults[userId] = {
+      ...userResult,
+      repoTotals: updatedRepoTotals,
+    };
+  }
 }
 
 function processComments(context: GithubComputeContext) {
@@ -764,226 +876,14 @@ export function getGithubRepoResult(
     },
   };
 
-  processPullRequests(context, pullsByNumber);
+  const prSizesByUserId = processPullRequests(context, pullsByNumber);
   processComments(context);
   processReviews(context);
   processCommits(context);
 
-  // Process git stats if repo is cloned and SSH key is available
-  processGitStats(context, request.dateInterval, userResults);
+  // Apply median PR sizes to user results
+  applyMedianPRSizes(prSizesByUserId, userResults);
 
   return createIntermediateAnalyzeResult(repoConfig, userResults);
 }
 
-function processGitStats(
-  context: GithubComputeContext,
-  dateInterval: DateInterval,
-  userResults: {[userId: string]: IntermediateUserResult}
-): void {
-  const repoPath = getGitClonePath(context.repoConfig.name);
-
-  // Check if repo is cloned
-  if (!fs.existsSync(repoPath) || !fs.existsSync(`${repoPath}/.git`)) {
-    return;
-  }
-
-  // Build email mapping from GitHub commit data
-  const emailMapping = buildEmailMapping(context.repoConfig);
-
-  // Get the default branch name
-  const defaultBranch = getDefaultBranch(repoPath);
-
-  // Get excluded file paths from repo config
-  const excludedPaths = context.repoConfig.excludedFilePaths || [];
-
-  const args = [
-    'log',
-    '--format=%H|%ae|%aI',
-    '--shortstat',
-    '--no-merges',
-    defaultBranch,
-    `--since=${dateInterval.startDate}`,
-    `--until=${dateInterval.endDate}`,
-  ];
-
-  // Add pathspec exclusions if configured
-  if (excludedPaths.length > 0) {
-    args.push('--');
-    for (const pattern of excludedPaths) {
-      args.push(`:!${pattern}`);
-    }
-  }
-
-  const result = spawnSync('git', args, {cwd: repoPath, encoding: 'utf-8', maxBuffer: 50 * 1024 * 1024});
-  if (result.status !== 0) {
-    console.error(`Git log failed for ${context.repoConfig.name}: ${result.stderr}`);
-    return;
-  }
-
-  // Parse git log output
-  const entries = parseGitLogOutput(result.stdout);
-
-  // Aggregate stats by user login (totals and per day)
-  // Using mutable type for aggregation since CountByDay is readonly
-  type MutableCountByDay = {[date: string]: number};
-  const statsByLogin: {
-    [login: string]: {
-      linesAdded: number;
-      linesDeleted: number;
-      linesAddedByDay: MutableCountByDay;
-      linesDeletedByDay: MutableCountByDay;
-      commitSizes: number[];
-    };
-  } = {};
-
-  for (const entry of entries) {
-    const login = emailMapping.get(entry.email);
-    if (!login) {
-      continue;
-    }
-
-    if (!statsByLogin[login]) {
-      statsByLogin[login] = {
-        linesAdded: 0,
-        linesDeleted: 0,
-        linesAddedByDay: {},
-        linesDeletedByDay: {},
-        commitSizes: [],
-      };
-    }
-
-    statsByLogin[login].linesAdded += entry.insertions;
-    statsByLogin[login].linesDeleted += entry.deletions;
-    statsByLogin[login].commitSizes.push(entry.insertions + entry.deletions);
-
-    // Aggregate per day
-    const dateKey = sliceDate(entry.date);
-    statsByLogin[login].linesAddedByDay[dateKey] =
-      (statsByLogin[login].linesAddedByDay[dateKey] || 0) + entry.insertions;
-    statsByLogin[login].linesDeletedByDay[dateKey] =
-      (statsByLogin[login].linesDeletedByDay[dateKey] || 0) + entry.deletions;
-  }
-
-  // Update user results with line stats by finding users by their displayName
-  for (const userResult of Object.values(userResults)) {
-    const login = userResult.displayName;
-    const stats = statsByLogin[login];
-
-    if (!stats || userResult.repoTotals.length === 0) {
-      continue;
-    }
-
-    // Compute median commit size
-    const medianCommitSize = computeMedian(stats.commitSizes);
-
-    // Update the repoTotals with line stats
-    const updatedRepoTotals = userResult.repoTotals.map((totals) => ({
-      ...totals,
-      authoredTotals: {
-        ...totals.authoredTotals,
-        linesAdded: totals.authoredTotals.linesAdded + stats.linesAdded,
-        linesDeleted: totals.authoredTotals.linesDeleted + stats.linesDeleted,
-        medianCommitSize,
-      },
-    }));
-
-    // Merge per-day line stats (using mutable type for modification, then assign to readonly)
-    const mergedLinesAddedByDay: MutableCountByDay = {...userResult.linesAddedByDay};
-    const mergedLinesDeletedByDay: MutableCountByDay = {...userResult.linesDeletedByDay};
-    for (const [date, count] of Object.entries(stats.linesAddedByDay)) {
-      mergedLinesAddedByDay[date] = (mergedLinesAddedByDay[date] || 0) + count;
-    }
-    for (const [date, count] of Object.entries(stats.linesDeletedByDay)) {
-      mergedLinesDeletedByDay[date] = (mergedLinesDeletedByDay[date] || 0) + count;
-    }
-
-    userResults[userResult.id] = {
-      ...userResult,
-      repoTotals: updatedRepoTotals,
-      linesAddedByDay: mergedLinesAddedByDay,
-      linesDeletedByDay: mergedLinesDeletedByDay,
-    };
-  }
-}
-
-interface ParsedGitLogEntry {
-  sha: string;
-  email: string;
-  date: string;
-  insertions: number;
-  deletions: number;
-}
-
-function parseGitLogOutput(output: string): ParsedGitLogEntry[] {
-  const entries: ParsedGitLogEntry[] = [];
-  const lines = output.split('\n');
-
-  let currentEntry: Partial<ParsedGitLogEntry> | null = null;
-
-  for (const line of lines) {
-    const trimmedLine = line.trim();
-
-    if (!trimmedLine) {
-      continue;
-    }
-
-    // Check if this is a commit line (SHA|email|date)
-    if (trimmedLine.includes('|') && trimmedLine.length >= 40) {
-      // If we have a previous entry without stats, add it with zeros
-      if (currentEntry && currentEntry.sha) {
-        entries.push({
-          sha: currentEntry.sha,
-          email: currentEntry.email ?? '',
-          date: currentEntry.date ?? '',
-          insertions: currentEntry.insertions ?? 0,
-          deletions: currentEntry.deletions ?? 0,
-        });
-      }
-
-      const parts = trimmedLine.split('|');
-      if (parts.length >= 3) {
-        currentEntry = {
-          sha: parts[0],
-          email: parts[1].toLowerCase(),
-          date: parts[2],
-          insertions: 0,
-          deletions: 0,
-        };
-      }
-    } else if (currentEntry && (trimmedLine.includes('insertion') || trimmedLine.includes('deletion'))) {
-      // Parse shortstat line
-      const insertionMatch = trimmedLine.match(/(\d+)\s+insertion/);
-      const deletionMatch = trimmedLine.match(/(\d+)\s+deletion/);
-
-      if (insertionMatch) {
-        currentEntry.insertions = parseInt(insertionMatch[1], 10);
-      }
-      if (deletionMatch) {
-        currentEntry.deletions = parseInt(deletionMatch[1], 10);
-      }
-
-      // Add entry and reset
-      entries.push({
-        sha: currentEntry.sha ?? '',
-        email: currentEntry.email ?? '',
-        date: currentEntry.date ?? '',
-        insertions: currentEntry.insertions ?? 0,
-        deletions: currentEntry.deletions ?? 0,
-      });
-      currentEntry = null;
-    }
-  }
-
-  // Handle last entry if no stats line followed
-  if (currentEntry && currentEntry.sha) {
-    entries.push({
-      sha: currentEntry.sha,
-      email: currentEntry.email ?? '',
-      date: currentEntry.date ?? '',
-      insertions: currentEntry.insertions ?? 0,
-      deletions: currentEntry.deletions ?? 0,
-    });
-  }
-
-  return entries;
-}

@@ -345,6 +345,19 @@ export interface PullRequest {
   readonly additions?: number;
   readonly deletions?: number;
   readonly changed_files?: number;
+  // File-level data (fetched separately from /pulls/{pull_number}/files)
+  readonly files?: ReadonlyArray<PullRequestFile>;
+}
+
+export interface PullRequestFile {
+  readonly sha: string;
+  readonly filename: string;
+  readonly status: 'added' | 'removed' | 'modified' | 'renamed' | 'copied' | 'changed' | 'unchanged';
+  readonly additions: number;
+  readonly deletions: number;
+  readonly changes: number;
+  readonly patch?: string;
+  readonly previous_filename?: string;
 }
 
 export interface Comment {

@@ -31,6 +31,7 @@ import {
   Comment,
   Commit,
   PullRequest,
+  PullRequestFile,
   RateLimit,
   Repository,
   Review,
@@ -522,13 +523,52 @@ async function fetchDetailedPullRequest(
   }
 }
 
+async function fetchPullRequestFiles(
+  context: DownloadContext,
+  pullNumber: number
+): Promise<PullRequestFile[]> {
+  const files: PullRequestFile[] = [];
+  let page = 1;
+  const perPage = 100;
+
+  // Paginate through all files (PRs can have many files)
+  while (true) {
+    const url = `${repoUrl(context.repoConfig)}/pulls/${pullNumber}/files?per_page=${perPage}&page=${page}`;
+    try {
+      const response = await get(context, url, {headers: getDefaultHeaders(context.repoConfig)});
+      const pageFiles = response.data as PullRequestFile[];
+      files.push(...pageFiles);
+
+      if (pageFiles.length < perPage) {
+        break; // No more pages
+      }
+      page++;
+    } catch (e) {
+      console.log(`Failed to fetch files for PR #${pullNumber}: ${(e as Error).message}`);
+      break;
+    }
+  }
+
+  return files;
+}
+
 export async function enrichPullRequestsWithLineStats(
   context: DownloadContext
 ): Promise<void> {
   const pullNumbers = getDownloadedPullRequestNumbers(context.repoConfig);
+  const hasExcludedPaths =
+    context.repoConfig.excludedFilePaths && context.repoConfig.excludedFilePaths.length > 0;
 
-  // Find PRs that are missing line stats
+  console.log(
+    `[DEBUG enrichment] Repo ${context.repoConfig.name}: ${pullNumbers.length} PRs, ` +
+      `hasExcludedPaths=${hasExcludedPaths}, excludedFilePaths=${JSON.stringify(context.repoConfig.excludedFilePaths)}`
+  );
+
+  // Find PRs that need enrichment
   const prsNeedingEnrichment: number[] = [];
+  const prsNeedingFiles: number[] = [];
+
+  let checked = 0;
   for (const pullNumber of pullNumbers) {
     const filePath = getGithubPullPath(context.repoConfig, pullNumber);
     try {
@@ -536,34 +576,77 @@ export async function enrichPullRequestsWithLineStats(
       if (pr.additions === undefined || pr.deletions === undefined) {
         prsNeedingEnrichment.push(pullNumber);
       }
-    } catch {
+      // Also check if file data is needed for exclusion filtering
+      if (hasExcludedPaths && !pr.files) {
+        prsNeedingFiles.push(pullNumber);
+      }
+      checked++;
+      if (checked % 5000 === 0) {
+        console.log(`[DEBUG enrichment] Checked ${checked}/${pullNumbers.length} PRs...`);
+      }
+    } catch (e) {
+      console.error(`[DEBUG enrichment] Error reading PR file ${filePath}:`, e);
       // Skip if file can't be read
     }
   }
 
-  if (prsNeedingEnrichment.length === 0) {
-    console.log('All PRs already have line stats');
+  const totalWork = prsNeedingEnrichment.length + prsNeedingFiles.length;
+
+  console.log(
+    `[DEBUG enrichment] prsNeedingEnrichment=${prsNeedingEnrichment.length}, prsNeedingFiles=${prsNeedingFiles.length}`
+  );
+
+  if (totalWork === 0) {
+    console.log('All PRs already have line stats and file data');
     return;
   }
 
-  console.log(`Enriching ${prsNeedingEnrichment.length} PRs with line stats`);
-  initPhaseProgress(context.request, 0, prsNeedingEnrichment.length);
+  if (prsNeedingEnrichment.length > 0) {
+    console.log(`Enriching ${prsNeedingEnrichment.length} PRs with line stats`);
+  }
+  if (prsNeedingFiles.length > 0) {
+    console.log(
+      `Fetching file data for ${prsNeedingFiles.length} PRs (excludedFilePaths configured: ${context.repoConfig.excludedFilePaths?.join(', ')})`
+    );
+  }
+
+  initPhaseProgress(context.request, 0, totalWork);
+
+  // Combine both sets, removing duplicates
+  const allPrsToProcess = [...new Set([...prsNeedingEnrichment, ...prsNeedingFiles])];
 
   await Promise.all(
-    prsNeedingEnrichment.map((pullNumber) =>
+    allPrsToProcess.map((pullNumber) =>
       context.limit(async () => {
-        const detailedPr = await fetchDetailedPullRequest(context, pullNumber);
-        if (detailedPr) {
-          const filePath = getGithubPullPath(context.repoConfig, pullNumber);
-          const existingPr = readJsonFile<PullRequest>(filePath);
-          const enrichedPr: PullRequest = {
-            ...existingPr,
-            additions: detailedPr.additions,
-            deletions: detailedPr.deletions,
-            changed_files: detailedPr.changed_files,
-          };
+        const filePath = getGithubPullPath(context.repoConfig, pullNumber);
+        const existingPr = readJsonFile<PullRequest>(filePath);
+
+        let updates: Partial<PullRequest> = {};
+
+        // Fetch detailed PR info if needed
+        if (prsNeedingEnrichment.includes(pullNumber)) {
+          const detailedPr = await fetchDetailedPullRequest(context, pullNumber);
+          if (detailedPr) {
+            updates = {
+              ...updates,
+              additions: detailedPr.additions,
+              deletions: detailedPr.deletions,
+              changed_files: detailedPr.changed_files,
+            };
+          }
+        }
+
+        // Fetch file data if needed for exclusion filtering
+        if (prsNeedingFiles.includes(pullNumber)) {
+          const files = await fetchPullRequestFiles(context, pullNumber);
+          updates = {...updates, files};
+        }
+
+        if (Object.keys(updates).length > 0) {
+          const enrichedPr: PullRequest = {...existingPr, ...updates};
           writeJsonToFile(filePath, enrichedPr);
         }
+
         incrementPhaseProgress(context.request);
       })
     )
@@ -676,7 +759,12 @@ async function getGithubReviewsForPullRequest(
         continue; // Skip already cached, but keep processing others
       }
 
-      writeJsonToFile(filePath, review);
+      try {
+        writeJsonToFile(filePath, review);
+      } catch (e) {
+        console.error(`[DEBUG reviews] Error writing review ${review.id} for PR #${pullNumber}:`, e);
+        throw e;
+      }
     }
 
     // Always fetch all pages for reviews
@@ -718,11 +806,23 @@ export async function getGithubReviewsForPullRequests(
   const prsWithReviews = getDownloadedPullRequestNumbersForReviews(context.repoConfig);
   initPhaseProgress(context.request, prsWithReviews.length, allPrNumbers.length);
 
+  console.log(`[DEBUG reviews] Fetching reviews for ${pullNumbers.length} PRs`);
+  let completed = 0;
+
   // Use p-limit for concurrency control based on rate limit
   return Promise.all(
     pullNumbers.map((pullNumber) =>
       context.limit(async () => {
-        await getGithubReviewsForPullRequest(context, pullNumber);
+        try {
+          await getGithubReviewsForPullRequest(context, pullNumber);
+          completed++;
+          if (completed % 100 === 0) {
+            console.log(`[DEBUG reviews] Completed ${completed}/${pullNumbers.length}`);
+          }
+        } catch (e) {
+          console.error(`[DEBUG reviews] Error fetching reviews for PR #${pullNumber}:`, e);
+          throw e;
+        }
         incrementPhaseProgress(context.request);
       })
     )
