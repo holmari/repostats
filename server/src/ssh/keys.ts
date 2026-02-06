@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import fs from 'fs';
-import os from 'os';
+
+import {getRootPath} from '../file/paths';
 
 export interface SSHKeyInfo {
   readonly id: string;
@@ -13,14 +14,6 @@ interface SSHKeyMetadata {
   readonly id: string;
   readonly name: string;
   readonly createdAt: string;
-}
-
-function getRootPath(): string {
-  const home = os.homedir();
-  if (os.type() === 'Darwin') {
-    return `${home}/Documents/repostats`;
-  }
-  return `${home}/repostats`;
 }
 
 export function getSSHKeysPath(): string {

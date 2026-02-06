@@ -1,12 +1,9 @@
 import fs from 'fs';
-import os from 'os';
 
-function getRootPath() {
-  const home = os.homedir();
-  if (os.type() === 'Darwin') {
-    return `${home}/Documents/repostats`;
-  }
-  return `${home}/repostats`;
+import {getStorageDirectory} from './settings';
+
+export function getRootPath(): string {
+  return getStorageDirectory();
 }
 
 export function ensurePathExists(path: string): void {

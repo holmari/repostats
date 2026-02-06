@@ -1,8 +1,11 @@
 import errorHandler from 'errorhandler';
 
 import app from './app';
+import {ensureSettingsDir, getSettingsFilePath} from './file/settings';
 
 app.use(errorHandler());
+
+ensureSettingsDir();
 
 const server = app.listen(app.get('port'), () => {
   console.log(
@@ -10,7 +13,8 @@ const server = app.listen(app.get('port'), () => {
     app.get('port'),
     app.get('env')
   );
-  console.log('  Press CTRL-C to stop\n');
+  console.log('  Press CTRL-C to stop');
+  console.log('  Settings file: %s\n', getSettingsFilePath());
 });
 
 export default server;
