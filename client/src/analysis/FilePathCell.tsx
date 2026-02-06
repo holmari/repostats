@@ -12,9 +12,18 @@ interface Props {
   width: number;
 }
 
+function getParentDirectory(filePath: string): string | null {
+  const lastSlash = filePath.lastIndexOf('/');
+  if (lastSlash === -1) {
+    return null;
+  }
+  return filePath.substring(0, lastSlash);
+}
+
 const FilePathCell: React.FC<Props> = ({path, repoName, width}) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const {showToast} = useToast();
+  const parentDir = getParentDirectory(path);
 
   const handleAddToExclusions = useCallback(async () => {
     setMenuOpen(false);
@@ -57,6 +66,48 @@ const FilePathCell: React.FC<Props> = ({path, repoName, width}) => {
     }
   }, [path, repoName, showToast]);
 
+  const handleExcludeParentDirectory = useCallback(async () => {
+    if (parentDir == null) {
+      return;
+    }
+
+    setMenuOpen(false);
+    const pattern = `${parentDir}/**`;
+
+    try {
+      const repos = await get('repos');
+      const repo = repos.find((r) => r.name === repoName);
+
+      if (!repo) {
+        showToast(`Could not find repository: ${repoName}`);
+        return;
+      }
+
+      const excludedFilePaths = repo.excludedFilePaths || [];
+
+      if (excludedFilePaths.includes(pattern)) {
+        showToast(`${pattern} is already excluded`);
+        return;
+      }
+
+      const updatedRepo = {
+        ...repo,
+        excludedFilePaths: [...excludedFilePaths, pattern],
+      };
+
+      await put('repos', updatedRepo);
+
+      showToast(`Added "${pattern}" to exclusions. Refresh to update.`, {
+        action: {
+          icon: 'refresh',
+          onClick: () => window.location.reload(),
+        },
+      });
+    } catch (error) {
+      showToast('Failed to add directory to exclusions');
+    }
+  }, [parentDir, repoName, showToast]);
+
   return (
     <div className="FilePathCell">
       <Dropdown show={menuOpen} onToggle={setMenuOpen}>
@@ -72,8 +123,13 @@ const FilePathCell: React.FC<Props> = ({path, repoName, width}) => {
         </Dropdown.Toggle>
         <Dropdown.Menu className="FilePathCell__dropdown-menu">
           <Dropdown.Item className="FilePathCell__dropdown-item" onClick={handleAddToExclusions}>
-            Add to File Exclusions
+            Exclude File
           </Dropdown.Item>
+          {parentDir != null && (
+            <Dropdown.Item className="FilePathCell__dropdown-item" onClick={handleExcludeParentDirectory}>
+              Exclude .../{parentDir.split('/').pop()}/
+            </Dropdown.Item>
+          )}
         </Dropdown.Menu>
       </Dropdown>
       <span
