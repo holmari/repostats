@@ -18,6 +18,6 @@ To install dependencies,
 
 To start the development mode, run
 
-`npm run start`
+`npm run dev`
 
 Alternatively, you can also build the distribution, install `serve`, and serve the binary that way.
