@@ -20,3 +20,5 @@ Thumbs.db
 client/.eslintcache
 
 server/yarn-error.log
+
+CLAUDE.local.md
