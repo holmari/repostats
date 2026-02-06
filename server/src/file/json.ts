@@ -9,7 +9,12 @@ export function stringifyJson(jsonObject: unknown): string {
 }
 
 export function readJsonFile<T>(filename: string): T {
-  return JSON.parse(fs.readFileSync(filename, 'utf-8'));
+  const content = fs.readFileSync(filename, 'utf-8');
+  try {
+    return JSON.parse(content);
+  } catch (e) {
+    throw new Error(`Failed to parse JSON from ${filename}: ${(e as Error).message}`);
+  }
 }
 
 export function writeJsonToFile(filename: string, jsonObject: unknown): string {
@@ -22,7 +27,19 @@ export function writeJsonToFile(filename: string, jsonObject: unknown): string {
   ensurePathExists(path.dirname(filename));
 
   const dataToWrite = stringifyJson(jsonObject);
-  fs.writeFileSync(filename, dataToWrite, 'utf-8');
+
+  // Validate the JSON is parseable before writing
+  try {
+    JSON.parse(dataToWrite);
+  } catch (e) {
+    throw new Error(`Attempted to write invalid JSON to ${filename}: ${(e as Error).message}`);
+  }
+
+  // Atomic write: write to temp file, then rename
+  // This prevents corrupted files from partial writes if the process crashes
+  const tempFile = `${filename}.tmp`;
+  fs.writeFileSync(tempFile, dataToWrite, 'utf-8');
+  fs.renameSync(tempFile, filename);
 
   return CryptoJs.MD5(dataToWrite).toString();
 }

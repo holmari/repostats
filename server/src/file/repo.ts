@@ -10,7 +10,7 @@ import {readJsonFile} from './json';
 
 export function getConfigFile(repoName: string): RepoConfig {
   if (!fs.existsSync(getConfigPath(repoName))) {
-    throw new Error(`Config file for ${repoName} does not exist.`);
+    throw new Error(`Config file for ${repoName} does not exist: ${getConfigPath(repoName)}`);
   }
   return readJsonFile(getConfigPath(repoName));
 }
