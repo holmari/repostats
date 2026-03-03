@@ -437,9 +437,10 @@ async function downloadGithubPullRequestsForUrl(
       initPhaseProgress(context.request, alreadyFetched, totalCount);
     }
 
-    // Process PRs until we find one that's already cached.
-    // PRs are sorted by updated_at desc, so once we find a cached PR,
-    // all older PRs (later in the list) should also be cached.
+    // Process PRs, skipping any that are already cached.
+    // PRs are sorted by updated_at desc. If we find a cached PR but still
+    // have missing data (e.g. initial sync was interrupted), we continue
+    // paginating to backfill gaps instead of stopping early.
     let foundCachedPr = false;
 
     for (const pull of pulls) {
@@ -447,7 +448,7 @@ async function downloadGithubPullRequestsForUrl(
 
       if (isPullRequestCached(filePath, pull.updated_at)) {
         foundCachedPr = true;
-        break;
+        continue;
       }
 
       // PR is new or updated - write to disk
@@ -464,15 +465,18 @@ async function downloadGithubPullRequestsForUrl(
       incrementPhaseProgress(context.request);
     }
 
-    // Stop if we found a cached PR; otherwise continue if missing data
-    if (foundCachedPr) {
-      return false;
-    }
-
     metaHolder.meta = {
       ...metaHolder.meta,
       fetchedPullNumbers: getDownloadedPullRequestNumbers(context.repoConfig),
     };
+
+    // If we found cached PRs, only continue paginating if there's missing data
+    if (foundCachedPr) {
+      return hasMissingData(
+        metaHolder.meta.fetchedPullNumbers,
+        metaHolder.meta.totalPullsInRepository
+      );
+    }
 
     return hasMissingData(
       metaHolder.meta.fetchedPullNumbers,
@@ -682,9 +686,10 @@ export async function getGithubRepoComments(context: DownloadContext): Promise<v
       initPhaseProgress(context.request, alreadyFetched, totalCount);
     }
 
-    // Process comments until we find one that's already cached.
-    // Comments are sorted by updated_at desc, so once we find a cached comment,
-    // all older comments should also be cached.
+    // Process comments, skipping any that are already cached.
+    // Comments are sorted by updated_at desc. If we find a cached comment
+    // but still have missing data (e.g. initial sync was interrupted), we
+    // continue paginating to backfill gaps instead of stopping early.
     let foundCachedComment = false;
 
     for (const comment of comments) {
@@ -693,7 +698,7 @@ export async function getGithubRepoComments(context: DownloadContext): Promise<v
 
       if (isCommentCached(filePath, comment.updated_at)) {
         foundCachedComment = true;
-        break;
+        continue;
       }
 
       // Comment is new or updated - write to disk
@@ -701,15 +706,18 @@ export async function getGithubRepoComments(context: DownloadContext): Promise<v
       incrementPhaseProgress(context.request);
     }
 
-    // Stop if we found a cached comment; otherwise continue if missing data
-    if (foundCachedComment) {
-      return false;
-    }
-
     metaHolder.meta = {
       ...metaHolder.meta,
       fetchedCommentIds: getDownloadedCommentIds(context.repoConfig),
     };
+
+    // If we found cached comments, only continue paginating if there's missing data
+    if (foundCachedComment) {
+      return hasMissingData(
+        metaHolder.meta.fetchedCommentIds,
+        metaHolder.meta.totalCommentCount
+      );
+    }
 
     return hasMissingData(
       metaHolder.meta.fetchedCommentIds,
