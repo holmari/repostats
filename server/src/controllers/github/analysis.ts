@@ -793,7 +793,7 @@ function processCommits(context: GithubComputeContext) {
     const pull = context.getPull(pullNumber);
     const pullDate = pull?.created_at || null;
     const commitDate = commitAuthorDate || pullDate;
-    if (!context.matchesDateFilter(pullDate)) {
+    if (!context.matchesDateFilter(commitDate)) {
       continue;
     }
 
@@ -868,10 +868,11 @@ export function getGithubRepoResult(
     },
 
     hasExcludedLabel: (pull: PullRequest) => {
-      if (!request.excludedLabelNames || request.excludedLabelNames.length === 0) {
+      const labelNames = repoConfig.excludedLabelNames || [];
+      if (labelNames.length === 0) {
         return false;
       }
-      const excludedSet = new Set(request.excludedLabelNames.map((name) => name.toLowerCase()));
+      const excludedSet = new Set(labelNames.map((name) => name.toLowerCase()));
       return pull.labels.some((label) => label.name && excludedSet.has(label.name.toLowerCase()));
     },
   };
