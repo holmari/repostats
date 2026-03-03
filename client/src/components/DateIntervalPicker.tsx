@@ -18,6 +18,7 @@ export const ALL_TIME_INTERVAL: DateInterval = {
 type PresetKey =
   | 'trailing52Weeks'
   | 'trailing6Months'
+  | 'trailingQuarter'
   | 'thisYear'
   | 'lastQuarter'
   | 'last6Months'
@@ -42,6 +43,15 @@ function getTrailing52WeeksInterval(): DateInterval {
 function getTrailing6MonthsInterval(): DateInterval {
   const today = DateTime.now();
   const start = today.minus({months: 6});
+  return {
+    startDate: start.toISODate()!,
+    endDate: today.toISODate()!,
+  };
+}
+
+function getTrailingQuarterInterval(): DateInterval {
+  const today = DateTime.now();
+  const start = today.minus({quarters: 1});
   return {
     startDate: start.toISODate()!,
     endDate: today.toISODate()!,
@@ -83,6 +93,7 @@ function getLast6MonthsInterval(): DateInterval {
 const PRESETS: Preset[] = [
   {key: 'trailing52Weeks', label: 'Trailing 52 Weeks', getInterval: getTrailing52WeeksInterval},
   {key: 'trailing6Months', label: 'Trailing 6 Months', getInterval: getTrailing6MonthsInterval},
+  {key: 'trailingQuarter', label: 'Trailing Quarter', getInterval: getTrailingQuarterInterval},
   {key: 'thisYear', label: 'This Year', getInterval: getThisYearInterval},
   {key: 'lastQuarter', label: 'Last Quarter', getInterval: getLastQuarterInterval},
   {key: 'last6Months', label: 'Last 6 Months', getInterval: getLast6MonthsInterval},
