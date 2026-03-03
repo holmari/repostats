@@ -4,7 +4,7 @@ import classNames from 'classnames';
 import React from 'react';
 import {OverlayTrigger, Tooltip} from 'react-bootstrap';
 
-import {ComparisonGranularity, MetricComparison} from 'types/types';
+import {ComparisonGranularity, DateInterval, MetricComparison} from 'types/types';
 import {MetricPolarity} from 'analysis/metricPolarity';
 import ComparisonBadge from './ComparisonBadge';
 
@@ -35,6 +35,7 @@ const ValueCell: React.FC<Props> = ({
   comparisonGranularity,
   comparisonPolarity,
   cornerContent,
+  dateInterval,
   fontSize,
   size = 'normal',
   title,
@@ -61,6 +62,7 @@ const ValueCell: React.FC<Props> = ({
               comparison={comparison}
               polarity={comparisonPolarity}
               granularity={comparisonGranularity}
+              dateInterval={dateInterval}
             />
           )}
         </div>
@@ -77,6 +79,7 @@ interface Props {
   comparisonGranularity?: ComparisonGranularity;
   comparisonPolarity?: MetricPolarity;
   cornerContent?: React.ReactNode;
+  dateInterval?: DateInterval;
   fontSize?: 'small' | 'normal';
   size?: 'normal' | 'wide' | 'x-wide';
   title: string;

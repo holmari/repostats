@@ -53,6 +53,7 @@ const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
             comparison={comparison?.authoredTotals.approvals}
             comparisonPolarity={AUTHORED_METRIC_POLARITY.approvals}
             comparisonGranularity={comparisonGranularity}
+            dateInterval={fullResult.requestedInterval}
           />
           <ValueCell
             tooltip="How many times this user has requested adjustments to others' code."
@@ -61,6 +62,7 @@ const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
             comparison={comparison?.authoredTotals.rejections}
             comparisonPolarity={AUTHORED_METRIC_POLARITY.rejections}
             comparisonGranularity={comparisonGranularity}
+            dateInterval={fullResult.requestedInterval}
           />
           <ValueCell
             tooltip="How many comments this user has written in total."
@@ -69,6 +71,7 @@ const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
             comparison={comparison?.authoredTotals.commentsWrittenTotal}
             comparisonPolarity={AUTHORED_METRIC_POLARITY.commentsWrittenTotal}
             comparisonGranularity={comparisonGranularity}
+            dateInterval={fullResult.requestedInterval}
           />
           <ValueCell
             tooltip="How many comments this user has written to other people's change requests."
@@ -77,6 +80,7 @@ const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
             comparison={comparison?.authoredTotals.commentsWrittenToOthers}
             comparisonPolarity={AUTHORED_METRIC_POLARITY.commentsWrittenToOthers}
             comparisonGranularity={comparisonGranularity}
+            dateInterval={fullResult.requestedInterval}
           />
           <ValueCell
             tooltip="How many change requests this user has initiated. In GitHub, the term 'Pull Request' is used."
@@ -85,6 +89,7 @@ const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
             comparison={comparison?.authoredTotals.changesCreated}
             comparisonPolarity={AUTHORED_METRIC_POLARITY.changesCreated}
             comparisonGranularity={comparisonGranularity}
+            dateInterval={fullResult.requestedInterval}
           />
           <ValueCell
             tooltip="How many commits this user has created."
@@ -93,6 +98,7 @@ const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
             comparison={comparison?.authoredTotals.commits}
             comparisonPolarity={AUTHORED_METRIC_POLARITY.commits}
             comparisonGranularity={comparisonGranularity}
+            dateInterval={fullResult.requestedInterval}
           />
           <ValueCell
             tooltip="Lines of code added by this user."
@@ -101,6 +107,7 @@ const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
             comparison={comparison?.authoredTotals.linesAdded}
             comparisonPolarity={AUTHORED_METRIC_POLARITY.linesAdded}
             comparisonGranularity={comparisonGranularity}
+            dateInterval={fullResult.requestedInterval}
           />
           <ValueCell
             tooltip="Lines of code deleted by this user."
@@ -109,6 +116,7 @@ const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
             comparison={comparison?.authoredTotals.linesDeleted}
             comparisonPolarity={AUTHORED_METRIC_POLARITY.linesDeleted}
             comparisonGranularity={comparisonGranularity}
+            dateInterval={fullResult.requestedInterval}
           />
           <ValueCell
             tooltip="Median number of lines changed (added + deleted) per commit."
@@ -117,6 +125,7 @@ const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
             comparison={comparison?.authoredTotals.medianCommitSize}
             comparisonPolarity={AUTHORED_METRIC_POLARITY.medianCommitSize}
             comparisonGranularity={comparisonGranularity}
+            dateInterval={fullResult.requestedInterval}
           />
           <ValueCell
             tooltip="How long this user's changes have been open until merged (median)."
@@ -125,6 +134,7 @@ const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
             comparison={comparison?.authoredTotals.medianChangeOpenTimeMsec}
             comparisonPolarity={AUTHORED_METRIC_POLARITY.medianChangeOpenTimeMsec}
             comparisonGranularity={comparisonGranularity}
+            dateInterval={fullResult.requestedInterval}
             cornerContent={
               <>
                 <div>p25: {formatTimeInHours(authoredTotals.p25ChangeOpenTimeMsec)}</div>
@@ -145,6 +155,7 @@ const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
             )}
             comparisonPolarity={AUTHORED_METRIC_POLARITY.commentsWrittenToOthers}
             comparisonGranularity={comparisonGranularity}
+            dateInterval={fullResult.requestedInterval}
           />
         </Panel>
 
@@ -156,6 +167,7 @@ const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
             comparison={comparison?.receivedTotals.approvals}
             comparisonPolarity={RECEIVED_METRIC_POLARITY.approvals}
             comparisonGranularity={comparisonGranularity}
+            dateInterval={fullResult.requestedInterval}
           />
           <ValueCell
             tooltip="How many times this user's changes have been rejected by others."
@@ -164,6 +176,7 @@ const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
             comparison={comparison?.receivedTotals.rejections}
             comparisonPolarity={RECEIVED_METRIC_POLARITY.rejections}
             comparisonGranularity={comparisonGranularity}
+            dateInterval={fullResult.requestedInterval}
           />
           <ValueCell
             tooltip="How many comments this user has received from others."
@@ -172,6 +185,7 @@ const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
             comparison={comparison?.receivedTotals.commentsByOthers}
             comparisonPolarity={RECEIVED_METRIC_POLARITY.commentsByOthers}
             comparisonGranularity={comparisonGranularity}
+            dateInterval={fullResult.requestedInterval}
           />
           <ValueCell
             tooltip="How many times this user has been requested to be a reviewer, either directly or through one of the teams they belong to."
@@ -180,6 +194,7 @@ const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
             comparison={comparison?.receivedTotals.reviewRequests}
             comparisonPolarity={RECEIVED_METRIC_POLARITY.reviewRequests}
             comparisonGranularity={comparisonGranularity}
+            dateInterval={fullResult.requestedInterval}
           />
           <ValueCell
             tooltip="The ratio of comments the user received and the change requests the user created."
@@ -191,6 +206,7 @@ const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
             )}
             comparisonPolarity={RECEIVED_METRIC_POLARITY.commentsTotal}
             comparisonGranularity={comparisonGranularity}
+            dateInterval={fullResult.requestedInterval}
           />
           <ValueCell
             tooltip="The ratio of comments the user received and the commits the user created."
@@ -202,6 +218,7 @@ const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
             )}
             comparisonPolarity={RECEIVED_METRIC_POLARITY.commentsTotal}
             comparisonGranularity={comparisonGranularity}
+            dateInterval={fullResult.requestedInterval}
           />
         </Panel>
         <Panel title="Timeline" size="third">
