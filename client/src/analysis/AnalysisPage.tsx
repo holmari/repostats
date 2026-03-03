@@ -7,6 +7,7 @@ import ErrorWrapper from 'components/ErrorWrapper';
 import {cacheOff, get, post} from 'repos/requests';
 import {RequestStatus} from 'requests/types';
 import {AnalyzeResult, AppSettings, ComparisonGranularity, DateInterval, Granularity, TeamInfo} from 'types/types';
+
 import EmptyContentView from 'components/EmptyContentView';
 import PageTopBar from 'components/PageTopBar';
 import DateIntervalPicker, {DEFAULT_INTERVAL} from 'components/DateIntervalPicker';
@@ -123,7 +124,7 @@ const AnalysisPage: React.FC = () => {
     lastUsedSettingsJson.current = JSON.stringify(settings);
 
     Promise.all([
-      post('analyze', {dateInterval, includedRepoNames, excludedUserIds: settings.excludedUserIds, granularity, comparisonGranularity}, headers),
+      post('analyze', {dateInterval, includedRepoNames, granularity, comparisonGranularity}, headers),
       get('teams'),
     ])
       .then(([fetchedResult, fetchedTeams]) => {
