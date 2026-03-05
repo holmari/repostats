@@ -246,6 +246,8 @@ function incrementAuthoredTotals(
       linesAdded: authoredTotals.linesAdded + (adjustments.linesAdded || 0),
       linesDeleted: authoredTotals.linesDeleted + (adjustments.linesDeleted || 0),
       medianCommitSize: NaN, // Computed in processGitStats
+      distinctPRsCommentedOn:
+        authoredTotals.distinctPRsCommentedOn + (adjustments.distinctPRsCommentedOn || 0),
     },
   };
 }
@@ -630,7 +632,10 @@ function applyMedianPRSizes(
   }
 }
 
-function processComments(context: GithubComputeContext) {
+function processComments(
+  context: GithubComputeContext,
+  distinctPRsCommentedOnByUserId: Map<string, Set<number>>
+) {
   const comments = iterEachFile<Comment>(getGithubCommentsPath(context.repoConfig));
   for (const [comment] of comments) {
     const commentInterval = createInterval(comment.created_at, comment.updated_at);
@@ -646,6 +651,14 @@ function processComments(context: GithubComputeContext) {
     const reviewComment = toReviewComment(comment, pull);
     const commentCountTotal = reviewComment ? 1 : 0;
     const commentCountToOthers = reviewComment && pull?.user?.id !== comment.user.id ? 1 : 0;
+
+    if (commentCountToOthers > 0) {
+      const userId = comment.user.login;
+      if (!distinctPRsCommentedOnByUserId.has(userId)) {
+        distinctPRsCommentedOnByUserId.set(userId, new Set());
+      }
+      distinctPRsCommentedOnByUserId.get(userId)!.add(pullNumber);
+    }
 
     const authoredTotals = incrementAuthoredTotals(commentAuthorUserResult, {
       commentsWrittenTotal: commentCountTotal,
@@ -686,7 +699,10 @@ function processComments(context: GithubComputeContext) {
   }
 }
 
-function processReviews(context: GithubComputeContext) {
+function processReviews(
+  context: GithubComputeContext,
+  distinctPRsCommentedOnByUserId: Map<string, Set<number>>
+) {
   const reviews = iterEachFile<Review>(getGithubReviewsPath(context.repoConfig));
   for (const [review] of reviews) {
     if (!context.matchesDateFilter(review.submitted_at)) {
@@ -717,6 +733,15 @@ function processReviews(context: GithubComputeContext) {
     const commentCountToOthers = reviewComment && reviewComment.authorId !== pull.user?.id ? 1 : 0;
     const approvalCount = review.state === 'APPROVED' ? 1 : 0;
     const rejectionCount = review.state === 'CHANGES_REQUESTED' ? 1 : 0;
+
+    if (commentCountToOthers > 0) {
+      const userId = review.user.login;
+      const pullNumber = getPullRequestNumberFromUrl(review.pull_request_url);
+      if (!distinctPRsCommentedOnByUserId.has(userId)) {
+        distinctPRsCommentedOnByUserId.set(userId, new Set());
+      }
+      distinctPRsCommentedOnByUserId.get(userId)!.add(pullNumber);
+    }
 
     const authoredTotals = incrementAuthoredTotals(reviewAuthorUserResult, {
       rejections: rejectionCount,
@@ -861,9 +886,31 @@ export function getGithubRepoResult(
   };
 
   const prSizesByUserId = processPullRequests(context, pullsByNumber);
-  processComments(context);
-  processReviews(context);
+  const distinctPRsCommentedOnByUserId = new Map<string, Set<number>>();
+  processComments(context, distinctPRsCommentedOnByUserId);
+  processReviews(context, distinctPRsCommentedOnByUserId);
   processCommits(context);
+
+  // Apply distinct PR counts to user results
+  for (const [userId, prNumbers] of distinctPRsCommentedOnByUserId) {
+    if (!userResults[userId]) {
+      continue;
+    }
+    const userResult = userResults[userId];
+    const repoTotals = userResult.repoTotals[0];
+    userResults[userId] = {
+      ...userResult,
+      repoTotals: [
+        {
+          ...repoTotals,
+          authoredTotals: {
+            ...repoTotals.authoredTotals,
+            distinctPRsCommentedOn: prNumbers.size,
+          },
+        },
+      ],
+    };
+  }
 
   // Apply median PR sizes to user results
   applyMedianPRSizes(prSizesByUserId, userResults);

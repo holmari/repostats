@@ -113,6 +113,7 @@ export interface AuthoredTotalsComparison {
   readonly linesAdded: MetricComparison;
   readonly linesDeleted: MetricComparison;
   readonly medianCommitSize: MetricComparison;
+  readonly distinctPRsCommentedOn: MetricComparison;
 }
 
 export interface ReceivedTotalsComparison {
@@ -185,6 +186,8 @@ export interface AuthoredTotals {
   readonly linesDeleted: number;
   // Median commit size (lines added + deleted per commit).
   readonly medianCommitSize: number;
+  // The number of distinct PRs where this user wrote comments to others' changes.
+  readonly distinctPRsCommentedOn: number;
 }
 
 export interface ReceivedTotals {

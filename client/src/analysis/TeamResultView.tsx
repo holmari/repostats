@@ -66,6 +66,7 @@ function aggregateAuthoredTotals(members: ReadonlyArray<UserResult>): AuthoredTo
   let commits = 0;
   let linesAdded = 0;
   let linesDeleted = 0;
+  let distinctPRsCommentedOn = 0;
 
   // Collect all change times for percentile computation
   const allChangeTimes: number[] = [];
@@ -82,6 +83,7 @@ function aggregateAuthoredTotals(members: ReadonlyArray<UserResult>): AuthoredTo
     commits += t.commits;
     linesAdded += t.linesAdded;
     linesDeleted += t.linesDeleted;
+    distinctPRsCommentedOn += t.distinctPRsCommentedOn;
 
     // Collect individual change times for proper percentile computation
     for (const change of member.changesAuthored) {
@@ -114,6 +116,7 @@ function aggregateAuthoredTotals(members: ReadonlyArray<UserResult>): AuthoredTo
     linesAdded,
     linesDeleted,
     medianCommitSize: computePercentile(sortedCommitSizes, 50),
+    distinctPRsCommentedOn,
   };
 }
 
@@ -180,6 +183,7 @@ function aggregateTeamComparison(
     linesAdded: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.linesAdded)),
     linesDeleted: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.linesDeleted)),
     medianCommitSize: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.medianCommitSize)),
+    distinctPRsCommentedOn: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.distinctPRsCommentedOn)),
   };
 
   const receivedTotals: ReceivedTotalsComparison = {
@@ -487,14 +491,14 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
             dateInterval={fullResult.requestedInterval}
           />
           <ValueCell
-            tooltip="Comments authored to others per review request received (team average)."
-            title="Comments / Request"
-            value={(authoredTotals.commentsWrittenToOthers / receivedTotals.reviewRequests).toFixed(
-              1
-            )}
+            tooltip="Comments authored to others per distinct PR reviewed (team average)."
+            title="Comments / PR"
+            value={(
+              authoredTotals.commentsWrittenToOthers / authoredTotals.distinctPRsCommentedOn
+            ).toFixed(1)}
             comparison={computeRatioComparison(
               comparison?.authoredTotals.commentsWrittenToOthers,
-              comparison?.receivedTotals.reviewRequests
+              comparison?.authoredTotals.distinctPRsCommentedOn
             )}
             comparisonPolarity={AUTHORED_METRIC_POLARITY.commentsWrittenToOthers}
             comparisonGranularity={comparisonGranularity}

@@ -48,6 +48,10 @@ export function compareAuthoredTotals(
     linesAdded: createMetricComparison(current.linesAdded, previous.linesAdded),
     linesDeleted: createMetricComparison(current.linesDeleted, previous.linesDeleted),
     medianCommitSize: createMetricComparison(current.medianCommitSize, previous.medianCommitSize),
+    distinctPRsCommentedOn: createMetricComparison(
+      current.distinctPRsCommentedOn,
+      previous.distinctPRsCommentedOn
+    ),
   };
 }
 
@@ -81,6 +85,7 @@ function createEmptyAuthoredTotals(): AuthoredTotals {
     linesAdded: 0,
     linesDeleted: 0,
     medianCommitSize: 0,
+    distinctPRsCommentedOn: 0,
   };
 }
 

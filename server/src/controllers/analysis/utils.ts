@@ -93,6 +93,7 @@ export function createDefaultUserRepoTotals(repoConfig: RepoConfig): UserRepoTot
       linesAdded: 0,
       linesDeleted: 0,
       medianCommitSize: NaN,
+      distinctPRsCommentedOn: 0,
     },
     receivedTotals: {
       commentsTotal: 0,
@@ -282,6 +283,8 @@ function aggregateAuthoredTotals(
           linesAdded: totals.linesAdded + item.linesAdded,
           linesDeleted: totals.linesDeleted + item.linesDeleted,
           medianCommitSize,
+          distinctPRsCommentedOn:
+            totals.distinctPRsCommentedOn + item.distinctPRsCommentedOn,
         };
       },
       {
@@ -300,6 +303,7 @@ function aggregateAuthoredTotals(
         linesAdded: 0,
         linesDeleted: 0,
         medianCommitSize,
+        distinctPRsCommentedOn: 0,
       }
     );
 }

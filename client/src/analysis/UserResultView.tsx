@@ -144,14 +144,14 @@ const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
             }
           />
           <ValueCell
-            tooltip="The ratio of comments the user authored to others per every review request they received."
-            title="Comments / Request"
-            value={(authoredTotals.commentsWrittenToOthers / receivedTotals.reviewRequests).toFixed(
-              1
-            )}
+            tooltip="The ratio of comments the user authored to others per distinct PR reviewed."
+            title="Comments / PR"
+            value={(
+              authoredTotals.commentsWrittenToOthers / authoredTotals.distinctPRsCommentedOn
+            ).toFixed(1)}
             comparison={computeRatioComparison(
               comparison?.authoredTotals.commentsWrittenToOthers,
-              comparison?.receivedTotals.reviewRequests
+              comparison?.authoredTotals.distinctPRsCommentedOn
             )}
             comparisonPolarity={AUTHORED_METRIC_POLARITY.commentsWrittenToOthers}
             comparisonGranularity={comparisonGranularity}

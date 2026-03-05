@@ -79,12 +79,12 @@ export function getUserOverviewColumns(): ReadonlyArray<SortableColumn<UserResul
       maxWidth: 100,
     },
     {
-      Header: 'Comments / Request',
+      Header: 'Comments / PR',
       accessor: (row) => {
-        const commentsPerRequest =
+        const commentsPerPR =
           row.aggregatedAuthoredTotals.commentsWrittenToOthers /
-          row.aggregatedReceivedTotals.reviewRequests;
-        return Number.isNaN(commentsPerRequest) ? '-' : commentsPerRequest.toFixed(3);
+          row.aggregatedAuthoredTotals.distinctPRsCommentedOn;
+        return Number.isNaN(commentsPerPR) ? '-' : commentsPerPR.toFixed(3);
       },
       maxWidth: 100,
     },
