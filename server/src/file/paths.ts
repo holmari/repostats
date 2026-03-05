@@ -53,6 +53,15 @@ export function ensureRepoPaths(repoName: string): void {
 }
 
 export function deletePath(path: string): void {
+  if (!fs.existsSync(path)) {
+    return;
+  }
+
+  if (!fs.statSync(path).isDirectory()) {
+    fs.unlinkSync(path);
+    return;
+  }
+
   const files = fs.readdirSync(path);
   files.forEach((file) => {
     const fileAbsPath = `${path}/${file}`;
