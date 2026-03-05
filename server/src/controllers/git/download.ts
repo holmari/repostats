@@ -1,21 +1,31 @@
-import {RepoConfig} from '../../types/types';
+import {GithubConnector, RepoConfig} from '../../types/types';
 import {getGitClonePath, ensurePathExists, getGitClonesPath} from '../../file/paths';
-import {cloneOrFetchRepo} from '../../git/operations';
+import {cloneOrFetchRepo, GitAuth} from '../../git/operations';
 import {httpsToSshUrl} from '../../git/utils';
 
 export async function fetchGitRepo(
-  repoConfig: RepoConfig,
-  sshKeyPath: string
+  repoConfig: RepoConfig<GithubConnector>,
+  sshKeyPath?: string
 ): Promise<void> {
   // Ensure git clones directory exists
   ensurePathExists(getGitClonesPath());
 
   const repoPath = getGitClonePath(repoConfig.name);
-  const sshUrl = httpsToSshUrl(repoConfig.url);
+
+  let auth: GitAuth;
+  let repoUrl: string;
+
+  if (sshKeyPath) {
+    auth = {type: 'ssh', credential: sshKeyPath};
+    repoUrl = httpsToSshUrl(repoConfig.url);
+  } else {
+    auth = {type: 'token', credential: repoConfig.connector.token};
+    repoUrl = repoConfig.url;
+  }
 
   console.log(`Cloning/fetching repo ${repoConfig.name} to ${repoPath}`);
 
-  await cloneOrFetchRepo(sshUrl, repoPath, sshKeyPath);
+  await cloneOrFetchRepo(repoUrl, repoPath, auth);
 
   console.log(`Completed git clone/fetch for ${repoConfig.name}`);
 }
