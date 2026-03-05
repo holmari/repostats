@@ -27,6 +27,10 @@ export interface RepoConfig<T extends RepoConnector = RepoConnector> {
   readonly url: string;
   readonly connector: T;
   readonly excludedFilePaths?: ReadonlyArray<string>;
+  readonly excludedUserIds?: ReadonlyArray<string>;
+  readonly excludedTeamSlugs?: ReadonlyArray<string>;
+  readonly excludedLabelNames?: ReadonlyArray<string>;
+  readonly activeSSHKeyId?: string;
 }
 
 export interface BaseSourceDataMetadata {
@@ -127,8 +131,6 @@ export interface UserResultComparison {
 export interface AnalyzeRequest {
   readonly dateInterval?: DateInterval;
   readonly includedRepoNames?: ReadonlyArray<string>;
-  readonly excludedUserIds?: ReadonlyArray<string>;
-  readonly excludedLabelNames?: ReadonlyArray<string>;
   readonly granularity?: Granularity;
   readonly comparisonGranularity?: ComparisonGranularity;
 }

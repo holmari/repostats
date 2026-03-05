@@ -26,11 +26,9 @@ import {IntermediateAnalyzeResult, IntermediateUserResult} from './analysis/type
 import {getGithubRepoResult} from './github/analysis';
 import {postProcessUserResults} from './analysis/utils';
 import {removeDuplicates} from '../arrays/utils';
-import {getSettings} from './settings';
 import {buildComparisonResults} from './analysis/comparison';
 
 export type NormalizedAnalyzeRequest = Required<Omit<AnalyzeRequest, 'comparisonGranularity'>> & {
-  readonly granularity: Granularity;
   readonly comparisonGranularity: ComparisonGranularity | undefined;
 };
 
@@ -234,23 +232,19 @@ function normalizeInterval(interval: DateInterval): DateInterval {
 }
 
 function normalizeRequest(request: AnalyzeRequest): NormalizedAnalyzeRequest {
-  const settings = getSettings();
   return {
     ...request,
     dateInterval: request.dateInterval
       ? normalizeInterval(request.dateInterval)
       : ALL_TIME_INTERVAL,
     includedRepoNames: request.includedRepoNames || getAvailableRepoNames(),
-    excludedUserIds: request.excludedUserIds ?? [...settings.excludedUserIds],
-    excludedLabelNames: request.excludedLabelNames ?? [...(settings.excludedLabelNames || [])],
     granularity: request.granularity ?? 'day',
     comparisonGranularity: request.comparisonGranularity,
   };
 }
 
 function computeAnalysisResultCore(
-  request: NormalizedAnalyzeRequest,
-  excludedUserIdSet: Set<string>
+  request: NormalizedAnalyzeRequest
 ): {
   includedRepos: ReadonlyArray<RepoConfig>;
   interval: DateInterval | null;
@@ -258,13 +252,29 @@ function computeAnalysisResultCore(
   userResults: ReturnType<typeof postProcessUserResults>;
   granularity: Granularity;
 } {
-  const repoMetadatas = fs
+  const repoConfigs = fs
     .readdirSync(getReposPath())
     .filter((repoName) => fs.existsSync(getConfigPath(repoName)))
     .filter((repoName) => request.includedRepoNames.includes(repoName))
     .map((repoName) => getConfigFile(repoName));
 
-  const repoResults = repoMetadatas.map((config) => getRepoResult(config, request));
+  const repoResults = repoConfigs.map((config) => {
+    const result = getRepoResult(config, request);
+    const excludedUserIdSet = new Set(
+      (config.excludedUserIds || []).map((id) => id.toLowerCase())
+    );
+    if (excludedUserIdSet.size > 0) {
+      const filtered: {[userId: string]: IntermediateUserResult} = {};
+      for (const [userId, userResult] of Object.entries(result.userResults)) {
+        if (!excludedUserIdSet.has(userId.toLowerCase())) {
+          filtered[userId] = userResult;
+        }
+      }
+      return {...result, userResults: filtered};
+    }
+    return result;
+  });
+
   const interval = unionAllIntervals(
     repoResults
       .flatMap((result) => Object.values(result.userResults))
@@ -280,10 +290,6 @@ function computeAnalysisResultCore(
       const result = {...acc};
 
       Object.keys(item).forEach((userId) => {
-        // Skip excluded users
-        if (excludedUserIdSet.has(userId.toLowerCase())) {
-          return;
-        }
         result[userId] = mergeUserResults(result[userId], item[userId]);
       });
 
@@ -307,8 +313,7 @@ function isAllTimeInterval(interval: DateInterval): boolean {
 }
 
 function computeAnalysisResult(request: NormalizedAnalyzeRequest): AnalyzeResult {
-  const excludedUserIdSet = new Set(request.excludedUserIds.map((id) => id.toLowerCase()));
-  const currentResult = computeAnalysisResultCore(request, excludedUserIdSet);
+  const currentResult = computeAnalysisResultCore(request);
 
   // If no comparison requested or using ALL_TIME interval, return without comparison
   if (!request.comparisonGranularity || isAllTimeInterval(request.dateInterval)) {
@@ -322,7 +327,7 @@ function computeAnalysisResult(request: NormalizedAnalyzeRequest): AnalyzeResult
     dateInterval: previousInterval,
     comparisonGranularity: undefined, // Don't recurse
   };
-  const previousResult = computeAnalysisResultCore(previousRequest, excludedUserIdSet);
+  const previousResult = computeAnalysisResultCore(previousRequest);
 
   const comparisonResults: {[userId: string]: UserResultComparison} = buildComparisonResults(
     currentResult.userResults,
@@ -337,13 +342,27 @@ function computeAnalysisResult(request: NormalizedAnalyzeRequest): AnalyzeResult
 }
 
 function buildCacheKey(request: NormalizedAnalyzeRequest): object {
-  // Include repo file exclusions in cache key so changing exclusions invalidates cache
-  const repoExclusions: {[repoName: string]: ReadonlyArray<string>} = {};
+  // Include per-repo exclusions in cache key so changing exclusions invalidates cache
+  const repoExclusions: {[repoName: string]: {
+    excludedFilePaths?: ReadonlyArray<string>;
+    excludedUserIds?: ReadonlyArray<string>;
+    excludedLabelNames?: ReadonlyArray<string>;
+  }} = {};
   for (const repoName of request.includedRepoNames) {
     if (fs.existsSync(getConfigPath(repoName))) {
       const config = getConfigFile(repoName);
+      const entry: typeof repoExclusions[string] = {};
       if (config.excludedFilePaths && config.excludedFilePaths.length > 0) {
-        repoExclusions[repoName] = config.excludedFilePaths;
+        entry.excludedFilePaths = config.excludedFilePaths;
+      }
+      if (config.excludedUserIds && config.excludedUserIds.length > 0) {
+        entry.excludedUserIds = config.excludedUserIds;
+      }
+      if (config.excludedLabelNames && config.excludedLabelNames.length > 0) {
+        entry.excludedLabelNames = config.excludedLabelNames;
+      }
+      if (Object.keys(entry).length > 0) {
+        repoExclusions[repoName] = entry;
       }
     }
   }
