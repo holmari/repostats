@@ -1,5 +1,6 @@
 .UserHeaderPanel {
   position: relative;
+  overflow: visible;
 }
 .UserHeaderPanel h4 a {
   color: grey;
