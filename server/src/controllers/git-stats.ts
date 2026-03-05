@@ -7,6 +7,8 @@ import {CachePath, readFromCache, writeToCache, getCacheFilename} from '../cache
 import {buildEmailMapping} from '../git/emailMapping';
 import {getConfigFile} from '../file/repo';
 import {getDefaultBranch} from '../git/utils';
+import {CountByDay, RepoConfig} from '../types/types';
+import {sliceDate} from '../date/utils';
 
 interface FileStats {
   readonly path: string;
@@ -285,4 +287,143 @@ export function invalidateUserFileStatsCache(repoName: string): void {
       fs.unlinkSync(`${cacheDir}/${file}`);
     }
   }
+}
+
+export interface GitLineStatsByUser {
+  readonly [userId: string]: {
+    readonly linesAdded: number;
+    readonly linesDeleted: number;
+    readonly linesAddedByDay: CountByDay;
+    readonly linesDeletedByDay: CountByDay;
+  };
+}
+
+export function computeAllUsersGitLineStats(
+  repoConfig: RepoConfig,
+  since?: string,
+  until?: string
+): GitLineStatsByUser {
+  const repoPath = getGitClonePath(repoConfig.name);
+
+  if (!fs.existsSync(repoPath) || !fs.existsSync(`${repoPath}/.git`)) {
+    return {};
+  }
+
+  const defaultBranch = getDefaultBranch(repoPath);
+  const excludedPaths = repoConfig.excludedFilePaths || [];
+
+  const args = [
+    'log',
+    '--numstat',
+    '--no-merges',
+    '--format=COMMIT_START%n%aE%n%aI',
+    defaultBranch,
+  ];
+
+  if (since) {
+    args.push(`--since=${since}`);
+  }
+  if (until) {
+    args.push(`--until=${until}`);
+  }
+
+  if (excludedPaths.length > 0) {
+    args.push('--');
+    for (const pattern of excludedPaths) {
+      args.push(`:!${pattern}`);
+    }
+  }
+
+  const result = spawnSync('git', args, {
+    cwd: repoPath,
+    encoding: 'utf-8',
+    maxBuffer: 100 * 1024 * 1024,
+  });
+
+  if (result.status !== 0) {
+    return {};
+  }
+
+  const emailToUser = buildEmailMapping(repoConfig);
+
+  const stats: {
+    [userId: string]: {
+      linesAdded: number;
+      linesDeleted: number;
+      linesAddedByDay: {[date: string]: number};
+      linesDeletedByDay: {[date: string]: number};
+    };
+  } = {};
+
+  const lines = result.stdout.split('\n');
+  let currentEmail: string | null = null;
+  let currentDate: string | null = null;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    if (trimmed === 'COMMIT_START') {
+      currentEmail = null;
+      currentDate = null;
+      continue;
+    }
+
+    // If we don't have an email yet, this line is the author email
+    if (currentEmail === null) {
+      currentEmail = trimmed.toLowerCase();
+      continue;
+    }
+
+    // If we don't have a date yet, this line is the author date
+    if (currentDate === null) {
+      currentDate = sliceDate(trimmed);
+      continue;
+    }
+
+    // Remaining lines are numstat entries
+    if (!trimmed) {
+      continue;
+    }
+
+    const parts = trimmed.split('\t');
+    if (parts.length !== 3) {
+      continue;
+    }
+
+    const [insertions, deletions] = parts;
+
+    // Skip binary files
+    if (insertions === '-' || deletions === '-') {
+      continue;
+    }
+
+    const userId = emailToUser.get(currentEmail);
+    if (!userId) {
+      continue;
+    }
+
+    const added = parseInt(insertions, 10) || 0;
+    const deleted = parseInt(deletions, 10) || 0;
+
+    if (!stats[userId]) {
+      stats[userId] = {
+        linesAdded: 0,
+        linesDeleted: 0,
+        linesAddedByDay: {},
+        linesDeletedByDay: {},
+      };
+    }
+
+    stats[userId].linesAdded += added;
+    stats[userId].linesDeleted += deleted;
+
+    if (currentDate) {
+      stats[userId].linesAddedByDay[currentDate] =
+        (stats[userId].linesAddedByDay[currentDate] || 0) + added;
+      stats[userId].linesDeletedByDay[currentDate] =
+        (stats[userId].linesDeletedByDay[currentDate] || 0) + deleted;
+    }
+  }
+
+  return stats;
 }

@@ -29,6 +29,7 @@ import {
 import {PullRequest, PullRequestFile, Comment, User, Review, Commit} from '../../types/github';
 import picomatch from 'picomatch';
 import {
+  ALL_TIME_INTERVAL,
   createInterval,
   EMPTY_INTERVAL,
   getIntervalDuration,
@@ -41,6 +42,7 @@ import {createDefaultUserRepoTotals, createIntermediateAnalyzeResult} from '../a
 import {IntermediateAnalyzeResult, IntermediateUserResult} from '../analysis/types';
 import {removeDuplicates} from '../../arrays/utils';
 import {getPullRequestNumberFromUrl} from './utils';
+import {computeAllUsersGitLineStats} from '../git-stats';
 
 type PullsByNumber = {readonly [prNumber: string]: PullRequest};
 type TeamMembersBySlug = {readonly [teamSlug: string]: ReadonlyArray<User>};
@@ -455,20 +457,6 @@ function incrementChangesAuthoredByDay(
   return incrementCountByDay(userResult.changesAuthoredByDay, pull.created_at);
 }
 
-function incrementLinesByDay(
-  countByDay: CountByDay,
-  date: string | null,
-  amount: number
-): CountByDay {
-  if (!date || amount === 0) {
-    return countByDay;
-  }
-
-  const key = sliceDate(date);
-  const currentCount = countByDay[key] || 0;
-  return {...countByDay, [key]: currentCount + amount};
-}
-
 function getCommitAuthorDate(commit: Commit): string | null {
   if (!commit.commit) {
     return null;
@@ -545,13 +533,17 @@ function processPullRequests(context: GithubComputeContext, pullsByNumber: Pulls
       let additions: number;
       let deletions: number;
 
-      if (pull.files && excludedPaths.length > 0) {
-        // Filter files based on excluded patterns
+      if (pull.files) {
+        // Use file-level data filtered by exclusions (works with or without exclusions)
         const {filteredAdditions, filteredDeletions} = filterFileStats(pull.files, excludedPaths);
         additions = filteredAdditions;
         deletions = filteredDeletions;
+      } else if (excludedPaths.length > 0) {
+        // No file data and exclusions configured - can't filter, use 0 to avoid inflated totals
+        additions = 0;
+        deletions = 0;
       } else {
-        // Use PR totals (no file data available or no exclusions configured)
+        // No file data and no exclusions - PR totals are accurate
         additions = pull.additions ?? 0;
         deletions = pull.deletions ?? 0;
       }
@@ -562,11 +554,8 @@ function processPullRequests(context: GithubComputeContext, pullsByNumber: Pulls
       }
       prSizesByUserId[pullUser.login].push(additions + deletions);
 
-      // Update user result with line stats
-      const authoredTotals = incrementAuthoredTotals(userResult, {
-        linesAdded: additions,
-        linesDeleted: deletions,
-      });
+      // Update user result (line stats are computed from git log, not PR data)
+      const authoredTotals = incrementAuthoredTotals(userResult, {});
 
       context.adjustUserResult({
         ...userResult,
@@ -576,12 +565,6 @@ function processPullRequests(context: GithubComputeContext, pullsByNumber: Pulls
         ],
         changesAuthoredByDay: incrementChangesAuthoredByDay(userResult, pull),
         repoTotals: [authoredTotals],
-        linesAddedByDay: incrementLinesByDay(userResult.linesAddedByDay, pull.created_at, additions),
-        linesDeletedByDay: incrementLinesByDay(
-          userResult.linesDeletedByDay,
-          pull.created_at,
-          deletions
-        ),
       });
 
       const requestedReviewers = getReviewersFromPullRequest(pull, teamMembers);
@@ -884,6 +867,38 @@ export function getGithubRepoResult(
 
   // Apply median PR sizes to user results
   applyMedianPRSizes(prSizesByUserId, userResults);
+
+  // Apply git-based line stats (replaces PR-based linesAdded/linesDeleted)
+  const isAllTime =
+    request.dateInterval.startDate === ALL_TIME_INTERVAL.startDate &&
+    request.dateInterval.endDate === ALL_TIME_INTERVAL.endDate;
+  const gitSince = isAllTime ? undefined : sliceDate(request.dateInterval.startDate);
+  const gitUntil = isAllTime ? undefined : sliceDate(request.dateInterval.endDate);
+  const gitLineStats = computeAllUsersGitLineStats(repoConfig, gitSince, gitUntil);
+
+  for (const [userId, gitStats] of Object.entries(gitLineStats)) {
+    if (!userResults[userId]) {
+      continue;
+    }
+    const userResult = userResults[userId];
+    const repoTotals = userResult.repoTotals[0];
+
+    userResults[userId] = {
+      ...userResult,
+      linesAddedByDay: gitStats.linesAddedByDay,
+      linesDeletedByDay: gitStats.linesDeletedByDay,
+      repoTotals: [
+        {
+          ...repoTotals,
+          authoredTotals: {
+            ...repoTotals.authoredTotals,
+            linesAdded: gitStats.linesAdded,
+            linesDeleted: gitStats.linesDeleted,
+          },
+        },
+      ],
+    };
+  }
 
   return createIntermediateAnalyzeResult(repoConfig, userResults);
 }
