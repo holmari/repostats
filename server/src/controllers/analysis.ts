@@ -307,8 +307,8 @@ function computeAnalysisResultCore(
 
 function isAllTimeInterval(interval: DateInterval): boolean {
   return (
-    interval.startDate === ALL_TIME_INTERVAL.startDate &&
-    interval.endDate === ALL_TIME_INTERVAL.endDate
+    interval.startDate === sliceDate(ALL_TIME_INTERVAL.startDate) &&
+    interval.endDate === sliceDate(ALL_TIME_INTERVAL.endDate)
   );
 }
 

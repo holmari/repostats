@@ -870,8 +870,8 @@ export function getGithubRepoResult(
 
   // Apply git-based line stats (replaces PR-based linesAdded/linesDeleted)
   const isAllTime =
-    request.dateInterval.startDate === ALL_TIME_INTERVAL.startDate &&
-    request.dateInterval.endDate === ALL_TIME_INTERVAL.endDate;
+    request.dateInterval.startDate === sliceDate(ALL_TIME_INTERVAL.startDate) &&
+    request.dateInterval.endDate === sliceDate(ALL_TIME_INTERVAL.endDate);
   const gitSince = isAllTime ? undefined : sliceDate(request.dateInterval.startDate);
   const gitUntil = isAllTime ? undefined : sliceDate(request.dateInterval.endDate);
   const gitLineStats = computeAllUsersGitLineStats(repoConfig, gitSince, gitUntil);
