@@ -1,4 +1,5 @@
-import {CachePath, readFromCache, writeToCache} from '../cache/cache';
+import fs from 'fs';
+import {CachePath, getCacheFilename, readFromCache, writeToCache} from '../cache/cache';
 import {DownloadRequest, DownloadStatus} from '../types/types';
 
 const DEFAULT_DOWNLOAD_STATUS: DownloadStatus = {
@@ -78,4 +79,36 @@ export function setPhaseError(
       [status.phase]: error,
     },
   });
+}
+
+function activeDownloadKey(repoName: string): string {
+  return `active-download-${repoName}`;
+}
+
+export function setActiveDownload(repoName: string, requestId: string): void {
+  writeToCache(activeDownloadKey(repoName), CachePath.download, {requestId});
+}
+
+export function getActiveDownloadForRepo(
+  repoName: string
+): {requestId: string; status: DownloadStatus} | null {
+  const mapping = readFromCache<{requestId: string}>(
+    activeDownloadKey(repoName),
+    CachePath.download
+  );
+  if (!mapping) return null;
+
+  const status = getDownloadStatus(mapping.requestId);
+  if (!status) return null;
+
+  if (status.phase === 'finish') return null;
+
+  return {requestId: mapping.requestId, status};
+}
+
+export function clearActiveDownload(repoName: string): void {
+  const filename = getCacheFilename(activeDownloadKey(repoName), CachePath.download);
+  if (fs.existsSync(filename)) {
+    fs.unlinkSync(filename);
+  }
 }

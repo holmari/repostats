@@ -28,6 +28,7 @@ app.delete('/api/repos/:repoName', repos.deleteRepo);
 app.post('/api/repos/:repoName/download', repos.startDownload);
 app.get('/api/repos/:repoName/:requestId/status', repos.downloadStatus);
 app.get('/api/repos/:repoName/meta', repos.getRepoMetadata);
+app.get('/api/repos/:repoName/active-download', repos.getActiveDownload);
 
 app.get('/api/github/token', github.getGithubToken);
 app.post('/api/github/test', github.testConnection);

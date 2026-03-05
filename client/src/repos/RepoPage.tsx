@@ -169,6 +169,18 @@ const RepoPage: React.FC<Props> = ({repoName}) => {
       setMetadataLoaded(true);
   }, [dispatch, getSourceDataMetadata, repoName]);
 
+  useEffect(() => {
+    if (loadingSourceDataStatus !== RequestStatus.UNSTARTED) return;
+
+    get(`repos/${repoName}/active-download`).then((result) => {
+      if (result && result.requestId && result.status) {
+        setRequestId(result.requestId);
+        setDownloadStatus(result.status);
+        setLoadingSourceDataStatus(RequestStatus.IN_PROGRESS);
+      }
+    });
+  }, [repoName, loadingSourceDataStatus]);
+
   if (!repo) {
     return <Navigate to="/settings/repos" replace />;
   }
