@@ -1,0 +1,177 @@
+.TeamsSettingsPage {
+  padding: 16px;
+  max-width: 600px;
+}
+
+.TeamsSettingsPage__description {
+  color: #666;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.TeamsSettingsPage__empty {
+  color: #888;
+  font-style: italic;
+}
+
+.TeamsSettingsPage__error {
+  background: var(--color-error-bg, #ffebee);
+  color: var(--color-error, #d32f2f);
+  padding: 12px 16px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+.TeamsSettingsPage__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.TeamsSettingsPage__team {
+  background: var(--color-bg-secondary, #f5f5f5);
+  border-radius: 4px;
+  padding: 12px 16px;
+}
+
+.TeamsSettingsPage__team-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.TeamsSettingsPage__team-name {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.TeamsSettingsPage__team-members {
+  color: #666;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.TeamsSettingsPage__team-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.TeamsSettingsPage__edit-form {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #ddd;
+}
+
+.TeamsSettingsPage__field {
+  margin-bottom: 16px;
+}
+
+.TeamsSettingsPage__field > label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.TeamsSettingsPage__input {
+  border: 1px solid var(--color-border, #ddd);
+  border-radius: 4px;
+  box-sizing: border-box;
+  font-size: 14px;
+  padding: 8px 12px;
+  width: 100%;
+}
+
+.TeamsSettingsPage__input:focus {
+  border-color: #4a91ff;
+  outline: none;
+}
+
+.TeamsSettingsPage__members-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.TeamsSettingsPage__member-item {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+  padding: 6px 8px;
+  user-select: none;
+}
+
+.TeamsSettingsPage__member-item:hover {
+  background-color: #f5f5f5;
+}
+
+.TeamsSettingsPage__member-item input[type='checkbox'] {
+  cursor: pointer;
+}
+
+.TeamsSettingsPage__button {
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 16px;
+}
+
+.TeamsSettingsPage__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.TeamsSettingsPage__button--primary {
+  background: var(--color-primary, #1976d2);
+  color: white;
+}
+
+.TeamsSettingsPage__button--primary:hover:not(:disabled) {
+  background: var(--color-primary-dark, #1565c0);
+}
+
+.TeamsSettingsPage__button--secondary {
+  background: var(--color-bg-tertiary, #e0e0e0);
+  color: var(--color-text-primary, #333);
+}
+
+.TeamsSettingsPage__button--secondary:hover:not(:disabled) {
+  background: var(--color-bg-hover, #d5d5d5);
+}
+
+.TeamsSettingsPage__button--danger {
+  background: var(--color-error, #d32f2f);
+  color: white;
+}
+
+.TeamsSettingsPage__button--danger:hover:not(:disabled) {
+  background: var(--color-error-dark, #c62828);
+}
+
+.TeamsSettingsPage__form-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.TeamsSettingsPage__member-search {
+  border: 1px solid var(--color-border, #ddd);
+  border-radius: 4px;
+  box-sizing: border-box;
+  font-size: 13px;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  width: 100%;
+}
+
+.TeamsSettingsPage__member-search:focus {
+  border-color: #4a91ff;
+  outline: none;
+}

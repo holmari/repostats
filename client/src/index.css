@@ -27,6 +27,27 @@ h4 {
   height: 100%;
 }
 
+.btn-close {
+  background: transparent;
+  border: 0;
+  float: right;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #000;
+  opacity: 0.5;
+  padding: 1rem;
+  cursor: pointer;
+}
+
+.btn-close::before {
+  content: '\00d7';
+}
+
+.btn-close:hover {
+  opacity: 0.75;
+}
+
 fieldset:not(:last-child) {
   margin-bottom: 16px;
 }

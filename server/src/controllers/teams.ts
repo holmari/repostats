@@ -7,6 +7,7 @@ import {RepoConfig, TeamInfo} from '../types/types';
 import {getGithubTeamsPath, getGithubTeamMembersPath} from './github/paths';
 import {Team} from '../types/github';
 import {readJsonFile} from '../file/json';
+import {readCustomTeams} from '../file/customTeams';
 
 function getTeamsForRepo(repoConfig: RepoConfig): TeamInfo[] {
   if (repoConfig.connector.type !== 'GITHUB') {
@@ -39,6 +40,7 @@ function getTeamsForRepo(repoConfig: RepoConfig): TeamInfo[] {
       slug: team.slug,
       name: team.name,
       memberLogins,
+      source: 'github',
     });
   }
 
@@ -74,6 +76,12 @@ export function getTeams(_req: Request, res: Response): void {
         teamsBySlug.set(team.slug, team);
       }
     }
+  }
+
+  // Merge in custom teams
+  const customTeams = readCustomTeams();
+  for (const customTeam of customTeams) {
+    teamsBySlug.set(customTeam.slug, {...customTeam, source: 'custom'});
   }
 
   const teams = Array.from(teamsBySlug.values()).sort((a, b) => a.name.localeCompare(b.name));

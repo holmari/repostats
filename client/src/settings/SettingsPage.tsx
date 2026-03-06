@@ -20,6 +20,14 @@ const SettingsPage: React.FC = () => {
           className={({isActive}) =>
             classNames('SettingsPage__tab', isActive && 'SettingsPage__tab--active')
           }
+          to="/settings/teams"
+        >
+          Custom Teams
+        </NavLink>
+        <NavLink
+          className={({isActive}) =>
+            classNames('SettingsPage__tab', isActive && 'SettingsPage__tab--active')
+          }
           to="/settings/exclusions"
         >
           Team & User Exclusions

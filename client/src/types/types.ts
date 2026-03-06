@@ -294,6 +294,7 @@ export interface TeamInfo {
   readonly slug: string;
   readonly name: string;
   readonly memberLogins: ReadonlyArray<string>;
+  readonly source?: 'github' | 'custom';
 }
 
 export interface UserInfo {

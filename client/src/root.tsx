@@ -11,6 +11,7 @@ import ReposPage from "repos/ReposPage";
 import SettingsPage from "settings/SettingsPage";
 import ExclusionsSettingsPage from "settings/ExclusionsSettingsPage";
 import SSHKeySettingsPage from "settings/SSHKeySettingsPage";
+import TeamsSettingsPage from "settings/TeamsSettingsPage";
 import AnalysisPage from "analysis/AnalysisPage";
 import AnalysisPerUserPage from "analysis/AnalysisPerUserPage";
 import AnalysisPerTeamPage from "analysis/AnalysisPerTeamPage";
@@ -46,6 +47,7 @@ export default function Root() {
             <Route path="/settings" element={<SettingsPage />}>
               <Route index element={<Navigate to="/settings/repos" replace />} />
               <Route path="repos/:selectedRepo?/:add?" element={<ReposPage />} />
+              <Route path="teams" element={<TeamsSettingsPage />} />
               <Route path="exclusions" element={<ExclusionsSettingsPage />} />
               <Route path="ssh-keys" element={<SSHKeySettingsPage />} />
             </Route>

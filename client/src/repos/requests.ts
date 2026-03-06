@@ -204,6 +204,7 @@ interface TypedRequests {
     analyze: AnalyzeRequest;
     'ssh-keys': SSHKeySaveRequest;
     'ssh-keys/test': {keyId: string};
+    'custom-teams': {name: string; memberLogins: string[]};
   };
   put: {
     repos: RepoConfig;
@@ -220,12 +221,14 @@ interface TypedResponses {
     users: UserInfo[];
     settings: AppSettings;
     'ssh-keys': SSHKeyListResponse;
+    'custom-teams': TeamInfo[];
   };
   post: {
     'github/test': null;
     analyze: AnalyzeResult;
     'ssh-keys': SSHKeyInfo;
     'ssh-keys/test': SSHKeyTestResult;
+    'custom-teams': TeamInfo;
   };
   put: {
     repos: RepoConfig;

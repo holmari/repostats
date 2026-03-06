@@ -10,6 +10,7 @@ import * as users from './controllers/users';
 import * as settings from './controllers/settings';
 import * as sshKeys from './controllers/sshKeys';
 import * as gitStats from './controllers/git-stats';
+import * as customTeams from './controllers/customTeams';
 import {ensurePaths} from './file/paths';
 import {SERVER_PORT} from '../../shared/config';
 
@@ -37,6 +38,11 @@ app.post('/api/analyze', analysis.analyze);
 
 app.get('/api/teams', teams.getTeams);
 app.get('/api/users', users.getUsers);
+
+app.get('/api/custom-teams', customTeams.getCustomTeams);
+app.post('/api/custom-teams', customTeams.createCustomTeam);
+app.put('/api/custom-teams/:slug', customTeams.updateCustomTeam);
+app.delete('/api/custom-teams/:slug', customTeams.deleteCustomTeam);
 
 app.get('/api/settings', settings.getSettingsHandler);
 app.put('/api/settings', settings.saveSettingsHandler);
