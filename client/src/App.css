@@ -1,7 +1,7 @@
 .App {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  min-height: 100vh;
   background-color: #f4f4f4;
 }
 
@@ -10,13 +10,15 @@
   display: flex;
   font-family: 'Gill Sans', 'Gill Sans MT', Calibri, sans-serif;
   font-size: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .App main {
   display: flex;
   flex-direction: column;
   flex: 1;
-  overflow: hidden;
 }
 
 .App__nav-content {

@@ -3,7 +3,11 @@
   display: flex;
   flex-direction: column;
   font-size: 12px;
-  overflow: auto;
+  max-height: 100vh;
+  overflow-y: auto;
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
   width: 160px;
 }
 

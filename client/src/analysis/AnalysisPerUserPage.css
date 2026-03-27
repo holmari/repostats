@@ -1,7 +1,6 @@
 .AnalysisPerUserPage {
   display: flex;
   flex: 1;
-  overflow: hidden;
 }
 
 .AnalysisPerUserPage__sidebar {
@@ -11,7 +10,6 @@
 .AnalysisPerUserPage__content-area {
   display: flex;
   flex: 1;
-  overflow: hidden;
 }
 
 .AnalysisPerUserPage__sidebar-item {

@@ -1,7 +1,6 @@
 .AnalysisPerTeamPage {
   display: flex;
   flex: 1;
-  overflow: hidden;
 }
 
 .AnalysisPerTeamPage__sidebar {
@@ -11,5 +10,4 @@
 .AnalysisPerTeamPage__content-area {
   display: flex;
   flex: 1;
-  overflow: hidden;
 }

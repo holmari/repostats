@@ -2,7 +2,6 @@
   display: flex;
   flex-direction: column;
   flex: 1;
-  overflow: hidden;
 }
 
 .SettingsPage__tabs {
@@ -39,5 +38,4 @@
 .SettingsPage__content {
   display: flex;
   flex: 1;
-  overflow: hidden;
 }
