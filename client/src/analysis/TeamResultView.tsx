@@ -2,6 +2,7 @@ import './TeamResultView.css';
 
 import classNames from 'classnames';
 import * as d3 from 'd3';
+import {DateTime} from 'luxon';
 import React, {useMemo} from 'react';
 import {Link} from 'react-router';
 
@@ -9,6 +10,7 @@ import {
   AnalyzeResult,
   AuthoredTotals,
   AuthoredTotalsComparison,
+  Change,
   MetricComparison,
   ReceivedTotals,
   ReceivedTotalsComparison,
@@ -19,7 +21,7 @@ import {
 } from 'types/types';
 import ValueCell from 'components/ValueCell';
 import Panel from 'components/Panel';
-import TimeSeriesChart from './chart/TimeSeriesChart';
+import TimeSeriesChart, {formatHoursMinutes} from './chart/TimeSeriesChart';
 import {accumulate} from './chart/utils';
 import {ChartDataSeries, DateValue} from './chart/types';
 import {AUTHORED_METRIC_POLARITY, computeRatioComparison, RECEIVED_METRIC_POLARITY} from './metricPolarity';
@@ -320,6 +322,65 @@ function toCommitsAuthoredPerMemberData(
   });
 }
 
+function toWeeklyMedianSeries(
+  changes: ReadonlyArray<Change>,
+  extractValue: (change: Change) => number | null,
+  transform: (median: number) => number = (v) => v
+): ReadonlyArray<DateValue> {
+  const valuesByWeek = new Map<string, number[]>();
+  for (const change of changes) {
+    const value = extractValue(change);
+    if (value === null) {
+      continue;
+    }
+    const weekStart = DateTime.fromISO(change.createdAt).startOf('week').toISODate();
+    if (!weekStart) {
+      continue;
+    }
+    const existing = valuesByWeek.get(weekStart);
+    if (existing) {
+      existing.push(value);
+    } else {
+      valuesByWeek.set(weekStart, [value]);
+    }
+  }
+  return Array.from(valuesByWeek.entries())
+    .map(([weekStart, values]) => {
+      const sorted = [...values].sort((a, b) => a - b);
+      const median = computePercentile(sorted, 50);
+      return {
+        date: new Date(weekStart),
+        value: isNaN(median) ? 0 : transform(median),
+        count: values.length,
+      };
+    })
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
+}
+
+function toMedianTimeInReviewData(
+  members: ReadonlyArray<UserResult>
+): ReadonlyArray<ChartDataSeries> {
+  const allChanges = members.flatMap((m) => m.changesAuthored);
+  const series = toWeeklyMedianSeries(
+    allChanges,
+    (c) => c.timeOpenMsec,
+    (msec) => msec / 1000 / 60 / 60
+  );
+  return [{label: 'Median time in review', color: '#4a91ff', series}];
+}
+
+function toMedianCommitSizeData(
+  members: ReadonlyArray<UserResult>
+): ReadonlyArray<ChartDataSeries> {
+  const allChanges = members.flatMap((m) => m.changesAuthored);
+  const series = toWeeklyMedianSeries(allChanges, (c) => c.linesChanged);
+  return [{label: 'Median commit size', color: '#ff8270', series}];
+}
+
+function formatLinesChanged(value: number): string {
+  return Math.round(value).toLocaleString();
+}
+
 function toTimeSeriesData(
   timeSeries: ReadonlyArray<UserActivitySummary>
 ): ReadonlyArray<ChartDataSeries> {
@@ -365,6 +426,8 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
     () => toCommitsAuthoredPerMemberData(members),
     [members]
   );
+  const medianTimeInReviewData = useMemo(() => toMedianTimeInReviewData(members), [members]);
+  const medianCommitSizeData = useMemo(() => toMedianCommitSizeData(members), [members]);
   const comparison = useMemo(
     () => aggregateTeamComparison(members, fullResult.comparisonResults),
     [members, fullResult.comparisonResults]
@@ -623,6 +686,30 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
             )}
           </div>
         </div>
+      </Panel>
+
+      <Panel title="Median time in review per week" size="flex">
+        {medianTimeInReviewData[0].series.length > 0 ? (
+          <TimeSeriesChart
+            data={medianTimeInReviewData}
+            yAxisLabel="Hours"
+            valueFormatter={formatHoursMinutes}
+          />
+        ) : (
+          <span>No change data available for this team.</span>
+        )}
+      </Panel>
+
+      <Panel title="Median commit size per week" size="flex">
+        {medianCommitSizeData[0].series.length > 0 ? (
+          <TimeSeriesChart
+            data={medianCommitSizeData}
+            yAxisLabel="Lines changed"
+            valueFormatter={formatLinesChanged}
+          />
+        ) : (
+          <span>No change data available for this team.</span>
+        )}
       </Panel>
 
       <Panel title="Commits authored per member over time" size="flex">
