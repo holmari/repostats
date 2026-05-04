@@ -11,6 +11,7 @@ import {
   AuthoredTotals,
   AuthoredTotalsComparison,
   Change,
+  DateInterval,
   MetricComparison,
   ReceivedTotals,
   ReceivedTotalsComparison,
@@ -357,12 +358,25 @@ function toWeeklyMedianSeries(
     .sort((a, b) => a.date.getTime() - b.date.getTime());
 }
 
+function getChangesInInterval(
+  members: ReadonlyArray<UserResult>,
+  requestedInterval: DateInterval
+): ReadonlyArray<Change> {
+  const startDate = requestedInterval.startDate.slice(0, 10);
+  const endDate = requestedInterval.endDate.slice(0, 10);
+  return members.flatMap((m) => m.changesAuthored).filter((change) => {
+    const createdAt = change.createdAt.slice(0, 10);
+    return createdAt >= startDate && createdAt <= endDate;
+  });
+}
+
 function toMedianTimeInReviewData(
-  members: ReadonlyArray<UserResult>
+  members: ReadonlyArray<UserResult>,
+  requestedInterval: DateInterval
 ): ReadonlyArray<ChartDataSeries> {
-  const allChanges = members.flatMap((m) => m.changesAuthored);
+  const changes = getChangesInInterval(members, requestedInterval);
   const series = toWeeklyMedianSeries(
-    allChanges,
+    changes,
     (c) => c.timeOpenMsec,
     (msec) => msec / 1000 / 60 / 60
   );
@@ -370,10 +384,11 @@ function toMedianTimeInReviewData(
 }
 
 function toMedianCommitSizeData(
-  members: ReadonlyArray<UserResult>
+  members: ReadonlyArray<UserResult>,
+  requestedInterval: DateInterval
 ): ReadonlyArray<ChartDataSeries> {
-  const allChanges = members.flatMap((m) => m.changesAuthored);
-  const series = toWeeklyMedianSeries(allChanges, (c) => c.linesChanged);
+  const changes = getChangesInInterval(members, requestedInterval);
+  const series = toWeeklyMedianSeries(changes, (c) => c.linesChanged);
   return [{label: 'Median commit size', color: '#ff8270', series}];
 }
 
@@ -426,8 +441,14 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
     () => toCommitsAuthoredPerMemberData(members),
     [members]
   );
-  const medianTimeInReviewData = useMemo(() => toMedianTimeInReviewData(members), [members]);
-  const medianCommitSizeData = useMemo(() => toMedianCommitSizeData(members), [members]);
+  const medianTimeInReviewData = useMemo(
+    () => toMedianTimeInReviewData(members, fullResult.requestedInterval),
+    [members, fullResult.requestedInterval]
+  );
+  const medianCommitSizeData = useMemo(
+    () => toMedianCommitSizeData(members, fullResult.requestedInterval),
+    [members, fullResult.requestedInterval]
+  );
   const comparison = useMemo(
     () => aggregateTeamComparison(members, fullResult.comparisonResults),
     [members, fullResult.comparisonResults]
