@@ -6,12 +6,11 @@ import {Outlet, useLocation} from 'react-router';
 import ErrorWrapper from 'components/ErrorWrapper';
 import {cacheOff, get, post} from 'repos/requests';
 import {RequestStatus} from 'requests/types';
-import {AnalyzeResult, AppSettings, ComparisonGranularity, DateInterval, Granularity, TeamInfo} from 'types/types';
+import {AnalyzeResult, AppSettings, ComparisonMode, DateInterval, Granularity, TeamInfo} from 'types/types';
 
 import EmptyContentView from 'components/EmptyContentView';
 import PageTopBar from 'components/PageTopBar';
 import DateIntervalPicker, {DEFAULT_INTERVAL} from 'components/DateIntervalPicker';
-import {isAllTimeInterval} from 'date/utils';
 import GranularityPicker from 'components/GranularityPicker';
 import ComparisonGranularityPicker from 'components/ComparisonGranularityPicker';
 import CenteredSpinner from 'components/CenteredSpinner';
@@ -36,8 +35,8 @@ const AnalysisPage: React.FC = () => {
   const [granularity, setGranularity] = useState<Granularity>(
     getCookieAsJson('granularity') || 'day'
   );
-  const [comparisonGranularity, setComparisonGranularity] = useState<ComparisonGranularity | undefined>(
-    getCookieAsJson('comparisonGranularity') || undefined
+  const [comparisonMode, setComparisonMode] = useState<ComparisonMode | undefined>(
+    getCookieAsJson('comparisonMode') || undefined
   );
   const [error, setError] = useState(undefined);
   const [previousError, setPreviousError] = useState(undefined);
@@ -63,12 +62,6 @@ const AnalysisPage: React.FC = () => {
     setDateInterval(interval);
     setStatus(RequestStatus.UNSTARTED);
     writeCookieFromJson('dateInterval', interval);
-
-    // Disable comparison when "All time" is selected
-    if (isAllTimeInterval(interval) && comparisonGranularity !== undefined) {
-      setComparisonGranularity(undefined);
-      removeCookie('comparisonGranularity');
-    }
   };
 
   const changeIncludedRepoNames = (repoNames: ReadonlyArray<string>) => {
@@ -83,13 +76,13 @@ const AnalysisPage: React.FC = () => {
     writeCookieFromJson('granularity', newGranularity);
   };
 
-  const changeComparisonGranularity = (newComparisonGranularity: ComparisonGranularity | undefined) => {
-    setComparisonGranularity(newComparisonGranularity);
+  const changeComparisonMode = (newComparisonMode: ComparisonMode | undefined) => {
+    setComparisonMode(newComparisonMode);
     setStatus(RequestStatus.UNSTARTED);
-    if (newComparisonGranularity === undefined) {
-      removeCookie('comparisonGranularity');
+    if (newComparisonMode === undefined) {
+      removeCookie('comparisonMode');
     } else {
-      writeCookieFromJson('comparisonGranularity', newComparisonGranularity);
+      writeCookieFromJson('comparisonMode', newComparisonMode);
     }
   };
 
@@ -124,7 +117,7 @@ const AnalysisPage: React.FC = () => {
     lastUsedSettingsJson.current = JSON.stringify(settings);
 
     Promise.all([
-      post('analyze', {dateInterval, includedRepoNames, granularity, comparisonGranularity}, headers),
+      post('analyze', {dateInterval, includedRepoNames, granularity, comparisonMode}, headers),
       get('teams'),
     ])
       .then(([fetchedResult, fetchedTeams]) => {
@@ -134,16 +127,16 @@ const AnalysisPage: React.FC = () => {
         setAllTeams(fetchedTeams);
       })
       .catch(setError);
-  }, [comparisonGranularity, dateInterval, granularity, includedRepoNames, previousError, settings, status]);
+  }, [comparisonMode, dateInterval, granularity, includedRepoNames, previousError, settings, status]);
 
   const topBarLeftContent = (
     <>
       <DateIntervalPicker interval={dateInterval} onChange={changeDateInterval} />
       <GranularityPicker granularity={granularity} onChange={changeGranularity} />
       <ComparisonGranularityPicker
-        comparisonGranularity={comparisonGranularity}
+        comparisonMode={comparisonMode}
         dateInterval={dateInterval}
-        onChange={changeComparisonGranularity}
+        onChange={changeComparisonMode}
       />
       <RepositoryPicker
         availableRepositories={allRepoNames}

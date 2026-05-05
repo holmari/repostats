@@ -94,7 +94,15 @@ export interface DateInterval {
 
 export type Granularity = 'day' | 'week' | 'month' | 'quarter' | 'year';
 
-export type ComparisonGranularity = 'year' | 'quarter';
+// QoQ:  last full quarter vs the immediately preceding quarter
+// QYoY: last full quarter vs the same quarter a year earlier
+// YoY:  last full year vs the immediately preceding year
+export type ComparisonMode = 'qoq' | 'qyoy' | 'yoy';
+
+export interface ComparisonIntervals {
+  readonly current: DateInterval;
+  readonly previous: DateInterval;
+}
 
 export interface MetricComparison {
   readonly currentValue: number;
@@ -124,11 +132,10 @@ export interface ReceivedTotalsComparison {
   readonly reviewRequests: MetricComparison;
 }
 
-// Per-PR samples from the previous comparison period. Used so that team-level
-// median metrics (e.g. median time in review, median commit size) can be pooled
-// across members on the client — sums of per-user medians don't yield a team
-// median.
-export interface PreviousChangeSample {
+// Per-PR samples from a comparison slice. Used so that team-level median metrics
+// (e.g. median time in review, median commit size) can be pooled across members
+// on the client — sums of per-user medians don't yield a team median.
+export interface ChangeSample {
   readonly timeOpenMsec: number;
   readonly linesChanged: number | null;
 }
@@ -136,14 +143,15 @@ export interface PreviousChangeSample {
 export interface UserResultComparison {
   readonly authoredTotals: AuthoredTotalsComparison;
   readonly receivedTotals: ReceivedTotalsComparison;
-  readonly previousAuthoredChangeSamples: ReadonlyArray<PreviousChangeSample>;
+  readonly currentAuthoredChangeSamples: ReadonlyArray<ChangeSample>;
+  readonly previousAuthoredChangeSamples: ReadonlyArray<ChangeSample>;
 }
 
 export interface AnalyzeRequest {
   readonly dateInterval?: DateInterval;
   readonly includedRepoNames?: ReadonlyArray<string>;
   readonly granularity?: Granularity;
-  readonly comparisonGranularity?: ComparisonGranularity;
+  readonly comparisonMode?: ComparisonMode;
 }
 
 export interface ReviewComment {
@@ -319,7 +327,8 @@ export interface AnalyzeResult {
   // The granularity used for aggregating time series data.
   readonly granularity: Granularity;
   readonly comparisonResults?: {readonly [userId: string]: UserResultComparison};
-  readonly comparisonGranularity?: ComparisonGranularity;
+  readonly comparisonMode?: ComparisonMode;
+  readonly comparisonIntervals?: ComparisonIntervals;
 }
 
 export interface AppSettings {

@@ -197,24 +197,19 @@ function aggregateTeamComparison(
     return undefined;
   }
 
-  // Pool every team member's previous-period PR samples so we can compute
-  // a true team-level median for the previous period (sums of per-user medians
-  // would not yield a team median).
+  // Pool per-PR samples from the comparison slices (not the eval window) across
+  // every team member so that the badge's median reflects the team's pooled
+  // distribution for each slice.
+  const currentSamples = memberComparisons.flatMap((c) => c.currentAuthoredChangeSamples);
   const previousSamples = memberComparisons.flatMap((c) => c.previousAuthoredChangeSamples);
+  const currentChangeOpenTimes = currentSamples.map((s) => s.timeOpenMsec);
   const previousChangeOpenTimes = previousSamples.map((s) => s.timeOpenMsec);
+  const currentLinesChanged = currentSamples
+    .map((s) => s.linesChanged)
+    .filter((v): v is number => v !== null);
   const previousLinesChanged = previousSamples
     .map((s) => s.linesChanged)
     .filter((v): v is number => v !== null);
-
-  // Pool current-period samples from the team members' raw PR list — same as
-  // aggregateAuthoredTotals does, so the comparison's currentValue matches the
-  // displayed cell value exactly.
-  const currentChangeOpenTimes = members.flatMap((m) =>
-    m.changesAuthored.map((c) => c.timeOpenMsec)
-  );
-  const currentLinesChanged = members.flatMap((m) =>
-    m.changesAuthored.map((c) => c.linesChanged).filter((v): v is number => v !== null)
-  );
 
   const authoredTotals: AuthoredTotalsComparison = {
     approvals: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.approvals)),
@@ -241,9 +236,13 @@ function aggregateTeamComparison(
     reviewRequests: sumMetricComparisons(memberComparisons.map((c) => c.receivedTotals.reviewRequests)),
   };
 
-  // Pooled previous-period samples are no longer needed once the team comparison
-  // has been built; expose an empty list to satisfy the type.
-  return {authoredTotals, receivedTotals, previousAuthoredChangeSamples: []};
+  // Pooled samples are consumed during this aggregation; we don't propagate them.
+  return {
+    authoredTotals,
+    receivedTotals,
+    currentAuthoredChangeSamples: [],
+    previousAuthoredChangeSamples: [],
+  };
 }
 
 function aggregateTimeSeries(
@@ -499,7 +498,8 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
     () => aggregateTeamComparison(members, fullResult.comparisonResults),
     [members, fullResult.comparisonResults]
   );
-  const comparisonGranularity = fullResult.comparisonGranularity;
+  const comparisonMode = fullResult.comparisonMode;
+  const comparisonIntervals = fullResult.comparisonIntervals;
 
   return (
     <div className={classNames('TeamResultView', className)}>
@@ -529,8 +529,8 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
             value={authoredTotals.approvals}
             comparison={comparison?.authoredTotals.approvals}
             comparisonPolarity={AUTHORED_METRIC_POLARITY.approvals}
-            comparisonGranularity={comparisonGranularity}
-            dateInterval={fullResult.requestedInterval}
+            comparisonMode={comparisonMode}
+            comparisonIntervals={comparisonIntervals}
           />
           <ValueCell
             tooltip="Total rejections given by team members."
@@ -538,8 +538,8 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
             value={authoredTotals.rejections}
             comparison={comparison?.authoredTotals.rejections}
             comparisonPolarity={AUTHORED_METRIC_POLARITY.rejections}
-            comparisonGranularity={comparisonGranularity}
-            dateInterval={fullResult.requestedInterval}
+            comparisonMode={comparisonMode}
+            comparisonIntervals={comparisonIntervals}
           />
           <ValueCell
             tooltip="Total comments written by team members."
@@ -547,8 +547,8 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
             value={authoredTotals.commentsWrittenTotal}
             comparison={comparison?.authoredTotals.commentsWrittenTotal}
             comparisonPolarity={AUTHORED_METRIC_POLARITY.commentsWrittenTotal}
-            comparisonGranularity={comparisonGranularity}
-            dateInterval={fullResult.requestedInterval}
+            comparisonMode={comparisonMode}
+            comparisonIntervals={comparisonIntervals}
           />
           <ValueCell
             tooltip="Total comments written to others by team members."
@@ -556,8 +556,8 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
             value={authoredTotals.commentsWrittenToOthers}
             comparison={comparison?.authoredTotals.commentsWrittenToOthers}
             comparisonPolarity={AUTHORED_METRIC_POLARITY.commentsWrittenToOthers}
-            comparisonGranularity={comparisonGranularity}
-            dateInterval={fullResult.requestedInterval}
+            comparisonMode={comparisonMode}
+            comparisonIntervals={comparisonIntervals}
           />
           <ValueCell
             tooltip="Total change requests created by team members."
@@ -565,8 +565,8 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
             value={authoredTotals.changesCreated}
             comparison={comparison?.authoredTotals.changesCreated}
             comparisonPolarity={AUTHORED_METRIC_POLARITY.changesCreated}
-            comparisonGranularity={comparisonGranularity}
-            dateInterval={fullResult.requestedInterval}
+            comparisonMode={comparisonMode}
+            comparisonIntervals={comparisonIntervals}
           />
           <ValueCell
             tooltip="Total commits created by team members."
@@ -574,8 +574,8 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
             value={authoredTotals.commits}
             comparison={comparison?.authoredTotals.commits}
             comparisonPolarity={AUTHORED_METRIC_POLARITY.commits}
-            comparisonGranularity={comparisonGranularity}
-            dateInterval={fullResult.requestedInterval}
+            comparisonMode={comparisonMode}
+            comparisonIntervals={comparisonIntervals}
           />
           <ValueCell
             tooltip="Total lines of code added by team members."
@@ -583,8 +583,8 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
             value={authoredTotals.linesAdded.toLocaleString()}
             comparison={comparison?.authoredTotals.linesAdded}
             comparisonPolarity={AUTHORED_METRIC_POLARITY.linesAdded}
-            comparisonGranularity={comparisonGranularity}
-            dateInterval={fullResult.requestedInterval}
+            comparisonMode={comparisonMode}
+            comparisonIntervals={comparisonIntervals}
           />
           <ValueCell
             tooltip="Total lines of code deleted by team members."
@@ -592,8 +592,8 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
             value={authoredTotals.linesDeleted.toLocaleString()}
             comparison={comparison?.authoredTotals.linesDeleted}
             comparisonPolarity={AUTHORED_METRIC_POLARITY.linesDeleted}
-            comparisonGranularity={comparisonGranularity}
-            dateInterval={fullResult.requestedInterval}
+            comparisonMode={comparisonMode}
+            comparisonIntervals={comparisonIntervals}
           />
           <ValueCell
             tooltip="Median time changes have been open until merged (team median)."
@@ -601,8 +601,8 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
             value={formatTimeInHours(authoredTotals.medianChangeOpenTimeMsec)}
             comparison={comparison?.authoredTotals.medianChangeOpenTimeMsec}
             comparisonPolarity={AUTHORED_METRIC_POLARITY.medianChangeOpenTimeMsec}
-            comparisonGranularity={comparisonGranularity}
-            dateInterval={fullResult.requestedInterval}
+            comparisonMode={comparisonMode}
+            comparisonIntervals={comparisonIntervals}
             formatComparisonValue={formatTimeInHours}
             cornerContent={
               <>
@@ -618,8 +618,8 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
             value={formatCommitSize(authoredTotals.medianCommitSize)}
             comparison={comparison?.authoredTotals.medianCommitSize}
             comparisonPolarity={AUTHORED_METRIC_POLARITY.medianCommitSize}
-            comparisonGranularity={comparisonGranularity}
-            dateInterval={fullResult.requestedInterval}
+            comparisonMode={comparisonMode}
+            comparisonIntervals={comparisonIntervals}
             formatComparisonValue={formatCommitSize}
           />
           <ValueCell
@@ -633,8 +633,8 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
               comparison?.authoredTotals.distinctPRsCommentedOn
             )}
             comparisonPolarity={AUTHORED_METRIC_POLARITY.commentsWrittenToOthers}
-            comparisonGranularity={comparisonGranularity}
-            dateInterval={fullResult.requestedInterval}
+            comparisonMode={comparisonMode}
+            comparisonIntervals={comparisonIntervals}
             formatComparisonValue={formatRatio}
           />
         </Panel>
@@ -646,8 +646,8 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
             value={receivedTotals.approvals}
             comparison={comparison?.receivedTotals.approvals}
             comparisonPolarity={RECEIVED_METRIC_POLARITY.approvals}
-            comparisonGranularity={comparisonGranularity}
-            dateInterval={fullResult.requestedInterval}
+            comparisonMode={comparisonMode}
+            comparisonIntervals={comparisonIntervals}
           />
           <ValueCell
             tooltip="Total rejections received by team members."
@@ -655,8 +655,8 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
             value={receivedTotals.rejections}
             comparison={comparison?.receivedTotals.rejections}
             comparisonPolarity={RECEIVED_METRIC_POLARITY.rejections}
-            comparisonGranularity={comparisonGranularity}
-            dateInterval={fullResult.requestedInterval}
+            comparisonMode={comparisonMode}
+            comparisonIntervals={comparisonIntervals}
           />
           <ValueCell
             tooltip="Total comments received by team members."
@@ -664,8 +664,8 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
             value={receivedTotals.commentsByOthers}
             comparison={comparison?.receivedTotals.commentsByOthers}
             comparisonPolarity={RECEIVED_METRIC_POLARITY.commentsByOthers}
-            comparisonGranularity={comparisonGranularity}
-            dateInterval={fullResult.requestedInterval}
+            comparisonMode={comparisonMode}
+            comparisonIntervals={comparisonIntervals}
           />
           <ValueCell
             tooltip="Total review requests received by team members."
@@ -673,8 +673,8 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
             value={receivedTotals.reviewRequests}
             comparison={comparison?.receivedTotals.reviewRequests}
             comparisonPolarity={RECEIVED_METRIC_POLARITY.reviewRequests}
-            comparisonGranularity={comparisonGranularity}
-            dateInterval={fullResult.requestedInterval}
+            comparisonMode={comparisonMode}
+            comparisonIntervals={comparisonIntervals}
           />
           <ValueCell
             tooltip="Comments received per change request (team average)."
@@ -685,8 +685,8 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
               comparison?.authoredTotals.changesCreated
             )}
             comparisonPolarity={RECEIVED_METRIC_POLARITY.commentsTotal}
-            comparisonGranularity={comparisonGranularity}
-            dateInterval={fullResult.requestedInterval}
+            comparisonMode={comparisonMode}
+            comparisonIntervals={comparisonIntervals}
             formatComparisonValue={formatRatio}
           />
           <ValueCell
@@ -698,8 +698,8 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
               comparison?.authoredTotals.commits
             )}
             comparisonPolarity={RECEIVED_METRIC_POLARITY.commentsTotal}
-            comparisonGranularity={comparisonGranularity}
-            dateInterval={fullResult.requestedInterval}
+            comparisonMode={comparisonMode}
+            comparisonIntervals={comparisonIntervals}
             formatComparisonValue={formatRatio}
           />
         </Panel>

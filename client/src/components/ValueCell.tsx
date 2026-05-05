@@ -4,15 +4,15 @@ import classNames from 'classnames';
 import React from 'react';
 import {OverlayTrigger, Tooltip} from 'react-bootstrap';
 
-import {ComparisonGranularity, DateInterval, MetricComparison} from 'types/types';
+import {ComparisonIntervals, ComparisonMode, MetricComparison} from 'types/types';
 import {MetricPolarity} from 'analysis/metricPolarity';
 import ComparisonBadge from './ComparisonBadge';
 
 function getDisplayableNumberValue(value: number): number | string {
   if (Number.isNaN(value) || value === Infinity) {
-    return '\u2013';
+    return '–';
   } else if (!Number.isFinite(value)) {
-    return '\u221e';
+    return '∞';
   } else if (!Number.isInteger(value)) {
     return value.toFixed(3);
   }
@@ -22,7 +22,7 @@ function getDisplayableNumberValue(value: number): number | string {
 
 function getDisplayValue(value: number | string): React.ReactNode {
   if (value === 'Infinity' || value === 'NaN') {
-    return '\u2013';
+    return '–';
   } else if (typeof value === 'number') {
     return getDisplayableNumberValue(value);
   }
@@ -32,10 +32,10 @@ function getDisplayValue(value: number | string): React.ReactNode {
 const ValueCell: React.FC<Props> = ({
   className,
   comparison,
-  comparisonGranularity,
+  comparisonIntervals,
+  comparisonMode,
   comparisonPolarity,
   cornerContent,
-  dateInterval,
   fontSize,
   formatComparisonValue,
   size = 'normal',
@@ -47,7 +47,7 @@ const ValueCell: React.FC<Props> = ({
   const showComparison =
     comparison !== undefined &&
     comparisonPolarity !== undefined &&
-    comparisonGranularity !== undefined;
+    comparisonMode !== undefined;
 
   return (
     <OverlayTrigger placement="bottom" overlay={<Tooltip id="tooltip">{tooltip}</Tooltip>}>
@@ -62,8 +62,8 @@ const ValueCell: React.FC<Props> = ({
             <ComparisonBadge
               comparison={comparison}
               polarity={comparisonPolarity}
-              granularity={comparisonGranularity}
-              dateInterval={dateInterval}
+              mode={comparisonMode}
+              comparisonIntervals={comparisonIntervals}
               formatComparisonValue={formatComparisonValue}
             />
           )}
@@ -78,10 +78,10 @@ ValueCell.displayName = 'ValueCell';
 interface Props {
   className?: string;
   comparison?: MetricComparison;
-  comparisonGranularity?: ComparisonGranularity;
+  comparisonIntervals?: ComparisonIntervals;
+  comparisonMode?: ComparisonMode;
   comparisonPolarity?: MetricPolarity;
   cornerContent?: React.ReactNode;
-  dateInterval?: DateInterval;
   fontSize?: 'small' | 'normal';
   formatComparisonValue?: (value: number) => string;
   size?: 'normal' | 'wide' | 'x-wide';

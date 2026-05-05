@@ -1,5 +1,5 @@
 import {DateTime, DurationUnit} from 'luxon';
-import {ComparisonGranularity, DateInterval, Granularity} from '../types/types';
+import {ComparisonIntervals, ComparisonMode, DateInterval, Granularity} from '../types/types';
 
 export const EMPTY_INTERVAL: DateInterval = {
   startDate: new Date(0).toISOString(),
@@ -121,15 +121,62 @@ export function getPeriodStartDate(dateStr: string, granularity: Granularity): s
   }
 }
 
-export function shiftIntervalBack(
-  interval: DateInterval,
-  granularity: ComparisonGranularity
-): DateInterval {
-  const start = DateTime.fromISO(interval.startDate);
-  const end = DateTime.fromISO(interval.endDate);
-  const shift = granularity === 'year' ? {years: 1} : {months: 3};
-  return {
-    startDate: start.minus(shift).toISODate()!,
-    endDate: end.minus(shift).toISODate()!,
-  };
+// Calendar-aligned "last full quarter" relative to a reference date.
+// The current quarter is never considered "full" until its successor begins, so
+// the last full quarter is always the one immediately preceding referenceDate's
+// quarter.
+function getLastFullQuarter(referenceDate: DateTime): {start: DateTime; end: DateTime} {
+  const currentQuarterStart = referenceDate.startOf('quarter');
+  const start = currentQuarterStart.minus({months: 3});
+  const end = currentQuarterStart.minus({days: 1});
+  return {start, end};
+}
+
+function getLastFullYear(referenceDate: DateTime): {start: DateTime; end: DateTime} {
+  const currentYearStart = referenceDate.startOf('year');
+  const start = currentYearStart.minus({years: 1});
+  const end = currentYearStart.minus({days: 1});
+  return {start, end};
+}
+
+function asInterval(start: DateTime, end: DateTime): DateInterval {
+  return {startDate: start.toISODate()!, endDate: end.toISODate()!};
+}
+
+// Compute the (current, previous) calendar-aligned slice intervals for a
+// comparison mode, anchored to a reference date. The reference date is
+// typically the eval window's end (or today, whichever comes first).
+export function getComparisonIntervals(
+  referenceDate: DateTime,
+  mode: ComparisonMode
+): ComparisonIntervals {
+  switch (mode) {
+    case 'qoq': {
+      const last = getLastFullQuarter(referenceDate);
+      const prevStart = last.start.minus({months: 3});
+      const prevEnd = last.start.minus({days: 1});
+      return {
+        current: asInterval(last.start, last.end),
+        previous: asInterval(prevStart, prevEnd),
+      };
+    }
+    case 'qyoy': {
+      const last = getLastFullQuarter(referenceDate);
+      const prevStart = last.start.minus({years: 1});
+      const prevEnd = last.end.minus({years: 1});
+      return {
+        current: asInterval(last.start, last.end),
+        previous: asInterval(prevStart, prevEnd),
+      };
+    }
+    case 'yoy': {
+      const last = getLastFullYear(referenceDate);
+      const prevStart = last.start.minus({years: 1});
+      const prevEnd = last.start.minus({days: 1});
+      return {
+        current: asInterval(last.start, last.end),
+        previous: asInterval(prevStart, prevEnd),
+      };
+    }
+  }
 }

@@ -1,8 +1,8 @@
 import {
   AuthoredTotals,
   AuthoredTotalsComparison,
+  ChangeSample,
   MetricComparison,
-  PreviousChangeSample,
   ReceivedTotals,
   ReceivedTotalsComparison,
   UserResult,
@@ -100,22 +100,29 @@ function createEmptyReceivedTotals(): ReceivedTotals {
   };
 }
 
-export function compareUserResult(
-  current: UserResult,
-  previous: UserResult | undefined
-): UserResultComparison {
-  const previousAuthored = previous?.aggregatedAuthoredTotals ?? createEmptyAuthoredTotals();
-  const previousReceived = previous?.aggregatedReceivedTotals ?? createEmptyReceivedTotals();
-  const previousAuthoredChangeSamples: ReadonlyArray<PreviousChangeSample> =
-    previous?.changesAuthored.map((change) => ({
+function changesToSamples(result: UserResult | undefined): ReadonlyArray<ChangeSample> {
+  return (
+    result?.changesAuthored.map((change) => ({
       timeOpenMsec: change.timeOpenMsec,
       linesChanged: change.linesChanged,
-    })) ?? [];
+    })) ?? []
+  );
+}
+
+export function compareUserResult(
+  current: UserResult | undefined,
+  previous: UserResult | undefined
+): UserResultComparison {
+  const currentAuthored = current?.aggregatedAuthoredTotals ?? createEmptyAuthoredTotals();
+  const currentReceived = current?.aggregatedReceivedTotals ?? createEmptyReceivedTotals();
+  const previousAuthored = previous?.aggregatedAuthoredTotals ?? createEmptyAuthoredTotals();
+  const previousReceived = previous?.aggregatedReceivedTotals ?? createEmptyReceivedTotals();
 
   return {
-    authoredTotals: compareAuthoredTotals(current.aggregatedAuthoredTotals, previousAuthored),
-    receivedTotals: compareReceivedTotals(current.aggregatedReceivedTotals, previousReceived),
-    previousAuthoredChangeSamples,
+    authoredTotals: compareAuthoredTotals(currentAuthored, previousAuthored),
+    receivedTotals: compareReceivedTotals(currentReceived, previousReceived),
+    currentAuthoredChangeSamples: changesToSamples(current),
+    previousAuthoredChangeSamples: changesToSamples(previous),
   };
 }
 
@@ -125,7 +132,14 @@ export function buildComparisonResults(
 ): {readonly [userId: string]: UserResultComparison} {
   const comparisons: {[userId: string]: UserResultComparison} = {};
 
-  for (const userId of Object.keys(currentResults)) {
+  // Include any user that appears in either slice — a user might have authored
+  // PRs only in the previous slice and still be displayed via the eval window.
+  const allUserIds = new Set<string>([
+    ...Object.keys(currentResults),
+    ...Object.keys(previousResults),
+  ]);
+
+  for (const userId of allUserIds) {
     comparisons[userId] = compareUserResult(currentResults[userId], previousResults[userId]);
   }
 

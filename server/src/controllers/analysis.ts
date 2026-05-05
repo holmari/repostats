@@ -1,14 +1,17 @@
 import {Response, Request} from 'express';
 import fs from 'fs';
 
+import {DateTime} from 'luxon';
+
 import {CachePath, readFromCache, writeToCache} from '../cache/cache';
-import {ALL_TIME_INTERVAL, shiftIntervalBack, sliceDate, unionAllIntervals, unionIntervals} from '../date/utils';
+import {ALL_TIME_INTERVAL, getComparisonIntervals, sliceDate, unionAllIntervals, unionIntervals} from '../date/utils';
 import {getConfigPath, getReposPath} from '../file/paths';
 import {getConfigFile} from '../file/repo';
 import {
   AnalyzeRequest,
   AnalyzeResult,
-  ComparisonGranularity,
+  ComparisonIntervals,
+  ComparisonMode,
   DateInterval,
   Granularity,
   RepoConfig,
@@ -28,8 +31,8 @@ import {postProcessUserResults} from './analysis/utils';
 import {removeDuplicates} from '../arrays/utils';
 import {buildComparisonResults} from './analysis/comparison';
 
-export type NormalizedAnalyzeRequest = Required<Omit<AnalyzeRequest, 'comparisonGranularity'>> & {
-  readonly comparisonGranularity: ComparisonGranularity | undefined;
+export type NormalizedAnalyzeRequest = Required<Omit<AnalyzeRequest, 'comparisonMode'>> & {
+  readonly comparisonMode: ComparisonMode | undefined;
 };
 
 function getRepoResult(
@@ -239,7 +242,7 @@ function normalizeRequest(request: AnalyzeRequest): NormalizedAnalyzeRequest {
       : ALL_TIME_INTERVAL,
     includedRepoNames: request.includedRepoNames || getAvailableRepoNames(),
     granularity: request.granularity ?? 'day',
-    comparisonGranularity: request.comparisonGranularity,
+    comparisonMode: request.comparisonMode,
   };
 }
 
@@ -305,39 +308,52 @@ function computeAnalysisResultCore(
   };
 }
 
-function isAllTimeInterval(interval: DateInterval): boolean {
-  return (
-    interval.startDate === sliceDate(ALL_TIME_INTERVAL.startDate) &&
-    interval.endDate === sliceDate(ALL_TIME_INTERVAL.endDate)
-  );
+// Picks the reference date for slice computation: the eval window's end clamped
+// to today, so a window that extends "from X onwards" still uses today as the
+// reference and a window ending in the past uses its own end.
+function getReferenceDate(evalInterval: DateInterval): DateTime {
+  const today = DateTime.local().startOf('day');
+  const end = DateTime.fromISO(evalInterval.endDate);
+  return end.toMillis() === 0 || end > today ? today : end;
 }
 
 function computeAnalysisResult(request: NormalizedAnalyzeRequest): AnalyzeResult {
   const currentResult = computeAnalysisResultCore(request);
 
-  // If no comparison requested or using ALL_TIME interval, return without comparison
-  if (!request.comparisonGranularity || isAllTimeInterval(request.dateInterval)) {
+  // No comparison requested → return eval-window result as-is.
+  if (!request.comparisonMode) {
     return currentResult;
   }
 
-  // Compute comparison results for the previous period
-  const previousInterval = shiftIntervalBack(request.dateInterval, request.comparisonGranularity);
-  const previousRequest: NormalizedAnalyzeRequest = {
+  // Comparison runs on its own pair of calendar-aligned slice intervals,
+  // independent of the eval window. The eval window still drives cells/charts.
+  const referenceDate = getReferenceDate(request.dateInterval);
+  const comparisonIntervals: ComparisonIntervals = getComparisonIntervals(
+    referenceDate,
+    request.comparisonMode
+  );
+
+  const sliceCurrent = computeAnalysisResultCore({
     ...request,
-    dateInterval: previousInterval,
-    comparisonGranularity: undefined, // Don't recurse
-  };
-  const previousResult = computeAnalysisResultCore(previousRequest);
+    dateInterval: comparisonIntervals.current,
+    comparisonMode: undefined,
+  });
+  const slicePrevious = computeAnalysisResultCore({
+    ...request,
+    dateInterval: comparisonIntervals.previous,
+    comparisonMode: undefined,
+  });
 
   const comparisonResults: {[userId: string]: UserResultComparison} = buildComparisonResults(
-    currentResult.userResults,
-    previousResult.userResults
+    sliceCurrent.userResults,
+    slicePrevious.userResults
   );
 
   return {
     ...currentResult,
     comparisonResults,
-    comparisonGranularity: request.comparisonGranularity,
+    comparisonMode: request.comparisonMode,
+    comparisonIntervals,
   };
 }
 
