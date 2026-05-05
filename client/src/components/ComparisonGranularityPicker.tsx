@@ -13,9 +13,9 @@ type ComparisonOption = ComparisonMode | 'off';
 
 const COMPARISON_OPTIONS: ReadonlyArray<{value: ComparisonOption; label: string}> = [
   {value: 'off', label: 'Off'},
-  {value: 'qoq', label: 'Quarter over quarter'},
-  {value: 'qyoy', label: 'Quarter year over year'},
-  {value: 'yoy', label: 'Year over year'},
+  {value: 'qoq', label: 'Quarter over Quarter'},
+  {value: 'qyoy', label: 'Quarter Year over Year'},
+  {value: 'yoy', label: 'Year over Year'},
 ];
 
 function getComparisonLabel(value: ComparisonMode | undefined): string {
