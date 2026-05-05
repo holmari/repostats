@@ -324,7 +324,8 @@ function computeAnalysisResult(request: NormalizedAnalyzeRequest): AnalyzeResult
   const referenceDate = DateTime.local().startOf('day');
   const comparisonIntervals: ComparisonIntervals = getComparisonIntervals(
     referenceDate,
-    request.comparisonMode
+    request.comparisonMode,
+    request.dateInterval
   );
 
   const sliceCurrent = computeAnalysisResultCore({

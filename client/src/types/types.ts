@@ -97,7 +97,8 @@ export type Granularity = 'day' | 'week' | 'month' | 'quarter' | 'year';
 // QoQ:  last full quarter vs the immediately preceding quarter
 // QYoY: last full quarter vs the same quarter a year earlier
 // YoY:  last full year vs the immediately preceding year
-export type ComparisonMode = 'qoq' | 'qyoy' | 'yoy';
+// PoP:  the eval window itself vs the immediately preceding window of equal length
+export type ComparisonMode = 'qoq' | 'qyoy' | 'yoy' | 'pop';
 
 export interface ComparisonIntervals {
   readonly current: DateInterval;

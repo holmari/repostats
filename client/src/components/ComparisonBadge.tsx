@@ -24,6 +24,8 @@ function getModeLabel(mode: ComparisonMode): string {
       return 'Q-YoY';
     case 'yoy':
       return 'YoY';
+    case 'pop':
+      return 'PoP';
   }
 }
 

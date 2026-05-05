@@ -95,11 +95,12 @@ function asInterval(start: DateTime, end: DateTime): DateInterval {
   return {startDate: start.toISODate()!, endDate: end.toISODate()!};
 }
 
-// Calendar-aligned (current, previous) slice intervals for a comparison mode,
-// anchored to a reference date. Mirrors server/src/date/utils.getComparisonIntervals.
+// (current, previous) slice intervals for a comparison mode.
+// Mirrors server/src/date/utils.getComparisonIntervals.
 export function getComparisonIntervals(
   referenceDate: DateTime,
-  mode: ComparisonMode
+  mode: ComparisonMode,
+  evalInterval: DateInterval
 ): ComparisonIntervals {
   switch (mode) {
     case 'qoq': {
@@ -126,6 +127,17 @@ export function getComparisonIntervals(
       const prevEnd = last.start.minus({days: 1});
       return {
         current: asInterval(last.start, last.end),
+        previous: asInterval(prevStart, prevEnd),
+      };
+    }
+    case 'pop': {
+      const start = DateTime.fromISO(evalInterval.startDate);
+      const end = DateTime.fromISO(evalInterval.endDate);
+      const lengthDays = Math.round(end.diff(start, 'days').days);
+      const prevEnd = start.minus({days: 1});
+      const prevStart = prevEnd.minus({days: lengthDays});
+      return {
+        current: asInterval(start, end),
         previous: asInterval(prevStart, prevEnd),
       };
     }

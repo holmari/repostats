@@ -135,6 +135,7 @@ const AnalysisPage: React.FC = () => {
       <GranularityPicker granularity={granularity} onChange={changeGranularity} />
       <ComparisonGranularityPicker
         comparisonMode={comparisonMode}
+        dateInterval={dateInterval}
         onChange={changeComparisonMode}
       />
       <RepositoryPicker
