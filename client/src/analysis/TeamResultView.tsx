@@ -182,6 +182,16 @@ function aggregateTeamComparison(
     return undefined;
   }
 
+  // Median fields are intentionally NaN at the team level: a team median cannot be
+  // recomputed from per-user medians, and the server does not currently send the
+  // previous period's per-PR data needed to pool them. Cells that consume these
+  // fields should omit the comparison badge.
+  const unsupportedMedianComparison: MetricComparison = {
+    currentValue: NaN,
+    previousValue: NaN,
+    percentageChange: null,
+  };
+
   const authoredTotals: AuthoredTotalsComparison = {
     approvals: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.approvals)),
     rejections: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.rejections)),
@@ -189,10 +199,10 @@ function aggregateTeamComparison(
     commentsWrittenToOthers: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.commentsWrittenToOthers)),
     changesCreated: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.changesCreated)),
     commits: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.commits)),
-    medianChangeOpenTimeMsec: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.medianChangeOpenTimeMsec)),
+    medianChangeOpenTimeMsec: unsupportedMedianComparison,
     linesAdded: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.linesAdded)),
     linesDeleted: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.linesDeleted)),
-    medianCommitSize: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.medianCommitSize)),
+    medianCommitSize: unsupportedMedianComparison,
     distinctPRsCommentedOn: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.distinctPRsCommentedOn)),
   };
 
@@ -557,14 +567,9 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
             dateInterval={fullResult.requestedInterval}
           />
           <ValueCell
-            tooltip="Median time changes have been open until merged (team median)."
+            tooltip="Median time changes have been open until merged (team median). Period-over-period comparison isn't available for team-level medians."
             title="Median time in review"
             value={formatTimeInHours(authoredTotals.medianChangeOpenTimeMsec)}
-            comparison={comparison?.authoredTotals.medianChangeOpenTimeMsec}
-            comparisonPolarity={AUTHORED_METRIC_POLARITY.medianChangeOpenTimeMsec}
-            comparisonGranularity={comparisonGranularity}
-            dateInterval={fullResult.requestedInterval}
-            formatComparisonValue={formatTimeInHours}
             cornerContent={
               <>
                 <div>p25: {formatTimeInHours(authoredTotals.p25ChangeOpenTimeMsec)}</div>
@@ -574,13 +579,9 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
             }
           />
           <ValueCell
-            tooltip="Median number of lines changed (added + deleted) per commit (team median)."
+            tooltip="Median number of lines changed (added + deleted) per commit (team median). Period-over-period comparison isn't available for team-level medians."
             title="Median commit size"
             value={formatCommitSize(authoredTotals.medianCommitSize)}
-            comparison={comparison?.authoredTotals.medianCommitSize}
-            comparisonPolarity={AUTHORED_METRIC_POLARITY.medianCommitSize}
-            comparisonGranularity={comparisonGranularity}
-            dateInterval={fullResult.requestedInterval}
           />
           <ValueCell
             tooltip="Comments authored to others per distinct PR reviewed (team average)."
