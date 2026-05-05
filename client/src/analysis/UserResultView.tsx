@@ -34,6 +34,13 @@ function formatCommitSize(lines: number): string {
   return Math.round(lines).toLocaleString();
 }
 
+function formatRatio(value: number): string {
+  if (isNaN(value) || !isFinite(value)) {
+    return '-';
+  }
+  return value.toFixed(1);
+}
+
 const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
   const authoredTotals = user.aggregatedAuthoredTotals;
   const receivedTotals = user.aggregatedReceivedTotals;
@@ -135,6 +142,7 @@ const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
             comparisonPolarity={AUTHORED_METRIC_POLARITY.medianChangeOpenTimeMsec}
             comparisonGranularity={comparisonGranularity}
             dateInterval={fullResult.requestedInterval}
+            formatComparisonValue={formatTimeInHours}
             cornerContent={
               <>
                 <div>p25: {formatTimeInHours(authoredTotals.p25ChangeOpenTimeMsec)}</div>
@@ -156,6 +164,7 @@ const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
             comparisonPolarity={AUTHORED_METRIC_POLARITY.commentsWrittenToOthers}
             comparisonGranularity={comparisonGranularity}
             dateInterval={fullResult.requestedInterval}
+            formatComparisonValue={formatRatio}
           />
         </Panel>
 
@@ -207,6 +216,7 @@ const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
             comparisonPolarity={RECEIVED_METRIC_POLARITY.commentsTotal}
             comparisonGranularity={comparisonGranularity}
             dateInterval={fullResult.requestedInterval}
+            formatComparisonValue={formatRatio}
           />
           <ValueCell
             tooltip="The ratio of comments the user received and the commits the user created."
@@ -219,6 +229,7 @@ const UserResultView: React.FC<Props> = ({className, fullResult, user}) => {
             comparisonPolarity={RECEIVED_METRIC_POLARITY.commentsTotal}
             comparisonGranularity={comparisonGranularity}
             dateInterval={fullResult.requestedInterval}
+            formatComparisonValue={formatRatio}
           />
         </Panel>
         <Panel title="Timeline" size="third">

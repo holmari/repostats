@@ -60,6 +60,13 @@ function formatCommitSize(lines: number): string {
   return Math.round(lines).toLocaleString();
 }
 
+function formatRatio(value: number): string {
+  if (isNaN(value) || !isFinite(value)) {
+    return '-';
+  }
+  return value.toFixed(1);
+}
+
 function aggregateAuthoredTotals(members: ReadonlyArray<UserResult>): AuthoredTotals {
   let approvals = 0;
   let rejections = 0;
@@ -557,6 +564,7 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
             comparisonPolarity={AUTHORED_METRIC_POLARITY.medianChangeOpenTimeMsec}
             comparisonGranularity={comparisonGranularity}
             dateInterval={fullResult.requestedInterval}
+            formatComparisonValue={formatTimeInHours}
             cornerContent={
               <>
                 <div>p25: {formatTimeInHours(authoredTotals.p25ChangeOpenTimeMsec)}</div>
@@ -587,6 +595,7 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
             comparisonPolarity={AUTHORED_METRIC_POLARITY.commentsWrittenToOthers}
             comparisonGranularity={comparisonGranularity}
             dateInterval={fullResult.requestedInterval}
+            formatComparisonValue={formatRatio}
           />
         </Panel>
 
@@ -638,6 +647,7 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
             comparisonPolarity={RECEIVED_METRIC_POLARITY.commentsTotal}
             comparisonGranularity={comparisonGranularity}
             dateInterval={fullResult.requestedInterval}
+            formatComparisonValue={formatRatio}
           />
           <ValueCell
             tooltip="Comments received per commit (team average)."
@@ -650,6 +660,7 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
             comparisonPolarity={RECEIVED_METRIC_POLARITY.commentsTotal}
             comparisonGranularity={comparisonGranularity}
             dateInterval={fullResult.requestedInterval}
+            formatComparisonValue={formatRatio}
           />
         </Panel>
 

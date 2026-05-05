@@ -20,7 +20,20 @@ function getGranularityLabel(granularity: ComparisonGranularity): string {
   return granularity === 'year' ? 'YoY' : 'QoQ';
 }
 
-const ComparisonBadge: React.FC<Props> = ({comparison, polarity, granularity, dateInterval}) => {
+function defaultFormatComparisonValue(value: number): string {
+  if (Number.isNaN(value) || !Number.isFinite(value)) {
+    return '-';
+  }
+  return Math.round(value).toLocaleString();
+}
+
+const ComparisonBadge: React.FC<Props> = ({
+  comparison,
+  polarity,
+  granularity,
+  dateInterval,
+  formatComparisonValue = defaultFormatComparisonValue,
+}) => {
   const quality = getChangeQuality(comparison.percentageChange, polarity);
   const label = `${formatPercentageChange(comparison.percentageChange)} ${getGranularityLabel(granularity)}`;
 
@@ -35,12 +48,22 @@ const ComparisonBadge: React.FC<Props> = ({comparison, polarity, granularity, da
   }
 
   const previousInterval = shiftIntervalBack(dateInterval, granularity);
-  const tooltipText = `vs ${formatInterval(previousInterval)}`;
+  const previousFormatted = formatComparisonValue(comparison.previousValue);
+  const currentFormatted = formatComparisonValue(comparison.currentValue);
+
+  const tooltipContent = (
+    <>
+      <div>vs {formatInterval(previousInterval)}</div>
+      <div>
+        {previousFormatted} → {currentFormatted}
+      </div>
+    </>
+  );
 
   return (
     <OverlayTrigger
       placement="top"
-      overlay={<Tooltip id="comparison-tooltip">{tooltipText}</Tooltip>}
+      overlay={<Tooltip id="comparison-tooltip">{tooltipContent}</Tooltip>}
     >
       {badge}
     </OverlayTrigger>
@@ -53,6 +76,7 @@ interface Props {
   polarity: MetricPolarity;
   granularity: ComparisonGranularity;
   dateInterval?: DateInterval;
+  formatComparisonValue?: (value: number) => string;
 }
 
 export default ComparisonBadge;

@@ -37,6 +37,7 @@ const ValueCell: React.FC<Props> = ({
   cornerContent,
   dateInterval,
   fontSize,
+  formatComparisonValue,
   size = 'normal',
   title,
   tooltip,
@@ -63,6 +64,7 @@ const ValueCell: React.FC<Props> = ({
               polarity={comparisonPolarity}
               granularity={comparisonGranularity}
               dateInterval={dateInterval}
+              formatComparisonValue={formatComparisonValue}
             />
           )}
         </div>
@@ -81,6 +83,7 @@ interface Props {
   cornerContent?: React.ReactNode;
   dateInterval?: DateInterval;
   fontSize?: 'small' | 'normal';
+  formatComparisonValue?: (value: number) => string;
   size?: 'normal' | 'wide' | 'x-wide';
   title: string;
   tooltip: React.ReactNode;
