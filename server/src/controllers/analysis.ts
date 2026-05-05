@@ -308,15 +308,6 @@ function computeAnalysisResultCore(
   };
 }
 
-// Picks the reference date for slice computation: the eval window's end clamped
-// to today, so a window that extends "from X onwards" still uses today as the
-// reference and a window ending in the past uses its own end.
-function getReferenceDate(evalInterval: DateInterval): DateTime {
-  const today = DateTime.local().startOf('day');
-  const end = DateTime.fromISO(evalInterval.endDate);
-  return end.toMillis() === 0 || end > today ? today : end;
-}
-
 function computeAnalysisResult(request: NormalizedAnalyzeRequest): AnalyzeResult {
   const currentResult = computeAnalysisResultCore(request);
 
@@ -326,8 +317,11 @@ function computeAnalysisResult(request: NormalizedAnalyzeRequest): AnalyzeResult
   }
 
   // Comparison runs on its own pair of calendar-aligned slice intervals,
-  // independent of the eval window. The eval window still drives cells/charts.
-  const referenceDate = getReferenceDate(request.dateInterval);
+  // independent of the eval window. The reference date is always today, not the
+  // eval window's end — "last full quarter" should mean the most recent fully
+  // completed quarter as of now, regardless of what data interval the user
+  // happens to be looking at (which may be a stale trailing-preset cookie).
+  const referenceDate = DateTime.local().startOf('day');
   const comparisonIntervals: ComparisonIntervals = getComparisonIntervals(
     referenceDate,
     request.comparisonMode
@@ -383,9 +377,16 @@ function buildCacheKey(request: NormalizedAnalyzeRequest): object {
     }
   }
 
+  // When a comparison is requested, the slice intervals depend on today's date,
+  // not just the request — include today so the cache invalidates at day boundaries.
+  const comparisonAnchor = request.comparisonMode
+    ? DateTime.local().toISODate()
+    : undefined;
+
   return {
     ...request,
     _repoExclusions: repoExclusions,
+    _comparisonAnchor: comparisonAnchor,
   };
 }
 

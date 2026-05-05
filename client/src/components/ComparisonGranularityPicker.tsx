@@ -5,7 +5,7 @@ import React, {useState} from 'react';
 import {OverlayTrigger} from 'react-bootstrap';
 import Popover from 'react-bootstrap/Popover';
 
-import {ComparisonMode, DateInterval} from 'types/types';
+import {ComparisonMode} from 'types/types';
 import {formatInterval, getComparisonIntervals} from 'date/utils';
 import TopBarButton from './TopBarButton';
 
@@ -25,31 +25,15 @@ function getComparisonLabel(value: ComparisonMode | undefined): string {
   return COMPARISON_OPTIONS.find((opt) => opt.value === value)?.label ?? 'Off';
 }
 
-function getReferenceDate(dateInterval: DateInterval | undefined): DateTime {
-  const today = DateTime.local().startOf('day');
-  if (!dateInterval) {
-    return today;
-  }
-  const end = DateTime.fromISO(dateInterval.endDate);
-  return end.toMillis() === 0 || end > today ? today : end;
-}
-
-function getComparisonTooltip(
-  dateInterval: DateInterval | undefined,
-  comparisonMode: ComparisonMode | undefined
-): string | null {
+function getComparisonTooltip(comparisonMode: ComparisonMode | undefined): string | null {
   if (!comparisonMode) {
     return null;
   }
-  const intervals = getComparisonIntervals(getReferenceDate(dateInterval), comparisonMode);
+  const intervals = getComparisonIntervals(DateTime.local().startOf('day'), comparisonMode);
   return `${formatInterval(intervals.current)} vs ${formatInterval(intervals.previous)}`;
 }
 
-const ComparisonGranularityPicker: React.FC<Props> = ({
-  comparisonMode,
-  dateInterval,
-  onChange,
-}) => {
+const ComparisonGranularityPicker: React.FC<Props> = ({comparisonMode, onChange}) => {
   const [isPopoverOpen, setPopoverOpen] = useState(false);
 
   const handleSelect = (value: ComparisonOption) => {
@@ -58,7 +42,7 @@ const ComparisonGranularityPicker: React.FC<Props> = ({
   };
 
   const currentValue: ComparisonOption = comparisonMode ?? 'off';
-  const tooltipText = getComparisonTooltip(dateInterval, comparisonMode);
+  const tooltipText = getComparisonTooltip(comparisonMode);
 
   const popover = (
     <Popover id="comparison-granularity-popover" placement="top-start">
@@ -105,7 +89,6 @@ ComparisonGranularityPicker.displayName = 'ComparisonGranularityPicker';
 
 interface Props {
   comparisonMode: ComparisonMode | undefined;
-  dateInterval?: DateInterval;
   onChange: (mode: ComparisonMode | undefined) => void;
 }
 
