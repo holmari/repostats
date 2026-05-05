@@ -2,6 +2,7 @@ import {
   AuthoredTotals,
   AuthoredTotalsComparison,
   MetricComparison,
+  PreviousChangeSample,
   ReceivedTotals,
   ReceivedTotalsComparison,
   UserResult,
@@ -105,10 +106,16 @@ export function compareUserResult(
 ): UserResultComparison {
   const previousAuthored = previous?.aggregatedAuthoredTotals ?? createEmptyAuthoredTotals();
   const previousReceived = previous?.aggregatedReceivedTotals ?? createEmptyReceivedTotals();
+  const previousAuthoredChangeSamples: ReadonlyArray<PreviousChangeSample> =
+    previous?.changesAuthored.map((change) => ({
+      timeOpenMsec: change.timeOpenMsec,
+      linesChanged: change.linesChanged,
+    })) ?? [];
 
   return {
     authoredTotals: compareAuthoredTotals(current.aggregatedAuthoredTotals, previousAuthored),
     receivedTotals: compareReceivedTotals(current.aggregatedReceivedTotals, previousReceived),
+    previousAuthoredChangeSamples,
   };
 }
 

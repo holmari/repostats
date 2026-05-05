@@ -124,9 +124,19 @@ export interface ReceivedTotalsComparison {
   readonly reviewRequests: MetricComparison;
 }
 
+// Per-PR samples from the previous comparison period. Used so that team-level
+// median metrics (e.g. median time in review, median commit size) can be pooled
+// across members on the client — sums of per-user medians don't yield a team
+// median.
+export interface PreviousChangeSample {
+  readonly timeOpenMsec: number;
+  readonly linesChanged: number | null;
+}
+
 export interface UserResultComparison {
   readonly authoredTotals: AuthoredTotalsComparison;
   readonly receivedTotals: ReceivedTotalsComparison;
+  readonly previousAuthoredChangeSamples: ReadonlyArray<PreviousChangeSample>;
 }
 
 export interface AnalyzeRequest {

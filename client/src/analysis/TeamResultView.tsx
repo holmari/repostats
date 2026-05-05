@@ -166,6 +166,21 @@ function sumMetricComparisons(comparisons: ReadonlyArray<MetricComparison>): Met
   return {currentValue, previousValue, percentageChange};
 }
 
+function pooledMedianComparison(
+  currentSamples: ReadonlyArray<number>,
+  previousSamples: ReadonlyArray<number>
+): MetricComparison {
+  const currentSorted = [...currentSamples].sort((a, b) => a - b);
+  const previousSorted = [...previousSamples].sort((a, b) => a - b);
+  const currentValue = computePercentile(currentSorted, 50);
+  const previousValue = computePercentile(previousSorted, 50);
+  const previousIsValid = !isNaN(previousValue) && previousValue !== 0;
+  const percentageChange = previousIsValid
+    ? ((currentValue - previousValue) / previousValue) * 100
+    : null;
+  return {currentValue, previousValue, percentageChange};
+}
+
 function aggregateTeamComparison(
   members: ReadonlyArray<UserResult>,
   comparisonResults: {readonly [userId: string]: UserResultComparison} | undefined
@@ -182,15 +197,24 @@ function aggregateTeamComparison(
     return undefined;
   }
 
-  // Median fields are intentionally NaN at the team level: a team median cannot be
-  // recomputed from per-user medians, and the server does not currently send the
-  // previous period's per-PR data needed to pool them. Cells that consume these
-  // fields should omit the comparison badge.
-  const unsupportedMedianComparison: MetricComparison = {
-    currentValue: NaN,
-    previousValue: NaN,
-    percentageChange: null,
-  };
+  // Pool every team member's previous-period PR samples so we can compute
+  // a true team-level median for the previous period (sums of per-user medians
+  // would not yield a team median).
+  const previousSamples = memberComparisons.flatMap((c) => c.previousAuthoredChangeSamples);
+  const previousChangeOpenTimes = previousSamples.map((s) => s.timeOpenMsec);
+  const previousLinesChanged = previousSamples
+    .map((s) => s.linesChanged)
+    .filter((v): v is number => v !== null);
+
+  // Pool current-period samples from the team members' raw PR list — same as
+  // aggregateAuthoredTotals does, so the comparison's currentValue matches the
+  // displayed cell value exactly.
+  const currentChangeOpenTimes = members.flatMap((m) =>
+    m.changesAuthored.map((c) => c.timeOpenMsec)
+  );
+  const currentLinesChanged = members.flatMap((m) =>
+    m.changesAuthored.map((c) => c.linesChanged).filter((v): v is number => v !== null)
+  );
 
   const authoredTotals: AuthoredTotalsComparison = {
     approvals: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.approvals)),
@@ -199,10 +223,13 @@ function aggregateTeamComparison(
     commentsWrittenToOthers: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.commentsWrittenToOthers)),
     changesCreated: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.changesCreated)),
     commits: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.commits)),
-    medianChangeOpenTimeMsec: unsupportedMedianComparison,
+    medianChangeOpenTimeMsec: pooledMedianComparison(
+      currentChangeOpenTimes,
+      previousChangeOpenTimes
+    ),
     linesAdded: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.linesAdded)),
     linesDeleted: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.linesDeleted)),
-    medianCommitSize: unsupportedMedianComparison,
+    medianCommitSize: pooledMedianComparison(currentLinesChanged, previousLinesChanged),
     distinctPRsCommentedOn: sumMetricComparisons(memberComparisons.map((c) => c.authoredTotals.distinctPRsCommentedOn)),
   };
 
@@ -214,7 +241,9 @@ function aggregateTeamComparison(
     reviewRequests: sumMetricComparisons(memberComparisons.map((c) => c.receivedTotals.reviewRequests)),
   };
 
-  return {authoredTotals, receivedTotals};
+  // Pooled previous-period samples are no longer needed once the team comparison
+  // has been built; expose an empty list to satisfy the type.
+  return {authoredTotals, receivedTotals, previousAuthoredChangeSamples: []};
 }
 
 function aggregateTimeSeries(
@@ -567,9 +596,14 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
             dateInterval={fullResult.requestedInterval}
           />
           <ValueCell
-            tooltip="Median time changes have been open until merged (team median). Period-over-period comparison isn't available for team-level medians."
+            tooltip="Median time changes have been open until merged (team median)."
             title="Median time in review"
             value={formatTimeInHours(authoredTotals.medianChangeOpenTimeMsec)}
+            comparison={comparison?.authoredTotals.medianChangeOpenTimeMsec}
+            comparisonPolarity={AUTHORED_METRIC_POLARITY.medianChangeOpenTimeMsec}
+            comparisonGranularity={comparisonGranularity}
+            dateInterval={fullResult.requestedInterval}
+            formatComparisonValue={formatTimeInHours}
             cornerContent={
               <>
                 <div>p25: {formatTimeInHours(authoredTotals.p25ChangeOpenTimeMsec)}</div>
@@ -579,9 +613,14 @@ const TeamResultView: React.FC<Props> = ({className, team, members, fullResult})
             }
           />
           <ValueCell
-            tooltip="Median number of lines changed (added + deleted) per commit (team median). Period-over-period comparison isn't available for team-level medians."
+            tooltip="Median number of lines changed (added + deleted) per commit (team median)."
             title="Median commit size"
             value={formatCommitSize(authoredTotals.medianCommitSize)}
+            comparison={comparison?.authoredTotals.medianCommitSize}
+            comparisonPolarity={AUTHORED_METRIC_POLARITY.medianCommitSize}
+            comparisonGranularity={comparisonGranularity}
+            dateInterval={fullResult.requestedInterval}
+            formatComparisonValue={formatCommitSize}
           />
           <ValueCell
             tooltip="Comments authored to others per distinct PR reviewed (team average)."
